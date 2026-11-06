@@ -1,0 +1,13 @@
+packages:
+  - web
+  - infra
+
+catalog:
+  '@types/node': ^24.19.2
+  typescript: ~7.0.2
+
+allowBuilds:
+  esbuild: false
+
+minimumReleaseAge: 10080
+trustPolicy: no-downgrade
