@@ -2,6 +2,18 @@
 
 Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Each entry starts with the version and its commit message, followed by a description of what changed.
 
+## 0.3.0 - feat: deploy frontend to CloudFront with CDK
+
+Released 2026-11-09.
+
+- Added a CDK stack that hosts the web app on CloudFront. `pnpm cdk deploy` uploads the current `web/dist`, so run `pnpm build` first.
+- The files live in a private S3 bucket. Only this CloudFront distribution can read it, through Origin Access Control, and any request without HTTPS is denied.
+- HTTP requests are redirected to HTTPS.
+- Added a CloudFront Function that serves `index.html` for paths without a file extension, so refreshing `/login` or `/register` works.
+- Added security headers: a Content Security Policy, HSTS, `nosniff` and a strict referrer policy. Inline styles are allowed because Mantine injects them, while scripts are limited to the app's own files.
+- Hashed files in `assets/` are cached for a year. `index.html` is revalidated on every visit and invalidated in CloudFront after each deploy, so a new version shows up right away.
+- `cdk destroy` removes the bucket together with its files, so the whole stack can be torn down and recreated from code.
+
 ## 0.2.0 - feat: add auth screens with theme and language switch
 
 Released 2026-11-06.
