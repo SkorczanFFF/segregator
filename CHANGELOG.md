@@ -2,6 +2,17 @@
 
 Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Each entry starts with the version and its commit message, followed by a description of what changed.
 
+## 0.4.0 - feat: add Hono API on Lambda behind CloudFront
+
+Released 2026-11-09.
+
+- Added the `api` package: a Hono app on AWS Lambda (Node.js 24, ARM) with a `GET /api/health` endpoint.
+- Unknown paths and unexpected errors return JSON error codes (`not_found`, `internal_error`) instead of text, so the web app can translate them.
+- Added an API Gateway HTTP API in front of the function. It accepts 5 requests per second with bursts of 10, which caps the cost of a bot or a client-side loop.
+- CloudFront serves the API under `/api/*` on the same domain as the web app, so no CORS setup is needed. API responses are never cached, all viewer headers except `Host` are forwarded, and only HTTPS is accepted.
+- API logs are kept for 30 days and removed together with the stack.
+- Moved esbuild to the workspace root, because CDK bundles the function from there.
+
 ## 0.3.0 - feat: deploy frontend to CloudFront with CDK
 
 Released 2026-11-09.

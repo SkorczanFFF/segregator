@@ -1,6 +1,7 @@
 packages:
   - web
   - infra
+  - api
 
 catalog:
   '@types/node': ^24.19.2

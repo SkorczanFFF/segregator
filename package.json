@@ -1,6 +1,6 @@
 {
   "name": "segregator",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "private": true,
   "packageManager": "pnpm@11.28.8",
   "engines": {
@@ -13,6 +13,7 @@
     "cdk": "pnpm --filter infra exec cdk"
   },
   "devDependencies": {
+    "esbuild": "^0.28.2",
     "oxlint": "^1.89.0"
   }
 }

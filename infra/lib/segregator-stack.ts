@@ -1,12 +1,18 @@
 import { fileURLToPath } from 'node:url'
-import { CfnOutput, Duration, RemovalPolicy, Stack, type StackProps } from 'aws-cdk-lib/core'
+import { CfnOutput, Duration, Fn, RemovalPolicy, Stack, type StackProps } from 'aws-cdk-lib/core'
+import { HttpApi } from 'aws-cdk-lib/aws-apigatewayv2'
+import { HttpLambdaIntegration } from 'aws-cdk-lib/aws-apigatewayv2-integrations'
 import * as cloudfront from 'aws-cdk-lib/aws-cloudfront'
-import { S3BucketOrigin } from 'aws-cdk-lib/aws-cloudfront-origins'
+import { HttpOrigin, S3BucketOrigin } from 'aws-cdk-lib/aws-cloudfront-origins'
+import * as lambda from 'aws-cdk-lib/aws-lambda'
+import * as nodejs from 'aws-cdk-lib/aws-lambda-nodejs'
+import * as logs from 'aws-cdk-lib/aws-logs'
 import * as s3 from 'aws-cdk-lib/aws-s3'
 import * as s3deploy from 'aws-cdk-lib/aws-s3-deployment'
 import type { Construct } from 'constructs'
 
 const WEB_DIST = fileURLToPath(new URL('../../web/dist', import.meta.url))
+const API_ENTRY = fileURLToPath(new URL('../../api/src/index.ts', import.meta.url))
 
 // Paths without a file extension belong to the client-side router.
 const SPA_REWRITE = `function handler(event) {
@@ -52,6 +58,28 @@ export class SegregatorStack extends Stack {
       },
     })
 
+    const apiFunction = new nodejs.NodejsFunction(this, 'ApiFunction', {
+      entry: API_ENTRY,
+      runtime: lambda.Runtime.NODEJS_24_X,
+      architecture: lambda.Architecture.ARM_64,
+      bundling: { format: nodejs.OutputFormat.ESM, minify: true },
+      logGroup: new logs.LogGroup(this, 'ApiLogs', {
+        retention: logs.RetentionDays.ONE_MONTH,
+        removalPolicy: RemovalPolicy.DESTROY,
+      }),
+    })
+
+    const api = new HttpApi(this, 'Api', {
+      defaultIntegration: new HttpLambdaIntegration('ApiIntegration', apiFunction),
+      createDefaultStage: false,
+    })
+    api.addStage('DefaultStage', {
+      stageName: '$default',
+      autoDeploy: true,
+      // Cost cap for bots and client-side loops. One person never needs more.
+      throttle: { rateLimit: 5, burstLimit: 10 },
+    })
+
     const distribution = new cloudfront.Distribution(this, 'WebDistribution', {
       defaultRootObject: 'index.html',
       priceClass: cloudfront.PriceClass.PRICE_CLASS_100,
@@ -68,6 +96,17 @@ export class SegregatorStack extends Stack {
             }),
           },
         ],
+      },
+      additionalBehaviors: {
+        // No SPA rewrite here: API paths have no file extension either.
+        '/api/*': {
+          origin: new HttpOrigin(Fn.select(2, Fn.split('/', api.apiEndpoint))),
+          viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.HTTPS_ONLY,
+          allowedMethods: cloudfront.AllowedMethods.ALLOW_ALL,
+          cachePolicy: cloudfront.CachePolicy.CACHING_DISABLED,
+          originRequestPolicy: cloudfront.OriginRequestPolicy.ALL_VIEWER_EXCEPT_HOST_HEADER,
+          responseHeadersPolicy: headers,
+        },
       },
     })
 
