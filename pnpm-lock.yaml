@@ -55,6 +55,9 @@ importers:
       aws-cdk:
         specifier: ^2.1146.0
         version: 2.1146.1
+      cdk-assets:
+        specifier: ^4.8.0
+        version: 4.8.0
       tsx:
         specifier: ^4.23.0
         version: 4.23.15
@@ -754,6 +757,11 @@ packages:
 
   aws-cdk@2.1146.1:
     resolution: {integrity: sha512-Sb3RHuPt8yLP4BPFNl+D2li5wI9h4UL/+NYVq8FCxmDfUJwayzEOc/Tgb4wcixB8naOmPOLzhWkdbFx17tuhSg==}
+    engines: {node: '>= 18.0.0'}
+    hasBin: true
+
+  cdk-assets@4.8.0:
+    resolution: {integrity: sha512-2LkNgSXBhrOVAY5KnMQVuSsXUoqSeNAb0epatmkd0ZsHlGXinAWX8XLNX1P96tezqrNs5tSZtDiwP4cgIJQPmg==}
     engines: {node: '>= 18.0.0'}
     hasBin: true
 
@@ -1468,6 +1476,8 @@ snapshots:
       constructs: 10.8.1
 
   aws-cdk@2.1146.1: {}
+
+  cdk-assets@4.8.0: {}
 
   clsx@2.1.1: {}
 

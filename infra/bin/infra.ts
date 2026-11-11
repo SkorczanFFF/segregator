@@ -1,6 +1,9 @@
 #!/usr/bin/env node
 import { App } from 'aws-cdk-lib/core'
-import { SegregatorStack } from '../lib/segregator-stack.ts'
+import { PipelineStack } from '../lib/pipeline-stack.ts'
 
 const app = new App()
-new SegregatorStack(app, 'SegregatorStack')
+new PipelineStack(app, 'SegregatorPipeline', {
+  // Taken from the active AWS credentials, so the account ID stays out of the repo.
+  env: { account: process.env.CDK_DEFAULT_ACCOUNT, region: process.env.CDK_DEFAULT_REGION },
+})

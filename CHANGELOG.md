@@ -2,6 +2,16 @@
 
 Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Each entry starts with the version and its commit message, followed by a description of what changed.
 
+## 0.5.0 - feat: deploy through CodePipeline with dev and prod stages
+
+Released 2026-11-11.
+
+- Added a self-updating CodePipeline that builds `main` and deploys it to a `dev` stage, then to `prod` after a manual approval.
+- The pipeline pulls the code through a CodeConnections GitHub app, so GitHub holds no AWS credentials. GitHub OIDC is not an option, because the account's AWS-managed service control policy blocks IAM identity providers.
+- The single `SegregatorStack` is replaced by `dev-Segregator` and `prod-Segregator`, each with its own CloudFront URL.
+- CodeBuild installs `aws-cdk` and `cdk-assets` at the versions from the lockfile instead of the latest release, so the 7-day release age policy covers them too.
+- Assets are published by one CodeBuild action and stacks deploy without separate change set actions, which keeps the billed pipeline minutes low.
+
 ## 0.4.0 - feat: add Hono API on Lambda behind CloudFront
 
 Released 2026-11-09.
