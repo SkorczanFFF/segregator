@@ -93,6 +93,8 @@ export const pl = {
     title: 'Twoje konto',
     signedInAs: 'Zalogowano jako {{email}}',
     signOut: 'Wyloguj się',
+    signOutEverywhere: 'Wyloguj ze wszystkich urządzeń',
+    signOutEverywhereHint: 'Kończy sesje na wszystkich urządzeniach, także na tym. Przydaje się po zalogowaniu na cudzym komputerze.',
   },
   errors: {
     invalid_input: 'Sprawdź wpisane dane.',
@@ -103,6 +105,7 @@ export const pl = {
     weak_password: 'Hasło nie spełnia wymagań.',
     too_many_requests: 'Za dużo prób. Spróbuj ponownie za chwilę.',
     unauthorized: 'Sesja wygasła. Zaloguj się ponownie.',
+    forbidden: 'Brak dostępu.',
     not_found: 'Nie znaleziono.',
     internal_error: 'Coś poszło nie tak. Spróbuj ponownie.',
     network_error: 'Brak połączenia z serwerem.',

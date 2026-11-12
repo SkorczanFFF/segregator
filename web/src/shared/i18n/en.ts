@@ -93,6 +93,8 @@ export const en: Translation = {
     title: 'Your account',
     signedInAs: 'Signed in as {{email}}',
     signOut: 'Sign out',
+    signOutEverywhere: 'Sign out on all devices',
+    signOutEverywhereHint: "Ends the sessions on every device, this one included. Useful after signing in on someone else's computer.",
   },
   errors: {
     invalid_input: 'Check the details you entered.',
@@ -103,6 +105,7 @@ export const en: Translation = {
     weak_password: "The password doesn't meet the requirements.",
     too_many_requests: 'Too many attempts. Try again in a moment.',
     unauthorized: 'Your session has expired. Sign in again.',
+    forbidden: 'Access denied.',
     not_found: 'Not found.',
     internal_error: 'Something went wrong. Try again.',
     network_error: "Can't reach the server.",

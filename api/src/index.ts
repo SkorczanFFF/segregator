@@ -1,5 +1,7 @@
 import { Hono } from 'hono'
 import { handle } from '@hono/aws-lambda'
+import { csrf } from 'hono/csrf'
+import { HTTPException } from 'hono/http-exception'
 import { auth } from './auth.ts'
 import { readSession, type Env } from './session.ts'
 
@@ -17,6 +19,10 @@ const PUBLIC_PATHS = new Set([
   '/api/auth/logout',
 ])
 
+// Rejects writes that a page on another site can send without CORS, such as a form post.
+// Browsers mark those with Sec-Fetch-Site; the SameSite=Strict cookie already stops most of them.
+app.use(csrf())
+
 app.use(async (c, next) => {
   if (PUBLIC_PATHS.has(c.req.path)) return next()
   const session = await readSession(c)
@@ -31,6 +37,7 @@ app.route('/auth', auth)
 // The API answers with error codes; the web app translates them.
 app.notFound((c) => c.json({ error: 'not_found' }, 404))
 app.onError((err, c) => {
+  if (err instanceof HTTPException && err.status === 403) return c.json({ error: 'forbidden' }, 403)
   console.error(err)
   return c.json({ error: 'internal_error' }, 500)
 })

@@ -10,21 +10,37 @@ export default function AccountPage() {
   const { t } = useTranslation()
   const navigate = useNavigate()
   const { user, setUser } = useSession()
-  const { submit: signOut, pending, error } = useApiSubmit(async () => {
-    await api.post('/auth/logout')
+  const signOutVia = (path: string) => async () => {
+    await api.post(path)
     // Both updates land in one render, so the session gate lets the entry page through.
     setUser(null)
     navigate('/', { replace: true })
-  })
+  }
+  const signOut = useApiSubmit(signOutVia('/auth/logout'))
+  const signOutEverywhere = useApiSubmit(signOutVia('/auth/logout-all'))
+  const error = signOut.error ?? signOutEverywhere.error
 
   return (
     <AuthScreen title={t('account.title')} google={false}>
       <Stack gap="md">
         <Text>{t('account.signedInAs', { email: user?.email ?? '' })}</Text>
         {error && <Alert color="red">{t(`errors.${error}`)}</Alert>}
-        <Button variant="light" fullWidth loading={pending} onClick={() => void signOut(undefined)}>
+        <Button variant="light" fullWidth loading={signOut.pending} onClick={() => void signOut.submit(undefined)}>
           {t('account.signOut')}
         </Button>
+        <Stack gap={6}>
+          <Button
+            variant="default"
+            fullWidth
+            loading={signOutEverywhere.pending}
+            onClick={() => void signOutEverywhere.submit(undefined)}
+          >
+            {t('account.signOutEverywhere')}
+          </Button>
+          <Text size="sm" c="dimmed">
+            {t('account.signOutEverywhereHint')}
+          </Text>
+        </Stack>
       </Stack>
     </AuthScreen>
   )

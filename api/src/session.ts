@@ -1,10 +1,14 @@
 import { createHash, randomBytes } from 'node:crypto'
 import {
+  BatchWriteItemCommand,
   DeleteItemCommand,
   DynamoDBClient,
   GetItemCommand,
   PutItemCommand,
+  QueryCommand,
   UpdateItemCommand,
+  type AttributeValue,
+  type WriteRequest,
 } from '@aws-sdk/client-dynamodb'
 import type { Context } from 'hono'
 import { deleteCookie, getCookie, setCookie } from 'hono/cookie'
@@ -13,7 +17,7 @@ export type Session = { sub: string; email: string }
 export type Env = { Variables: { session: Session } }
 
 const db = new DynamoDBClient({})
-const TABLE = process.env.TABLE_NAME
+const TABLE = process.env.TABLE_NAME ?? ''
 const COOKIE = 'session'
 const DAY = 24 * 60 * 60
 const IDLE_LIMIT = 7 * DAY
@@ -27,6 +31,9 @@ const key = (id: string) => ({
   SK: { S: 'SESSION' },
 })
 
+// Index key that lists one user's sessions, so all of them can be ended at once.
+const userSessions = (sub: string) => ({ S: `USER#${sub}#SESSIONS` })
+
 export async function createSession(c: Context, session: Session) {
   const id = randomBytes(32).toString('base64url')
   const createdAt = now()
@@ -38,6 +45,8 @@ export async function createSession(c: Context, session: Session) {
         sub: { S: session.sub },
         email: { S: session.email },
         createdAt: { N: String(createdAt) },
+        GSI1PK: userSessions(session.sub),
+        GSI1SK: { S: String(createdAt) },
         // Also the TTL attribute, so DynamoDB removes expired sessions for free.
         expiresAt: { N: String(createdAt + IDLE_LIMIT) },
       },
@@ -86,4 +95,30 @@ export async function deleteSession(c: Context) {
     await db.send(new DeleteItemCommand({ TableName: TABLE, Key: key(id) }))
   }
   deleteCookie(c, COOKIE, { prefix: 'host', httpOnly: true, sameSite: 'Strict' })
+}
+
+export async function deleteAllSessions(sub: string) {
+  let startKey: Record<string, AttributeValue> | undefined
+  do {
+    const page = await db.send(
+      new QueryCommand({
+        TableName: TABLE,
+        IndexName: 'GSI1',
+        KeyConditionExpression: 'GSI1PK = :pk',
+        ExpressionAttributeValues: { ':pk': userSessions(sub) },
+        ProjectionExpression: 'PK, SK',
+        ExclusiveStartKey: startKey,
+      }),
+    )
+    const deletes: WriteRequest[] = (page.Items ?? []).map(({ PK, SK }) => ({ DeleteRequest: { Key: { PK, SK } } }))
+    // BatchWriteItem takes 25 items per call and may hand some back to retry.
+    for (let i = 0; i < deletes.length; i += 25) {
+      let pending: Record<string, WriteRequest[]> = { [TABLE]: deletes.slice(i, i + 25) }
+      while (Object.keys(pending).length > 0) {
+        const { UnprocessedItems } = await db.send(new BatchWriteItemCommand({ RequestItems: pending }))
+        pending = UnprocessedItems ?? {}
+      }
+    }
+    startKey = page.LastEvaluatedKey
+  } while (startKey)
 }

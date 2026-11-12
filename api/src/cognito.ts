@@ -1,5 +1,6 @@
 import { createHmac } from 'node:crypto'
 import {
+  AdminGetUserCommand,
   CognitoIdentityProviderClient,
   ConfirmForgotPasswordCommand,
   ConfirmSignUpCommand,
@@ -110,4 +111,12 @@ export async function logIn(email: string, password: string): Promise<Session> {
   // The API keeps its own session, so the Cognito tokens are dropped here.
   const claims = JSON.parse(Buffer.from(idToken.split('.')[1], 'base64url').toString())
   return { sub: String(claims.sub), email: String(claims.email) }
+}
+
+// Only the admin API finds a user by address without that user's own tokens.
+export async function findUserSub(email: string) {
+  const { UserAttributes } = await cognito.send(new AdminGetUserCommand({ UserPoolId: USER_POOL_ID, Username: email }))
+  const sub = UserAttributes?.find((attribute) => attribute.Name === 'sub')?.Value
+  if (!sub) throw new Error('Cognito user has no sub')
+  return sub
 }

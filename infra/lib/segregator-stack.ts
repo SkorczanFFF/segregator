@@ -1,6 +1,6 @@
 import { fileURLToPath } from 'node:url'
 import { CfnOutput, Duration, Fn, RemovalPolicy, Stack, type StackProps } from 'aws-cdk-lib/core'
-import { HttpApi } from 'aws-cdk-lib/aws-apigatewayv2'
+import { HttpApi, HttpMethod, type CfnStage } from 'aws-cdk-lib/aws-apigatewayv2'
 import { HttpLambdaIntegration } from 'aws-cdk-lib/aws-apigatewayv2-integrations'
 import * as cloudfront from 'aws-cdk-lib/aws-cloudfront'
 import { HttpOrigin, S3BucketOrigin } from 'aws-cdk-lib/aws-cloudfront-origins'
@@ -101,6 +101,14 @@ export class SegregatorStack extends Stack {
       sortKey: { name: 'SK', type: dynamodb.AttributeType.STRING },
       billing: dynamodb.Billing.onDemand(),
       timeToLiveAttribute: 'expiresAt',
+      // One index for per-user lists: sessions now, documents in L04.
+      globalSecondaryIndexes: [
+        {
+          indexName: 'GSI1',
+          partitionKey: { name: 'GSI1PK', type: dynamodb.AttributeType.STRING },
+          sortKey: { name: 'GSI1SK', type: dynamodb.AttributeType.STRING },
+        },
+      ],
     })
 
     const apiFunction = new nodejs.NodejsFunction(this, 'ApiFunction', {
@@ -122,18 +130,24 @@ export class SegregatorStack extends Stack {
     })
 
     table.grantReadWriteData(apiFunction)
-    userPool.grant(apiFunction, 'cognito-idp:DescribeUserPoolClient')
+    userPool.grant(apiFunction, 'cognito-idp:DescribeUserPoolClient', 'cognito-idp:AdminGetUser')
 
-    const api = new HttpApi(this, 'Api', {
-      defaultIntegration: new HttpLambdaIntegration('ApiIntegration', apiFunction),
-      createDefaultStage: false,
-    })
-    api.addStage('DefaultStage', {
+    const integration = new HttpLambdaIntegration('ApiIntegration', apiFunction)
+    const api = new HttpApi(this, 'Api', { defaultIntegration: integration, createDefaultStage: false })
+    // Sign-in, sign-up and code requests get a stricter limit of their own against password guessing
+    // and email floods. GET /api/auth/me stays outside it, because every page load calls it.
+    const [authRoute] = api.addRoutes({ path: '/api/auth/{proxy+}', methods: [HttpMethod.POST], integration })
+    const stage = api.addStage('DefaultStage', {
       stageName: '$default',
       autoDeploy: true,
       // Cost cap for bots and client-side loops. One person never needs more.
       throttle: { rateLimit: 5, burstLimit: 10 },
     })
+    ;(stage.node.defaultChild as CfnStage).routeSettings = {
+      // Raw CloudFormation JSON, so the keys keep CloudFormation's casing.
+      'POST /api/auth/{proxy+}': { ThrottlingRateLimit: 1, ThrottlingBurstLimit: 5 },
+    }
+    stage.node.addDependency(authRoute)
 
     const distribution = new cloudfront.Distribution(this, 'WebDistribution', {
       defaultRootObject: 'index.html',

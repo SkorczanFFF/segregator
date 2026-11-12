@@ -2,6 +2,17 @@
 
 The minor version marks a stage of the build plan and the patch version each step or fix within it, as [Semantic Versioning](https://semver.org/spec/v2.0.0.html) allows before 1.0.0. Each entry starts with the version and its commit message, followed by a description of what changed.
 
+## 0.6.3 - feat: harden sessions and sign-in requests
+
+Released 2026-11-13.
+
+- Writes that a page on another site can send without CORS, such as a form post, are rejected with 403. Hono's `csrf()` checks the `Sec-Fetch-Site` header browsers add, together with `Origin`.
+- `POST /api/auth/*` has a stricter limit of its own: 1 request per second with bursts of 5. `GET /api/auth/me`, which every page load calls, stays on the general limit.
+- The account page can sign out on all devices through the new `/api/auth/logout-all` endpoint.
+- Setting a new password ends every session of that account.
+- Sessions are listed per user in the table's new `GSI1` index, which documents will share.
+- A throttled request shows "Too many attempts" in the web app.
+
 ## 0.6.2 - feat: redesign sign-in and sign-up screens
 
 Released 2026-11-12.

@@ -8,6 +8,7 @@ export const API_ERRORS = [
   'weak_password',
   'too_many_requests',
   'unauthorized',
+  'forbidden',
   'not_found',
   'internal_error',
   'network_error',
@@ -39,6 +40,8 @@ async function request<T>(method: 'GET' | 'POST', path: string, body?: unknown):
     throw new ApiError('network_error')
   }
 
+  // API Gateway's own throttling answers 429 without our error body.
+  if (response.status === 429) throw new ApiError('too_many_requests')
   if (response.status === 204) return undefined as T
   const data: unknown = await response.json().catch(() => undefined)
   if (response.ok && data !== undefined) return data as T

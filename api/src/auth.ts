@@ -2,13 +2,14 @@ import { Hono, type Context } from 'hono'
 import * as z from 'zod'
 import {
   confirmSignUp,
+  findUserSub,
   forgotPassword,
   logIn,
   resendCode,
   resetPassword,
   signUp,
 } from './cognito.ts'
-import { createSession, deleteSession, type Env } from './session.ts'
+import { createSession, deleteAllSessions, deleteSession, type Env } from './session.ts'
 
 type ErrorCode = 'invalid_input' | 'invalid_credentials' | 'invalid_code' | 'code_expired' | 'weak_password'
 
@@ -156,10 +157,18 @@ auth.post('/reset-password', async (c) => {
       InvalidParameterException: 'invalid_input',
     })
   }
+  // A new password ends every session, so whoever knew the old one is signed out too.
+  await deleteAllSessions(await findUserSub(input.email))
   return c.body(null, 204)
 })
 
 auth.post('/logout', async (c) => {
+  await deleteSession(c)
+  return c.body(null, 204)
+})
+
+auth.post('/logout-all', async (c) => {
+  await deleteAllSessions(c.get('session').sub)
   await deleteSession(c)
   return c.body(null, 204)
 })
