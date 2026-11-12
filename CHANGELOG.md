@@ -1,6 +1,15 @@
 # Changelog
 
-Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Each entry starts with the version and its commit message, followed by a description of what changed.
+The minor version marks a stage of the build plan and the patch version each step or fix within it, as [Semantic Versioning](https://semver.org/spec/v2.0.0.html) allows before 1.0.0. Each entry starts with the version and its commit message, followed by a description of what changed.
+
+## 0.6.1 - feat: add password reset by email code
+
+Released 2026-11-12.
+
+- Added `/api/auth/forgot-password` and `/api/auth/reset-password`. Asking for a code always answers the same way, also for an unknown or unconfirmed address, so the form does not reveal who has an account.
+- Added a "Forgot your password?" link on the sign-in screen and two screens: one asks for the address, the other takes the code and the new password.
+- After the password changes, the sign-in screen opens with the address filled in and a confirmation message.
+- Sign-up and reset share the same new password rules.
 
 ## 0.6.0 - feat: add email sign-up and sign-in with server sessions
 

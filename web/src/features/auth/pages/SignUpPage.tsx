@@ -1,13 +1,12 @@
 import { Alert, Anchor, Button, PasswordInput, Stack, TextInput } from '@mantine/core'
-import { hasLength, isEmail, useForm } from '@mantine/form'
+import { isEmail, useForm } from '@mantine/form'
 import { useTranslation } from 'react-i18next'
 import { Link, useNavigate } from 'react-router'
 import AuthScreen from '~/features/auth/components/AuthScreen.tsx'
+import { newPasswordRules, PASSWORD_MIN_LENGTH } from '~/features/auth/password.ts'
 import { useApiSubmit } from '~/shared/hooks/useApiSubmit.ts'
 import { useFormError } from '~/shared/hooks/useFormError.ts'
 import { api } from '~/shared/lib/api.ts'
-
-const PASSWORD_MIN_LENGTH = 12
 
 type SignUpValues = { email: string; password: string }
 
@@ -20,10 +19,7 @@ export default function SignUpPage() {
     initialValues: { email: '', password: '' },
     validate: {
       email: isEmail('auth.errors.invalidEmail'),
-      password: hasLength(
-        { min: PASSWORD_MIN_LENGTH },
-        'auth.errors.passwordTooShort',
-      ),
+      ...newPasswordRules,
     },
   })
   const { submit, pending, error } = useApiSubmit(async (values: SignUpValues) => {

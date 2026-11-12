@@ -3,6 +3,8 @@ import AccountPage from '~/features/account/pages/AccountPage.tsx'
 import SessionGate from '~/features/auth/components/SessionGate.tsx'
 import SessionProvider from '~/features/auth/components/SessionProvider.tsx'
 import ConfirmPage from '~/features/auth/pages/ConfirmPage.tsx'
+import ForgotPasswordPage from '~/features/auth/pages/ForgotPasswordPage.tsx'
+import ResetPasswordPage from '~/features/auth/pages/ResetPasswordPage.tsx'
 import EntryPage from '~/features/auth/pages/EntryPage.tsx'
 import SignInPage from '~/features/auth/pages/SignInPage.tsx'
 import SignUpPage from '~/features/auth/pages/SignUpPage.tsx'
@@ -17,6 +19,8 @@ export default function App() {
             <Route path="/login" element={<SignInPage />} />
             <Route path="/register" element={<SignUpPage />} />
             <Route path="/confirm" element={<ConfirmPage />} />
+            <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+            <Route path="/reset-password" element={<ResetPasswordPage />} />
           </Route>
           <Route element={<SessionGate signedIn />}>
             <Route path="/account" element={<AccountPage />} />

@@ -1,8 +1,10 @@
 import { createHmac } from 'node:crypto'
 import {
   CognitoIdentityProviderClient,
+  ConfirmForgotPasswordCommand,
   ConfirmSignUpCommand,
   DescribeUserPoolClientCommand,
+  ForgotPasswordCommand,
   InitiateAuthCommand,
   ResendConfirmationCodeCommand,
   SignUpCommand,
@@ -66,6 +68,28 @@ export async function confirmSignUp(email: string, code: string) {
       SecretHash: await secretHash(email),
       Username: email,
       ConfirmationCode: code,
+    }),
+  )
+}
+
+export async function forgotPassword(email: string) {
+  await cognito.send(
+    new ForgotPasswordCommand({
+      ClientId: CLIENT_ID,
+      SecretHash: await secretHash(email),
+      Username: email,
+    }),
+  )
+}
+
+export async function resetPassword(email: string, code: string, password: string) {
+  await cognito.send(
+    new ConfirmForgotPasswordCommand({
+      ClientId: CLIENT_ID,
+      SecretHash: await secretHash(email),
+      Username: email,
+      ConfirmationCode: code,
+      Password: password,
     }),
   )
 }

@@ -1,14 +1,32 @@
 import { Hono, type Context } from 'hono'
 import * as z from 'zod'
-import { confirmSignUp, logIn, resendCode, signUp } from './cognito.ts'
+import {
+  confirmSignUp,
+  forgotPassword,
+  logIn,
+  resendCode,
+  resetPassword,
+  signUp,
+} from './cognito.ts'
 import { createSession, deleteSession, type Env } from './session.ts'
 
 type ErrorCode = 'invalid_input' | 'invalid_credentials' | 'invalid_code' | 'code_expired' | 'weak_password'
 
 const Email = z.string().trim().toLowerCase().pipe(z.email().max(254))
-const RegisterInput = z.object({ email: Email, password: z.string().min(12).max(256) })
+const Code = z.string().regex(/^\d{6}$/)
+const NewPassword = z.string().min(12).max(256)
+const RegisterInput = z.object({ email: Email, password: NewPassword })
 const LoginInput = z.object({ email: Email, password: z.string().min(1).max(256) })
-const ConfirmInput = z.object({ email: Email, code: z.string().regex(/^\d{6}$/) })
+const ConfirmInput = z.object({ email: Email, code: Code })
+const ForgotInput = z.object({ email: Email })
+const ResetInput = z.object({ email: Email, code: Code, password: NewPassword })
+
+// What Cognito says about accounts that are unknown, unconfirmed or disabled.
+const SILENT_FORGOT_ERRORS = new Set([
+  'UserNotFoundException',
+  'InvalidParameterException',
+  'NotAuthorizedException',
+])
 
 // Cognito can return any of these from any call once a limit is hit.
 const LIMIT_ERRORS = new Set([
@@ -91,6 +109,41 @@ auth.post('/login', async (c) => {
   // Always a new session, so a session id planted before sign-in never gets access.
   await createSession(c, user)
   return c.json({ email: user.email })
+})
+
+auth.post('/forgot-password', async (c) => {
+  const input = await parse(c, ForgotInput)
+  if (!input) return c.json({ error: 'invalid_input' }, 400)
+
+  try {
+    await forgotPassword(input.email)
+  } catch (err) {
+    const name = errorName(err)
+    if (LIMIT_ERRORS.has(name)) return c.json({ error: 'too_many_requests' }, 429)
+    // Every address gets the same answer, so the form does not reveal who has an account.
+    if (!SILENT_FORGOT_ERRORS.has(name)) throw err
+  }
+  return c.body(null, 204)
+})
+
+auth.post('/reset-password', async (c) => {
+  const input = await parse(c, ResetInput)
+  if (!input) return c.json({ error: 'invalid_input' }, 400)
+
+  try {
+    await resetPassword(input.email, input.code, input.password)
+  } catch (err) {
+    // Unknown and unconfirmed accounts look like a wrong code.
+    return fail(c, err, {
+      CodeMismatchException: 'invalid_code',
+      UserNotFoundException: 'invalid_code',
+      NotAuthorizedException: 'invalid_code',
+      ExpiredCodeException: 'code_expired',
+      InvalidPasswordException: 'weak_password',
+      InvalidParameterException: 'invalid_input',
+    })
+  }
+  return c.body(null, 204)
 })
 
 auth.post('/logout', async (c) => {

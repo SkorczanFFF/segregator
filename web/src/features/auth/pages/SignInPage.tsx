@@ -8,7 +8,7 @@ import { useApiSubmit } from '~/shared/hooks/useApiSubmit.ts'
 import { useFormError } from '~/shared/hooks/useFormError.ts'
 import { ApiError, api } from '~/shared/lib/api.ts'
 
-type SignInState = { email?: string; confirmed?: boolean } | null
+type SignInState = { email?: string; confirmed?: boolean; passwordReset?: boolean } | null
 type SignInValues = { email: string; password: string }
 
 export default function SignInPage() {
@@ -50,6 +50,7 @@ export default function SignInPage() {
       <form onSubmit={form.onSubmit(submit)} noValidate>
         <Stack gap="md">
           {state?.confirmed && !error && <Alert>{t('auth.confirmed')}</Alert>}
+          {state?.passwordReset && !error && <Alert>{t('auth.passwordChanged')}</Alert>}
           {error && <Alert color="red">{t(`errors.${error}`)}</Alert>}
           <TextInput
             label={t('common.email')}
@@ -67,6 +68,9 @@ export default function SignInPage() {
             {...form.getInputProps('password')}
             error={formError(form.errors.password)}
           />
+          <Anchor component={Link} to="/forgot-password" size="sm" ta="right">
+            {t('auth.forgotPassword')}
+          </Anchor>
           <Button type="submit" fullWidth loading={pending}>
             {t('auth.signIn')}
           </Button>
