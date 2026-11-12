@@ -1,12 +1,17 @@
 import { Alert, Anchor, Button, PasswordInput, Stack, TextInput } from '@mantine/core'
-import { isEmail, isNotEmpty, useForm } from '@mantine/form'
+import { isNotEmpty, useForm } from '@mantine/form'
+import type { FocusEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, useLocation, useNavigate } from 'react-router'
 import AuthScreen from '~/features/auth/components/AuthScreen.tsx'
+import { emailRule } from '~/features/auth/email.ts'
 import { useSession, type User } from '~/features/auth/session.ts'
+import CapsLockNote from '~/shared/components/CapsLockNote.tsx'
 import { useApiSubmit } from '~/shared/hooks/useApiSubmit.ts'
+import { useCapsLock } from '~/shared/hooks/useCapsLock.ts'
 import { useFormError } from '~/shared/hooks/useFormError.ts'
 import { ApiError, api } from '~/shared/lib/api.ts'
+import { focusFirstError, validateFilledOnBlur } from '~/shared/lib/form.ts'
 
 type SignInState = { email?: string; confirmed?: boolean; passwordReset?: boolean } | null
 type SignInValues = { email: string; password: string }
@@ -17,11 +22,13 @@ export default function SignInPage() {
   const state = useLocation().state as SignInState
   const { setUser } = useSession()
   const formError = useFormError()
+  const { capsLock, onKeyUp, reset } = useCapsLock()
   const form = useForm({
     mode: 'uncontrolled',
     initialValues: { email: state?.email ?? '', password: '' },
+    enhanceGetInputProps: validateFilledOnBlur(),
     validate: {
-      email: isEmail('auth.errors.invalidEmail'),
+      email: emailRule,
       password: isNotEmpty('auth.errors.passwordRequired'),
     },
   })
@@ -34,11 +41,12 @@ export default function SignInPage() {
       navigate('/confirm', { state: { email: values.email, resent: true } })
     }
   })
+  const passwordProps = form.getInputProps('password')
 
   return (
     <AuthScreen
       title={t('auth.signIn')}
-      footer={
+      description={
         <>
           {t('auth.noAccount')}{' '}
           <Anchor component={Link} to="/register" inherit>
@@ -47,11 +55,20 @@ export default function SignInPage() {
         </>
       }
     >
-      <form onSubmit={form.onSubmit(submit)} noValidate>
-        <Stack gap="md">
+      <form onSubmit={form.onSubmit(submit, focusFirstError(form))} noValidate>
+        <Stack gap="lg">
           {state?.confirmed && !error && <Alert>{t('auth.confirmed')}</Alert>}
           {state?.passwordReset && !error && <Alert>{t('auth.passwordChanged')}</Alert>}
-          {error && <Alert color="red">{t(`errors.${error}`)}</Alert>}
+          {error && (
+            <Alert color="red">
+              {t(`errors.${error}`)}{' '}
+              {error === 'invalid_credentials' && (
+                <Anchor component={Link} to="/forgot-password" inherit fw={600} c="inherit">
+                  {t('auth.forgotPassword')}
+                </Anchor>
+              )}
+            </Alert>
+          )}
           <TextInput
             label={t('common.email')}
             type="email"
@@ -61,16 +78,24 @@ export default function SignInPage() {
             {...form.getInputProps('email')}
             error={formError(form.errors.email)}
           />
-          <PasswordInput
-            label={t('common.password')}
-            autoComplete="current-password"
-            key={form.key('password')}
-            {...form.getInputProps('password')}
-            error={formError(form.errors.password)}
-          />
-          <Anchor component={Link} to="/forgot-password" size="sm" ta="right">
-            {t('auth.forgotPassword')}
-          </Anchor>
+          <Stack gap={6}>
+            <PasswordInput
+              label={t('common.password')}
+              autoComplete="current-password"
+              key={form.key('password')}
+              {...passwordProps}
+              onKeyUp={onKeyUp}
+              onBlur={(event: FocusEvent<HTMLInputElement>) => {
+                reset()
+                passwordProps.onBlur?.(event)
+              }}
+              error={formError(form.errors.password)}
+            />
+            {capsLock && <CapsLockNote />}
+            <Anchor component={Link} to="/forgot-password" size="sm" ta="right">
+              {t('auth.forgotPassword')}
+            </Anchor>
+          </Stack>
           <Button type="submit" fullWidth loading={pending}>
             {t('auth.signIn')}
           </Button>

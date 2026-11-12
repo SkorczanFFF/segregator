@@ -1,4 +1,4 @@
-import { Alert, Anchor, Button, Stack, Text, TextInput } from '@mantine/core'
+import { Alert, Anchor, Button, Stack, TextInput } from '@mantine/core'
 import { useForm } from '@mantine/form'
 import { useTranslation } from 'react-i18next'
 import { Link, useNavigate } from 'react-router'
@@ -7,6 +7,7 @@ import { emailRule } from '~/features/auth/email.ts'
 import { useApiSubmit } from '~/shared/hooks/useApiSubmit.ts'
 import { useFormError } from '~/shared/hooks/useFormError.ts'
 import { api } from '~/shared/lib/api.ts'
+import { focusFirstError, validateFilledOnBlur } from '~/shared/lib/form.ts'
 
 type ForgotValues = { email: string }
 
@@ -17,6 +18,7 @@ export default function ForgotPasswordPage() {
   const form = useForm({
     mode: 'uncontrolled',
     initialValues: { email: '' },
+    enhanceGetInputProps: validateFilledOnBlur(),
     validate: { email: emailRule },
   })
   const { submit, pending, error } = useApiSubmit(async (values: ForgotValues) => {
@@ -27,6 +29,7 @@ export default function ForgotPasswordPage() {
   return (
     <AuthScreen
       title={t('auth.forgotTitle')}
+      description={t('auth.forgotLead')}
       google={false}
       footer={
         <>
@@ -37,9 +40,8 @@ export default function ForgotPasswordPage() {
         </>
       }
     >
-      <form onSubmit={form.onSubmit(submit)} noValidate>
-        <Stack gap="md">
-          <Text>{t('auth.forgotLead')}</Text>
+      <form onSubmit={form.onSubmit(submit, focusFirstError(form))} noValidate>
+        <Stack gap="lg">
           {error && <Alert color="red">{t(`errors.${error}`)}</Alert>}
           <TextInput
             label={t('common.email')}

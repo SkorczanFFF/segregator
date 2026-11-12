@@ -1,13 +1,15 @@
-import { Alert, Anchor, Button, PasswordInput, Stack, Text, TextInput } from '@mantine/core'
+import { Alert, Anchor, Button, Input, PinInput, Stack, TextInput } from '@mantine/core'
 import { matches, useForm } from '@mantine/form'
 import { useTranslation } from 'react-i18next'
 import { Link, useLocation, useNavigate } from 'react-router'
 import AuthScreen from '~/features/auth/components/AuthScreen.tsx'
 import { emailRule } from '~/features/auth/email.ts'
-import { newPasswordRules, PASSWORD_MIN_LENGTH } from '~/features/auth/password.ts'
+import NewPasswordInput from '~/features/auth/components/NewPasswordInput.tsx'
+import { newPasswordRules } from '~/features/auth/password.ts'
 import { useApiSubmit } from '~/shared/hooks/useApiSubmit.ts'
 import { useFormError } from '~/shared/hooks/useFormError.ts'
 import { api } from '~/shared/lib/api.ts'
+import { focusFirstError, validateFilledOnBlur } from '~/shared/lib/form.ts'
 
 type ResetState = { email?: string } | null
 type ResetValues = { email: string; code: string; password: string }
@@ -16,10 +18,11 @@ export default function ResetPasswordPage() {
   const { t } = useTranslation()
   const navigate = useNavigate()
   const state = useLocation().state as ResetState
-  const formError = useFormError({ min: PASSWORD_MIN_LENGTH })
+  const formError = useFormError()
+  // Controlled, so the password meter follows every keystroke.
   const form = useForm({
-    mode: 'uncontrolled',
     initialValues: { email: state?.email ?? '', code: '', password: '' },
+    enhanceGetInputProps: validateFilledOnBlur('email', 'password'),
     validate: {
       email: emailRule,
       code: matches(/^\d{6}$/, 'auth.errors.invalidCode'),
@@ -34,6 +37,7 @@ export default function ResetPasswordPage() {
   return (
     <AuthScreen
       title={t('auth.resetTitle')}
+      description={t('auth.resetLead')}
       google={false}
       footer={
         <>
@@ -44,9 +48,8 @@ export default function ResetPasswordPage() {
         </>
       }
     >
-      <form onSubmit={form.onSubmit(submit)} noValidate>
-        <Stack gap="md">
-          <Text>{t('auth.resetLead')}</Text>
+      <form onSubmit={form.onSubmit(submit, focusFirstError(form))} noValidate>
+        <Stack gap="lg">
           {error && (
             <Alert color="red">
               {t(error === 'code_expired' ? 'auth.resetCodeExpired' : `errors.${error}`)}
@@ -57,24 +60,25 @@ export default function ResetPasswordPage() {
             type="email"
             inputMode="email"
             autoComplete="username"
-            key={form.key('email')}
             {...form.getInputProps('email')}
             error={formError(form.errors.email)}
           />
-          <TextInput
-            label={t('common.code')}
-            inputMode="numeric"
-            autoComplete="one-time-code"
-            maxLength={6}
-            key={form.key('code')}
-            {...form.getInputProps('code')}
-            error={formError(form.errors.code)}
-          />
-          <PasswordInput
+          <Input.Wrapper label={t('common.code')} error={formError(form.errors.code)}>
+            <PinInput
+              length={6}
+              type="number"
+              size="lg"
+              gap="sm"
+              mt={6}
+              oneTimeCode
+              ariaLabel={t('common.code')}
+              {...form.getInputProps('code')}
+              error={Boolean(form.errors.code)}
+            />
+          </Input.Wrapper>
+          <NewPasswordInput
             label={t('auth.newPassword')}
-            description={t('auth.passwordHint', { min: PASSWORD_MIN_LENGTH })}
-            autoComplete="new-password"
-            key={form.key('password')}
+            email={form.values.email}
             {...form.getInputProps('password')}
             error={formError(form.errors.password)}
           />

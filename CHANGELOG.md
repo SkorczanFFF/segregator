@@ -2,6 +2,20 @@
 
 The minor version marks a stage of the build plan and the patch version each step or fix within it, as [Semantic Versioning](https://semver.org/spec/v2.0.0.html) allows before 1.0.0. Each entry starts with the version and its commit message, followed by a description of what changed.
 
+## 0.6.2 - feat: redesign sign-in and sign-up screens
+
+Released 2026-11-12.
+
+- The sign-in screens now sit beside a purple brand panel with the app's promise, a sample receipt and the three steps of using it. On a phone the panel shrinks to a header.
+- Google sign-in comes first, with email below an "or with email" divider. Links between sign-in and sign-up moved under the title.
+- A field with something typed in is checked when it loses focus, so leaving an empty field shows no error. Errors clear while typing, sending checks every field, and a failed send moves focus to the first wrong one. An empty email asks for the address instead of calling it invalid.
+- A new password shows a live strength meter, a character count and its requirements: 12 characters, no spaces at either end and not containing the email address. Requirements tick as they are met and turn red only after the field fails.
+- The email field on sign-up suggests common domains as the address is typed.
+- Password fields warn when Caps Lock is on.
+- The confirmation screen takes the code in six boxes that accept pasting and send the form after the last digit. It shows where the code went, links back to change the address and offers a new code after 45 seconds through the new `/api/auth/resend-code` endpoint.
+- Sign-up and confirmation show their step, 1 of 2 and 2 of 2.
+- Text, muted text, field borders and error text now meet WCAG contrast in both themes, and the light variant in dark mode sits above the card surface.
+
 ## 0.6.1 - feat: add password reset by email code
 
 Released 2026-11-12.

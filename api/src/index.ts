@@ -11,6 +11,7 @@ const PUBLIC_PATHS = new Set([
   '/api/auth/register',
   '/api/auth/confirm',
   '/api/auth/login',
+  '/api/auth/resend-code',
   '/api/auth/forgot-password',
   '/api/auth/reset-password',
   '/api/auth/logout',

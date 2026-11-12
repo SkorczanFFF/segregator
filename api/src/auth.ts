@@ -111,6 +111,19 @@ auth.post('/login', async (c) => {
   return c.json({ email: user.email })
 })
 
+auth.post('/resend-code', async (c) => {
+  const input = await parse(c, ForgotInput)
+  if (!input) return c.json({ error: 'invalid_input' }, 400)
+
+  try {
+    await resendCode(input.email)
+  } catch (err) {
+    if (LIMIT_ERRORS.has(errorName(err))) return c.json({ error: 'too_many_requests' }, 429)
+    // Confirmed and unknown accounts get the same answer, so the screen does not reveal who has an account.
+  }
+  return c.body(null, 204)
+})
+
 auth.post('/forgot-password', async (c) => {
   const input = await parse(c, ForgotInput)
   if (!input) return c.json({ error: 'invalid_input' }, 400)

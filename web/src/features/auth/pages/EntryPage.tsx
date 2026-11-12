@@ -1,8 +1,8 @@
-import { Button, Stack, Text, Title } from '@mantine/core'
+import { Button, Group, Paper, Stack, Text, Title } from '@mantine/core'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router'
 import AuthLayout from '~/features/auth/components/AuthLayout.tsx'
-import { APP_NAME } from '~/shared/lib/app.ts'
+import GoogleButton from '~/shared/components/GoogleButton.tsx'
 
 export default function EntryPage() {
   const { t } = useTranslation()
@@ -10,23 +10,32 @@ export default function EntryPage() {
   return (
     <AuthLayout>
       <Stack gap="xl">
-        <Stack gap="sm">
-          <Title c="brand" fz={46}>
-            {APP_NAME}
-          </Title>
-          <Text size="lg">{t('entry.lead')}</Text>
+        <Stack gap="xs">
+          <Title>{t('entry.title')}</Title>
+          <Text c="dimmed">{t('entry.lead')}</Text>
         </Stack>
         <Stack gap="sm">
-          <Button component={Link} to="/login" fullWidth>
+          <GoogleButton />
+          <Button component={Link} to="/register" fullWidth>
+            {t('entry.signUpEmail')}
+          </Button>
+          <Button component={Link} to="/login" variant="light" fullWidth>
             {t('auth.signIn')}
           </Button>
-          <Button component={Link} to="/register" variant="light" fullWidth>
-            {t('auth.signUp')}
-          </Button>
-          <Button variant="subtle" fullWidth>
-            {t('entry.demo')}
-          </Button>
         </Stack>
+        <Paper p="md" shadow="none" style={{ borderStyle: 'dashed' }}>
+          <Group justify="space-between" wrap="nowrap" gap="md">
+            <Stack gap={2}>
+              <Text fw={600}>{t('entry.demoTitle')}</Text>
+              <Text size="sm" c="dimmed">
+                {t('entry.demoText')}
+              </Text>
+            </Stack>
+            <Button variant="subtle" size="sm" style={{ flex: 'none' }}>
+              {t('entry.demo')}
+            </Button>
+          </Group>
+        </Paper>
       </Stack>
     </AuthLayout>
   )

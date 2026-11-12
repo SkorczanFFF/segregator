@@ -1,24 +1,29 @@
-import { Alert, Anchor, Button, PasswordInput, Stack, TextInput } from '@mantine/core'
-import { isEmail, useForm } from '@mantine/form'
+import { Alert, Anchor, Button, Stack } from '@mantine/core'
+import { useForm } from '@mantine/form'
 import { useTranslation } from 'react-i18next'
 import { Link, useNavigate } from 'react-router'
 import AuthScreen from '~/features/auth/components/AuthScreen.tsx'
-import { newPasswordRules, PASSWORD_MIN_LENGTH } from '~/features/auth/password.ts'
+import { emailRule } from '~/features/auth/email.ts'
+import EmailInput from '~/features/auth/components/EmailInput.tsx'
+import NewPasswordInput from '~/features/auth/components/NewPasswordInput.tsx'
+import { newPasswordRules } from '~/features/auth/password.ts'
 import { useApiSubmit } from '~/shared/hooks/useApiSubmit.ts'
 import { useFormError } from '~/shared/hooks/useFormError.ts'
 import { api } from '~/shared/lib/api.ts'
+import { focusFirstError, validateFilledOnBlur } from '~/shared/lib/form.ts'
 
 type SignUpValues = { email: string; password: string }
 
 export default function SignUpPage() {
   const { t } = useTranslation()
   const navigate = useNavigate()
-  const formError = useFormError({ min: PASSWORD_MIN_LENGTH })
+  const formError = useFormError()
+  // Controlled, so the password meter follows every keystroke.
   const form = useForm({
-    mode: 'uncontrolled',
     initialValues: { email: '', password: '' },
+    enhanceGetInputProps: validateFilledOnBlur(),
     validate: {
-      email: isEmail('auth.errors.invalidEmail'),
+      email: emailRule,
       ...newPasswordRules,
     },
   })
@@ -30,7 +35,8 @@ export default function SignUpPage() {
   return (
     <AuthScreen
       title={t('auth.signUp')}
-      footer={
+      step={{ current: 1, total: 2, label: t('auth.stepAccount') }}
+      description={
         <>
           {t('auth.hasAccount')}{' '}
           <Anchor component={Link} to="/login" inherit>
@@ -39,23 +45,17 @@ export default function SignUpPage() {
         </>
       }
     >
-      <form onSubmit={form.onSubmit(submit)} noValidate>
-        <Stack gap="md">
+      <form onSubmit={form.onSubmit(submit, focusFirstError(form))} noValidate>
+        <Stack gap="lg">
           {error && <Alert color="red">{t(`errors.${error}`)}</Alert>}
-          <TextInput
+          <EmailInput
             label={t('common.email')}
-            type="email"
-            inputMode="email"
-            autoComplete="username"
-            key={form.key('email')}
             {...form.getInputProps('email')}
             error={formError(form.errors.email)}
           />
-          <PasswordInput
+          <NewPasswordInput
             label={t('common.password')}
-            description={t('auth.passwordHint', { min: PASSWORD_MIN_LENGTH })}
-            autoComplete="new-password"
-            key={form.key('password')}
+            email={form.values.email}
             {...form.getInputProps('password')}
             error={formError(form.errors.password)}
           />
