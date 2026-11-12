@@ -1,13 +1,13 @@
 {
   "name": "segregator",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "private": true,
   "packageManager": "pnpm@11.28.8",
   "engines": {
     "node": ">=24"
   },
   "scripts": {
-    "dev": "pnpm --filter web dev",
+    "dev": "pnpm -r --parallel dev",
     "build": "pnpm -r build",
     "lint": "oxlint",
     "cdk": "pnpm --filter infra exec cdk"

@@ -3,14 +3,19 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "dev": "node --watch --env-file=.env src/dev.ts",
     "build": "tsc"
   },
   "devDependencies": {
+    "@hono/node-server": "^2.1.6",
     "@types/node": "catalog:",
     "typescript": "catalog:"
   },
   "dependencies": {
+    "@aws-sdk/client-cognito-identity-provider": "^3.1162.0",
+    "@aws-sdk/client-dynamodb": "^3.1162.0",
     "@hono/aws-lambda": "^1.0.1",
-    "hono": "^4.13.16"
+    "hono": "^4.13.16",
+    "zod": "^4.6.7"
   }
 }

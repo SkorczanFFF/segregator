@@ -1,7 +1,10 @@
+import type { ApiErrorCode } from '~/shared/lib/api.ts'
+
 export const pl = {
   common: {
     email: 'E-mail',
     password: 'Hasło',
+    code: 'Kod',
     or: 'albo',
     continueWithGoogle: 'Kontynuuj z Google',
     toggleColorScheme: 'Przełącz tryb jasny i ciemny',
@@ -17,12 +20,36 @@ export const pl = {
     noAccount: 'Nie masz konta?',
     hasAccount: 'Masz już konto?',
     passwordHint: 'Co najmniej {{min}} znaków',
+    confirmTitle: 'Potwierdź e-mail',
+    confirmLead: 'Wpisz 6-cyfrowy kod z wiadomości wysłanej na Twój adres. Kod jest ważny 24 godziny.',
+    codeResent: 'Konto nie jest jeszcze potwierdzone. Na Twój adres wysłano nowy kod.',
+    confirm: 'Potwierdź',
+    confirmed: 'Adres potwierdzony. Możesz się zalogować.',
     errors: {
       invalidEmail: 'Podaj poprawny adres e-mail',
       passwordRequired: 'Podaj hasło',
       passwordTooShort: 'Hasło musi mieć co najmniej {{min}} znaków',
+      invalidCode: 'Kod ma 6 cyfr',
     },
   },
+  account: {
+    title: 'Twoje konto',
+    signedInAs: 'Zalogowano jako {{email}}',
+    signOut: 'Wyloguj się',
+  },
+  errors: {
+    invalid_input: 'Sprawdź wpisane dane.',
+    invalid_credentials: 'Nieprawidłowy e-mail lub hasło.',
+    not_confirmed: 'Najpierw potwierdź adres e-mail.',
+    invalid_code: 'Nieprawidłowy kod.',
+    code_expired: 'Kod wygasł. Zaloguj się, aby dostać nowy.',
+    weak_password: 'Hasło nie spełnia wymagań.',
+    too_many_requests: 'Za dużo prób. Spróbuj ponownie za chwilę.',
+    unauthorized: 'Sesja wygasła. Zaloguj się ponownie.',
+    not_found: 'Nie znaleziono.',
+    internal_error: 'Coś poszło nie tak. Spróbuj ponownie.',
+    network_error: 'Brak połączenia z serwerem.',
+  } satisfies Record<ApiErrorCode, string>,
 }
 
 export type Translation = typeof pl

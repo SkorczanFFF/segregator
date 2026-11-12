@@ -8,11 +8,12 @@ import { APP_NAME } from '~/shared/lib/app.ts'
 
 type AuthScreenProps = {
   title: string
-  footer: ReactNode
+  google?: boolean
+  footer?: ReactNode
   children: ReactNode
 }
 
-export default function AuthScreen({ title, footer, children }: AuthScreenProps) {
+export default function AuthScreen({ title, google = true, footer, children }: AuthScreenProps) {
   const { t } = useTranslation()
 
   return (
@@ -25,11 +26,17 @@ export default function AuthScreen({ title, footer, children }: AuthScreenProps)
           <Title>{title}</Title>
         </Stack>
         {children}
-        <Divider label={t('common.or')} labelPosition="center" />
-        <GoogleButton />
-        <Text size="sm" ta="center">
-          {footer}
-        </Text>
+        {google && (
+          <>
+            <Divider label={t('common.or')} labelPosition="center" />
+            <GoogleButton />
+          </>
+        )}
+        {footer && (
+          <Text size="sm" ta="center">
+            {footer}
+          </Text>
+        )}
       </Stack>
     </AuthLayout>
   )

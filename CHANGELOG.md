@@ -2,6 +2,20 @@
 
 Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Each entry starts with the version and its commit message, followed by a description of what changed.
 
+## 0.6.0 - feat: add email sign-up and sign-in with server sessions
+
+Released 2026-11-12.
+
+- Added a Cognito user pool on the Lite plan. Email is the username, sign-in ignores letter case, new accounts confirm their address with a code, passwords need at least 12 characters without rules for character types, and the pool has deletion protection.
+- Added `/api/auth` endpoints: `register`, `confirm`, `login`, `logout` and `me`. The API calls Cognito through a client with a secret, which the function reads from Cognito when it starts, so the secret is never stored in code or configuration.
+- Signing in creates a server session instead of keeping tokens in the browser. The browser only gets a `__Host-session` cookie with `HttpOnly`, `Secure` and `SameSite=Strict`, and the database stores only a SHA-256 hash of the session id. A session ends after 7 days without use or 30 days after signing in.
+- Every API route requires a session unless it is marked as public, so a request without one gets 401, also on unknown paths.
+- Signing up gives the same answer for a new and a taken address, so the form does not reveal who has an account. An account that is not confirmed yet gets a new code instead.
+- Added a DynamoDB table with `PK` and `SK` keys, billed per request. Expired sessions are removed by TTL.
+- Added the email confirmation screen and an account page with sign-out. Signed-out users are sent to sign-in, and signed-in users skip the sign-in screens.
+- API errors show up in the forms in Polish or English.
+- `pnpm dev` now starts the API as well: the same Hono app on a local Node.js server at `127.0.0.1:3000`, with Vite forwarding `/api` to it. It uses the dev stack's Cognito pool and DynamoDB table, whose names the stack now lists as outputs. Setup is described in `README.md`.
+
 ## 0.5.0 - feat: deploy through CodePipeline with dev and prod stages
 
 Released 2026-11-11.

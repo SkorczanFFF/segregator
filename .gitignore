@@ -4,3 +4,4 @@ cdk.out/
 *.tsbuildinfo
 *.log
 .env*
+!.env.example

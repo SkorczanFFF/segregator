@@ -1,14 +1,19 @@
-import { Anchor, Button, PasswordInput, Stack, TextInput } from '@mantine/core'
+import { Alert, Anchor, Button, PasswordInput, Stack, TextInput } from '@mantine/core'
 import { hasLength, isEmail, useForm } from '@mantine/form'
 import { useTranslation } from 'react-i18next'
-import { Link } from 'react-router'
+import { Link, useNavigate } from 'react-router'
 import AuthScreen from '~/features/auth/components/AuthScreen.tsx'
+import { useApiSubmit } from '~/shared/hooks/useApiSubmit.ts'
 import { useFormError } from '~/shared/hooks/useFormError.ts'
+import { api } from '~/shared/lib/api.ts'
 
 const PASSWORD_MIN_LENGTH = 12
 
+type SignUpValues = { email: string; password: string }
+
 export default function SignUpPage() {
   const { t } = useTranslation()
+  const navigate = useNavigate()
   const formError = useFormError({ min: PASSWORD_MIN_LENGTH })
   const form = useForm({
     mode: 'uncontrolled',
@@ -20,6 +25,10 @@ export default function SignUpPage() {
         'auth.errors.passwordTooShort',
       ),
     },
+  })
+  const { submit, pending, error } = useApiSubmit(async (values: SignUpValues) => {
+    await api.post('/auth/register', values)
+    navigate('/confirm', { state: { email: values.email } })
   })
 
   return (
@@ -34,9 +43,9 @@ export default function SignUpPage() {
         </>
       }
     >
-      {/* TODO: submit to /api/auth/register */}
-      <form onSubmit={form.onSubmit(() => undefined)} noValidate>
+      <form onSubmit={form.onSubmit(submit)} noValidate>
         <Stack gap="md">
+          {error && <Alert color="red">{t(`errors.${error}`)}</Alert>}
           <TextInput
             label={t('common.email')}
             type="email"
@@ -54,7 +63,7 @@ export default function SignUpPage() {
             {...form.getInputProps('password')}
             error={formError(form.errors.password)}
           />
-          <Button type="submit" fullWidth>
+          <Button type="submit" fullWidth loading={pending}>
             {t('auth.signUp')}
           </Button>
         </Stack>
