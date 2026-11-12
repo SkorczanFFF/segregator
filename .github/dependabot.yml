@@ -10,6 +10,10 @@ updates:
     groups:
       dependencies:
         patterns: ['*']
+    ignore:
+      # Types must match the Node.js 24 runtime of Lambda, CodeBuild and CI.
+      - dependency-name: '@types/node'
+        update-types: ['version-update:semver-major']
   - package-ecosystem: github-actions
     directory: /
     schedule:
