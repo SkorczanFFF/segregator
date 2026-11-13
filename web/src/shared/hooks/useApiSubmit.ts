@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { ApiError, type ApiErrorCode } from '~/shared/lib/api.ts'
+import { errorCode, type ApiErrorCode } from '~/shared/lib/api.ts'
 
 // Runs a form action and keeps its pending state and API error for the form.
 export function useApiSubmit<T>(action: (values: T) => Promise<void>) {
@@ -12,7 +12,7 @@ export function useApiSubmit<T>(action: (values: T) => Promise<void>) {
     try {
       await action(values)
     } catch (err) {
-      setError(err instanceof ApiError ? err.code : 'internal_error')
+      setError(errorCode(err))
     } finally {
       setPending(false)
     }

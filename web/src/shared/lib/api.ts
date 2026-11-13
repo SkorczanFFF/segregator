@@ -25,6 +25,8 @@ export class ApiError extends Error {
   }
 }
 
+export const errorCode = (err: unknown): ApiErrorCode => (err instanceof ApiError ? err.code : 'internal_error')
+
 const isApiErrorCode = (value: unknown): value is ApiErrorCode =>
   API_ERRORS.includes(value as ApiErrorCode)
 

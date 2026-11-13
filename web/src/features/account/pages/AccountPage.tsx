@@ -1,7 +1,6 @@
-import { Alert, Button, Stack, Text } from '@mantine/core'
+import { Alert, Button, Stack, Text, Title } from '@mantine/core'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router'
-import AuthScreen from '~/features/auth/components/AuthScreen.tsx'
 import { useSession } from '~/features/auth/session.ts'
 import { useApiSubmit } from '~/shared/hooks/useApiSubmit.ts'
 import { api } from '~/shared/lib/api.ts'
@@ -21,7 +20,8 @@ export default function AccountPage() {
   const error = signOut.error ?? signOutEverywhere.error
 
   return (
-    <AuthScreen title={t('account.title')} google={false}>
+    <Stack gap="lg" maw={480}>
+      <Title>{t('account.title')}</Title>
       <Stack gap="md">
         <Text>{t('account.signedInAs', { email: user?.email ?? '' })}</Text>
         {error && <Alert color="red">{t(`errors.${error}`)}</Alert>}
@@ -42,6 +42,6 @@ export default function AccountPage() {
           </Text>
         </Stack>
       </Stack>
-    </AuthScreen>
+    </Stack>
   )
 }

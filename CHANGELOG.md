@@ -2,6 +2,16 @@
 
 The minor version marks a stage of the build plan and the patch version each step or fix within it, as [Semantic Versioning](https://semver.org/spec/v2.0.0.html) allows before 1.0.0. Each entry starts with the version and its commit message, followed by a description of what changed.
 
+## 0.7.1 - feat: add the signed-in layout and the documents list
+
+Released 2026-11-13.
+
+- After signing in, the app opens in a layout with a header and a side menu with Documents and Account. On a phone the menu opens from the header.
+- The documents page lists the account's documents newest first: the date on the document, the title or issuer, the category and the amount, 50 at a time with a button for older ones. It has loading, error and empty states.
+- Amounts and dates follow the chosen language: 286,45 zł and 11 lis 2026 in Polish, PLN 286.45 and Nov 11, 2026 in English.
+- The account page is part of the new layout.
+- Category names are translated, and TypeScript checks the translations against the shared category list.
+
 ## 0.7.0 - feat: store documents and list them newest first
 
 Released 2026-11-13.

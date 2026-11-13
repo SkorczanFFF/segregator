@@ -10,4 +10,6 @@ export const CATEGORIES = {
 
 export type DocumentType = keyof typeof CATEGORIES
 
+export type Subtype = (typeof CATEGORIES)[DocumentType][number]
+
 export const DOCUMENT_TYPES = Object.keys(CATEGORIES) as [DocumentType, ...DocumentType[]]

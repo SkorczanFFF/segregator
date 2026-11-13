@@ -14,7 +14,7 @@ export default function SessionGate({ signedIn }: { signedIn: boolean }) {
     )
   }
   if (Boolean(user) !== signedIn) {
-    return <Navigate to={signedIn ? '/login' : '/account'} replace />
+    return <Navigate to={signedIn ? '/login' : '/documents'} replace />
   }
   return <Outlet />
 }

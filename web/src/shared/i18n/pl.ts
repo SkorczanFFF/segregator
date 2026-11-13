@@ -1,3 +1,4 @@
+import type { DocumentType, Subtype } from 'shared'
 import type { ApiErrorCode } from '~/shared/lib/api.ts'
 
 export const pl = {
@@ -95,6 +96,45 @@ export const pl = {
     signOut: 'Wyloguj się',
     signOutEverywhere: 'Wyloguj ze wszystkich urządzeń',
     signOutEverywhereHint: 'Kończy sesje na wszystkich urządzeniach, także na tym. Przydaje się po zalogowaniu na cudzym komputerze.',
+  },
+  app: {
+    menu: 'Menu',
+    nav: {
+      documents: 'Dokumenty',
+      account: 'Konto',
+    },
+  },
+  documents: {
+    title: 'Dokumenty',
+    empty: 'Nie ma jeszcze żadnych dokumentów',
+    emptyHint: 'Tu pojawią się paragony, gwarancje, polisy i umowy, od najnowszych.',
+    loadMore: 'Pokaż starsze',
+  },
+  categories: {
+    types: {
+      receipt: 'Paragon',
+      warranty: 'Gwarancja',
+      policy: 'Polisa',
+      contract: 'Umowa',
+      bill: 'Rachunek',
+      other: 'Inne',
+    } satisfies Record<DocumentType, string>,
+    subtypes: {
+      fuel: 'Tankowanie',
+      groceries: 'Spożywcze',
+      pharmacy: 'Apteka',
+      electronics: 'Elektronika',
+      appliances: 'AGD',
+      car: 'Samochód',
+      home: 'Mieszkanie',
+      travel: 'Podróż',
+      rental: 'Najem',
+      phone_internet: 'Telefon i internet',
+      electricity: 'Prąd',
+      gas: 'Gaz',
+      water: 'Woda',
+      other: 'Inne',
+    } satisfies Record<Subtype, string>,
   },
   errors: {
     invalid_input: 'Sprawdź wpisane dane.',

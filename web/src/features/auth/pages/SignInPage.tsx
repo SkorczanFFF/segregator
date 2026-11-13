@@ -34,7 +34,7 @@ export default function SignInPage() {
   })
   const { submit, pending, error } = useApiSubmit(async (values: SignInValues) => {
     try {
-      // The session gate then moves the user on to the account page.
+      // The session gate then moves the user on to the documents list.
       setUser(await api.post<User>('/auth/login', values))
     } catch (err) {
       if (!(err instanceof ApiError && err.code === 'not_confirmed')) throw err
