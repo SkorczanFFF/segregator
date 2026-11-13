@@ -10,6 +10,7 @@
     "dev": "pnpm -r --parallel dev",
     "build": "pnpm -r build",
     "lint": "oxlint",
+    "test": "pnpm -r test",
     "cdk": "pnpm --filter infra exec cdk"
   },
   "devDependencies": {

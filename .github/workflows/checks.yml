@@ -11,6 +11,12 @@ permissions:
 jobs:
   checks:
     runs-on: ubuntu-latest
+    services:
+      # The data layer tests run against it on localhost:8000.
+      dynamodb:
+        image: amazon/dynamodb-local:3.3.2
+        ports:
+          - 8000:8000
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -23,6 +29,7 @@ jobs:
           require-lockfile: true
       - run: pnpm lint
       - run: pnpm build
+      - run: pnpm test
       # Synth needs no AWS credentials, so infrastructure errors surface without access to the account.
       - run: pnpm cdk synth --quiet
       - run: pnpm audit

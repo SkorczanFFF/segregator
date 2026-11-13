@@ -56,3 +56,15 @@ You need Node.js 24, pnpm (the version in `packageManager`), AWS CLI v2 and acce
 - The API listens on `127.0.0.1` only, because it holds your AWS credentials.
 - The session cookie is `__Host-session` with `Secure`. Chrome and Firefox accept it on `http://localhost`.
 - When the dev stack is recreated, its outputs change, so `api/.env` needs the new values.
+
+## Tests
+
+The data layer tests run against DynamoDB Local in Docker and create and delete their own table:
+
+```sh
+docker run --rm -d -p 8000:8000 --name dynamodb-local amazon/dynamodb-local:3.3.2
+pnpm test
+docker stop dynamodb-local
+```
+
+CI runs them against the same image as a service container.

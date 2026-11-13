@@ -4,7 +4,8 @@
   "type": "module",
   "scripts": {
     "dev": "node --watch --env-file=.env src/dev.ts",
-    "build": "tsc"
+    "build": "tsc",
+    "test": "node --test"
   },
   "devDependencies": {
     "@hono/node-server": "^2.1.6",
