@@ -110,6 +110,11 @@ export const en: Translation = {
     loadMore: 'Show older',
     add: 'Add document',
     new: 'New document',
+    document: 'Document',
+    delete: 'Delete',
+    deleteTitle: 'Delete this document?',
+    deleteText: "A deleted document can't be restored.",
+    deleteConfirm: 'Delete document',
     save: 'Save',
     cancel: 'Cancel',
     fields: {

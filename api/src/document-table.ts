@@ -1,4 +1,11 @@
-import { DynamoDBClient, PutItemCommand, QueryCommand, type AttributeValue } from '@aws-sdk/client-dynamodb'
+import {
+  DeleteItemCommand,
+  DynamoDBClient,
+  GetItemCommand,
+  PutItemCommand,
+  QueryCommand,
+  type AttributeValue,
+} from '@aws-sdk/client-dynamodb'
 import type { Document, DocumentInput } from 'shared'
 import { ulid } from 'ulid'
 
@@ -11,10 +18,11 @@ const PAGE_SIZE = 50
 // Every key starts from the account, so a query can never reach another account's documents.
 const listKey = (sub: string) => `USER#${sub}#DOCS`
 
+const docKey = (sub: string, id: string): Item => ({ PK: { S: `USER#${sub}` }, SK: { S: `DOC#${id}` } })
+
 function toItem(sub: string, doc: Document): Item {
   return {
-    PK: { S: `USER#${sub}` },
-    SK: { S: `DOC#${doc.id}` },
+    ...docKey(sub, doc.id),
     // GSI1 lists an account's documents by the date on the document; ISO dates sort as text.
     GSI1PK: { S: listKey(sub) },
     GSI1SK: { S: `${doc.docDate}#${doc.id}` },
@@ -47,6 +55,28 @@ export async function createDocument(sub: string, input: DocumentInput): Promise
   const doc: Document = { ...input, id: ulid(), createdAt: new Date().toISOString() }
   await db.send(new PutItemCommand({ TableName: TABLE, Item: toItem(sub, doc) }))
   return doc
+}
+
+export async function getDocument(sub: string, id: string) {
+  const { Item } = await db.send(new GetItemCommand({ TableName: TABLE, Key: docKey(sub, id) }))
+  return Item && fromItem(Item)
+}
+
+// Replaces what a person entered and keeps the id and creation time. Undefined means no such document.
+export async function updateDocument(sub: string, id: string, input: DocumentInput) {
+  const current = await getDocument(sub, id)
+  if (!current) return undefined
+  const doc: Document = { ...input, id, createdAt: current.createdAt }
+  await db.send(new PutItemCommand({ TableName: TABLE, Item: toItem(sub, doc) }))
+  return doc
+}
+
+// False means no such document.
+export async function deleteDocument(sub: string, id: string) {
+  const { Attributes } = await db.send(
+    new DeleteItemCommand({ TableName: TABLE, Key: docKey(sub, id), ReturnValues: 'ALL_OLD' }),
+  )
+  return Attributes !== undefined
 }
 
 // The cursor is the last key of a page. One that points outside the caller's list is rejected.

@@ -30,7 +30,7 @@ export const errorCode = (err: unknown): ApiErrorCode => (err instanceof ApiErro
 const isApiErrorCode = (value: unknown): value is ApiErrorCode =>
   API_ERRORS.includes(value as ApiErrorCode)
 
-async function request<T>(method: 'GET' | 'POST', path: string, body?: unknown): Promise<T> {
+async function request<T>(method: 'GET' | 'POST' | 'PUT' | 'DELETE', path: string, body?: unknown): Promise<T> {
   let response: Response
   try {
     response = await fetch(`/api${path}`, {
@@ -55,4 +55,6 @@ async function request<T>(method: 'GET' | 'POST', path: string, body?: unknown):
 export const api = {
   get: <T>(path: string) => request<T>('GET', path),
   post: <T = void>(path: string, body?: unknown) => request<T>('POST', path, body),
+  put: <T>(path: string, body: unknown) => request<T>('PUT', path, body),
+  delete: (path: string) => request<void>('DELETE', path),
 }

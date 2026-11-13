@@ -2,6 +2,15 @@
 
 The minor version marks a stage of the build plan and the patch version each step or fix within it, as [Semantic Versioning](https://semver.org/spec/v2.0.0.html) allows before 1.0.0. Each entry starts with the version and its commit message, followed by a description of what changed.
 
+## 0.7.4 - feat: edit and delete documents
+
+Released 2026-11-13.
+
+- Each document on the list opens its own page with the same form, filled in, to change and save it.
+- A document can be deleted after a confirmation.
+- `GET`, `PUT` and `DELETE /api/documents/:id` reach only the signed-in account's documents. Any other id, including another account's document, gets 404.
+- Signed-in pages sit centered in the main area instead of along its left edge.
+
 ## 0.7.3 - feat: add documents by hand
 
 Released 2026-11-13.

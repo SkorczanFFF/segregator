@@ -111,6 +111,11 @@ export const pl = {
     loadMore: 'Pokaż starsze',
     add: 'Dodaj dokument',
     new: 'Nowy dokument',
+    document: 'Dokument',
+    delete: 'Usuń',
+    deleteTitle: 'Usunąć dokument?',
+    deleteText: 'Usuniętego dokumentu nie da się przywrócić.',
+    deleteConfirm: 'Usuń dokument',
     save: 'Zapisz',
     cancel: 'Anuluj',
     fields: {

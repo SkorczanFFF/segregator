@@ -1,10 +1,11 @@
-import { Button, Divider, Group, Paper, Skeleton, Stack, Text, Title } from '@mantine/core'
-import { IconFileText, IconPlus } from '@tabler/icons-react'
+import { Button, Divider, Group, Paper, Skeleton, Stack, Text, UnstyledButton } from '@mantine/core'
+import { IconChevronRight, IconFileText, IconPlus } from '@tabler/icons-react'
 import { Fragment } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router'
 import type { Document, Subtype } from 'shared'
 import { useDocuments } from '~/features/documents/useDocuments.ts'
+import Page from '~/shared/components/Page.tsx'
 import StatusAlert from '~/shared/components/StatusAlert.tsx'
 import { formatDate, formatMoney } from '~/shared/lib/format.ts'
 
@@ -18,24 +19,27 @@ function DocumentRow({ doc }: { doc: Document }) {
     .join(' · ')
 
   return (
-    <Group wrap="nowrap" gap="md" py="sm" align="flex-start">
-      <Text ff="monospace" size="sm" c="dimmed" w={104} style={{ flex: 'none' }}>
-        {formatDate(doc.docDate)}
-      </Text>
-      <Stack gap={2} style={{ flex: 1, minWidth: 0 }}>
-        <Text fw={600} truncate>
-          {doc.title ?? doc.issuer}
+    <UnstyledButton component={Link} to={`/documents/${doc.id}`} display="block" py="sm">
+      <Group wrap="nowrap" gap="md" align="flex-start">
+        <Text ff="monospace" size="sm" c="dimmed" w={104} style={{ flex: 'none' }}>
+          {formatDate(doc.docDate)}
         </Text>
-        <Text size="sm" c="dimmed" truncate>
-          {doc.title ? `${category} · ${doc.issuer}` : category}
-        </Text>
-      </Stack>
-      {doc.amount !== undefined && (
-        <Text ff="monospace" size="sm" style={{ flex: 'none' }}>
-          {formatMoney(doc.amount)}
-        </Text>
-      )}
-    </Group>
+        <Stack gap={2} style={{ flex: 1, minWidth: 0 }}>
+          <Text fw={600} truncate>
+            {doc.title ?? doc.issuer}
+          </Text>
+          <Text size="sm" c="dimmed" truncate>
+            {doc.title ? `${category} · ${doc.issuer}` : category}
+          </Text>
+        </Stack>
+        {doc.amount !== undefined && (
+          <Text ff="monospace" size="sm" style={{ flex: 'none' }}>
+            {formatMoney(doc.amount)}
+          </Text>
+        )}
+        <IconChevronRight size={18} aria-hidden style={{ flex: 'none' }} />
+      </Group>
+    </UnstyledButton>
   )
 }
 
@@ -44,13 +48,14 @@ export default function DocumentsPage() {
   const { items, error, hasMore, loadMore, loadingMore } = useDocuments()
 
   return (
-    <Stack gap="lg" maw={880}>
-      <Group justify="space-between">
-        <Title>{t('documents.title')}</Title>
+    <Page
+      title={t('documents.title')}
+      actions={
         <Button component={Link} to="/documents/new" leftSection={<IconPlus size={18} aria-hidden />}>
           {t('documents.add')}
         </Button>
-      </Group>
+      }
+    >
       {error && <StatusAlert status="error">{t(`errors.${error}`)}</StatusAlert>}
       {!items && !error && (
         <Paper aria-busy>
@@ -85,6 +90,6 @@ export default function DocumentsPage() {
           {t('documents.loadMore')}
         </Button>
       )}
-    </Stack>
+    </Page>
   )
 }

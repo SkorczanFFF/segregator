@@ -1,10 +1,16 @@
-import { useInfiniteQuery } from '@tanstack/react-query'
+import { useInfiniteQuery, type QueryClient } from '@tanstack/react-query'
 import type { Document } from 'shared'
 import { api, errorCode } from '~/shared/lib/api.ts'
 
 type Page = { items: Document[]; cursor?: string }
 
-export const documentsKey = ['documents']
+const documentsKey = ['documents']
+
+export const documentKey = (id: string) => [...documentsKey, id]
+
+// Reloads the list before the app returns to it, so a saved or deleted document shows at once.
+export const refreshDocuments = (queryClient: QueryClient) =>
+  queryClient.invalidateQueries({ queryKey: documentsKey, exact: true, refetchType: 'all' })
 
 // The account's documents, newest first, fetched one page at a time.
 export function useDocuments() {

@@ -9,6 +9,7 @@ import ResetPasswordPage from '~/features/auth/pages/ResetPasswordPage.tsx'
 import EntryPage from '~/features/auth/pages/EntryPage.tsx'
 import SignInPage from '~/features/auth/pages/SignInPage.tsx'
 import SignUpPage from '~/features/auth/pages/SignUpPage.tsx'
+import DocumentPage from '~/features/documents/pages/DocumentPage.tsx'
 import DocumentsPage from '~/features/documents/pages/DocumentsPage.tsx'
 import NewDocumentPage from '~/features/documents/pages/NewDocumentPage.tsx'
 
@@ -29,6 +30,7 @@ export default function App() {
             <Route element={<AppLayout />}>
               <Route path="/documents" element={<DocumentsPage />} />
               <Route path="/documents/new" element={<NewDocumentPage />} />
+              <Route path="/documents/:id" element={<DocumentPage />} />
               <Route path="/account" element={<AccountPage />} />
             </Route>
           </Route>
