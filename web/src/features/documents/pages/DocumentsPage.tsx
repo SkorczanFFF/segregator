@@ -1,7 +1,8 @@
 import { Button, Divider, Group, Paper, Skeleton, Stack, Text, Title } from '@mantine/core'
-import { IconFileText } from '@tabler/icons-react'
+import { IconFileText, IconPlus } from '@tabler/icons-react'
 import { Fragment } from 'react'
 import { useTranslation } from 'react-i18next'
+import { Link } from 'react-router'
 import type { Document, Subtype } from 'shared'
 import { useDocuments } from '~/features/documents/useDocuments.ts'
 import StatusAlert from '~/shared/components/StatusAlert.tsx'
@@ -44,7 +45,12 @@ export default function DocumentsPage() {
 
   return (
     <Stack gap="lg" maw={880}>
-      <Title>{t('documents.title')}</Title>
+      <Group justify="space-between">
+        <Title>{t('documents.title')}</Title>
+        <Button component={Link} to="/documents/new" leftSection={<IconPlus size={18} aria-hidden />}>
+          {t('documents.add')}
+        </Button>
+      </Group>
       {error && <StatusAlert status="error">{t(`errors.${error}`)}</StatusAlert>}
       {!items && !error && (
         <Paper aria-busy>

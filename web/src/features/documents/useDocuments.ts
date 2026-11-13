@@ -1,42 +1,26 @@
-import { useEffect, useState } from 'react'
+import { useInfiniteQuery } from '@tanstack/react-query'
 import type { Document } from 'shared'
-import { api, errorCode, type ApiErrorCode } from '~/shared/lib/api.ts'
+import { api, errorCode } from '~/shared/lib/api.ts'
 
 type Page = { items: Document[]; cursor?: string }
 
-const fetchPage = (after?: string) =>
-  api.get<Page>(after ? `/documents?cursor=${encodeURIComponent(after)}` : '/documents')
+export const documentsKey = ['documents']
 
 // The account's documents, newest first, fetched one page at a time.
 export function useDocuments() {
-  const [items, setItems] = useState<Document[]>()
-  const [cursor, setCursor] = useState<string>()
-  const [error, setError] = useState<ApiErrorCode>()
-  const [loadingMore, setLoadingMore] = useState(false)
+  const query = useInfiniteQuery({
+    queryKey: documentsKey,
+    queryFn: ({ pageParam }) =>
+      api.get<Page>(pageParam ? `/documents?cursor=${encodeURIComponent(pageParam)}` : '/documents'),
+    initialPageParam: '',
+    getNextPageParam: (page) => page.cursor,
+  })
 
-  useEffect(() => {
-    fetchPage().then(
-      (page) => {
-        setItems(page.items)
-        setCursor(page.cursor)
-      },
-      (err: unknown) => setError(errorCode(err)),
-    )
-  }, [])
-
-  async function loadMore() {
-    setLoadingMore(true)
-    try {
-      const page = await fetchPage(cursor)
-      setItems((current) => [...(current ?? []), ...page.items])
-      setCursor(page.cursor)
-      setError(undefined)
-    } catch (err) {
-      setError(errorCode(err))
-    } finally {
-      setLoadingMore(false)
-    }
+  return {
+    items: query.data?.pages.flatMap((page) => page.items),
+    error: query.error ? errorCode(query.error) : undefined,
+    hasMore: query.hasNextPage,
+    loadMore: query.fetchNextPage,
+    loadingMore: query.isFetchingNextPage,
   }
-
-  return { items, error, hasMore: Boolean(cursor), loadMore, loadingMore }
 }

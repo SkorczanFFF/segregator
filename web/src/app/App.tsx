@@ -10,6 +10,7 @@ import EntryPage from '~/features/auth/pages/EntryPage.tsx'
 import SignInPage from '~/features/auth/pages/SignInPage.tsx'
 import SignUpPage from '~/features/auth/pages/SignUpPage.tsx'
 import DocumentsPage from '~/features/documents/pages/DocumentsPage.tsx'
+import NewDocumentPage from '~/features/documents/pages/NewDocumentPage.tsx'
 
 export default function App() {
   return (
@@ -27,6 +28,7 @@ export default function App() {
           <Route element={<SessionGate signedIn />}>
             <Route element={<AppLayout />}>
               <Route path="/documents" element={<DocumentsPage />} />
+              <Route path="/documents/new" element={<NewDocumentPage />} />
               <Route path="/account" element={<AccountPage />} />
             </Route>
           </Route>

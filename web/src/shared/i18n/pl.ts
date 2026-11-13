@@ -109,6 +109,30 @@ export const pl = {
     empty: 'Nie ma jeszcze żadnych dokumentów',
     emptyHint: 'Tu pojawią się paragony, gwarancje, polisy i umowy, od najnowszych.',
     loadMore: 'Pokaż starsze',
+    add: 'Dodaj dokument',
+    new: 'Nowy dokument',
+    save: 'Zapisz',
+    cancel: 'Anuluj',
+    fields: {
+      type: 'Rodzaj',
+      subtype: 'Podkategoria',
+      issuer: 'Wystawca',
+      title: 'Nazwa',
+      amount: 'Kwota w zł',
+      docDate: 'Data dokumentu',
+    },
+    placeholders: {
+      issuer: 'np. Sklep AGD',
+      title: 'np. Pralka 8 kg',
+    },
+    errors: {
+      type: 'Wybierz rodzaj dokumentu.',
+      subtype: 'Wybierz podkategorię z listy.',
+      issuer: 'Podaj wystawcę.',
+      title: 'Nazwa może mieć najwyżej 120 znaków.',
+      amount: 'Kwota może wynosić najwyżej 10 mln zł.',
+      docDate: 'Podaj datę z dokumentu.',
+    },
   },
   categories: {
     types: {

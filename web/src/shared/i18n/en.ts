@@ -108,6 +108,30 @@ export const en: Translation = {
     empty: 'No documents yet',
     emptyHint: 'Receipts, warranties, policies and contracts will show up here, newest first.',
     loadMore: 'Show older',
+    add: 'Add document',
+    new: 'New document',
+    save: 'Save',
+    cancel: 'Cancel',
+    fields: {
+      type: 'Type',
+      subtype: 'Subcategory',
+      issuer: 'Issuer',
+      title: 'Name',
+      amount: 'Amount in PLN',
+      docDate: 'Document date',
+    },
+    placeholders: {
+      issuer: 'e.g. Appliance store',
+      title: 'e.g. Washing machine 8 kg',
+    },
+    errors: {
+      type: 'Choose the document type.',
+      subtype: 'Choose a subcategory from the list.',
+      issuer: 'Enter the issuer.',
+      title: 'The name can have up to 120 characters.',
+      amount: 'The amount can be at most PLN 10 million.',
+      docDate: 'Enter the date on the document.',
+    },
   },
   categories: {
     types: {

@@ -1,15 +1,19 @@
 import {
   ActionIcon,
+  Autocomplete,
   Button,
   createTheme,
+  NumberInput,
   Paper,
   PasswordInput,
   rgba,
+  Select,
   TextInput,
   Tooltip,
   type CSSVariablesResolver,
   type MantineColorsTuple,
 } from '@mantine/core'
+import { DatePickerInput } from '@mantine/dates'
 
 const brand: MantineColorsTuple = [
   '#f9f2fc',
@@ -85,13 +89,17 @@ export const theme = createTheme({
     ActionIcon: ActionIcon.extend({
       defaultProps: { variant: 'light', size: 'lg' },
     }),
+    Autocomplete: Autocomplete.extend({ defaultProps: { size: 'md' } }),
     Button: Button.extend({
       defaultProps: { variant: 'gradient', size: 'md' },
     }),
+    DatePickerInput: DatePickerInput.extend({ defaultProps: { size: 'md' } }),
+    NumberInput: NumberInput.extend({ defaultProps: { size: 'md' } }),
     Paper: Paper.extend({
       defaultProps: { radius: 'md', shadow: 'md', p: 'xl', withBorder: true },
     }),
     PasswordInput: PasswordInput.extend({ defaultProps: { size: 'md' } }),
+    Select: Select.extend({ defaultProps: { size: 'md' } }),
     TextInput: TextInput.extend({ defaultProps: { size: 'md' } }),
     Tooltip: Tooltip.extend({
       defaultProps: { withArrow: true, openDelay: 300 },

@@ -1,15 +1,17 @@
 import * as z from 'zod'
 import { CATEGORIES, DOCUMENT_TYPES } from './categories.ts'
 
-const text = (max: number) => z.string().trim().min(1).max(max)
+export const TEXT_MAX_LENGTH = 120
+
+const text = z.string().trim().min(1).max(TEXT_MAX_LENGTH)
 
 // What a person enters for a document. Amounts are whole grosze, so sums never round.
 export const DocumentInput = z
   .object({
     type: z.enum(DOCUMENT_TYPES),
     subtype: z.string().optional(),
-    title: text(120).optional(),
-    issuer: text(120),
+    title: text.optional(),
+    issuer: text,
     amount: z.number().int().min(0).max(1_000_000_000).optional(),
     docDate: z.iso.date(),
   })

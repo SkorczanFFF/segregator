@@ -2,6 +2,16 @@
 
 The minor version marks a stage of the build plan and the patch version each step or fix within it, as [Semantic Versioning](https://semver.org/spec/v2.0.0.html) allows before 1.0.0. Each entry starts with the version and its commit message, followed by a description of what changed.
 
+## 0.7.3 - feat: add documents by hand
+
+Released 2026-11-13.
+
+- The documents page has an Add document button. Its form takes the type, a subcategory that follows the type, the issuer, an optional name and amount, and the date on the document, picked from a calendar and set to today.
+- The form checks the fields with the same Zod schema as the API, and each field shows its own message in the chosen language.
+- The amount accepts a comma or a dot and is sent in grosze.
+- The documents list loads through TanStack Query and refreshes after a save. Requests are retried only after a lost connection, so an answer such as 404 shows at once. Signing out clears all loaded data.
+- Text, list, number and date fields share one size, including the email field on the sign-in and sign-up screens.
+
 ## 0.7.2 - fix: color the password meter and messages by meaning
 
 Released 2026-11-13.
