@@ -5,3 +5,4 @@ cdk.out/
 *.log
 .env*
 !.env.example
+example_receipts/
