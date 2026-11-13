@@ -2,6 +2,7 @@ import { fileURLToPath } from 'node:url'
 import { CfnOutput, Duration, Fn, RemovalPolicy, Stack, type StackProps } from 'aws-cdk-lib/core'
 import { HttpApi, HttpMethod, type CfnStage } from 'aws-cdk-lib/aws-apigatewayv2'
 import { HttpLambdaIntegration } from 'aws-cdk-lib/aws-apigatewayv2-integrations'
+import * as acm from 'aws-cdk-lib/aws-certificatemanager'
 import * as cloudfront from 'aws-cdk-lib/aws-cloudfront'
 import { HttpOrigin, S3BucketOrigin } from 'aws-cdk-lib/aws-cloudfront-origins'
 import * as cognito from 'aws-cdk-lib/aws-cognito'
@@ -11,6 +12,7 @@ import * as nodejs from 'aws-cdk-lib/aws-lambda-nodejs'
 import * as logs from 'aws-cdk-lib/aws-logs'
 import * as s3 from 'aws-cdk-lib/aws-s3'
 import * as s3deploy from 'aws-cdk-lib/aws-s3-deployment'
+import * as ssm from 'aws-cdk-lib/aws-ssm'
 import type { Construct } from 'constructs'
 
 const WEB_DIST = fileURLToPath(new URL('../../web/dist', import.meta.url))
@@ -33,8 +35,15 @@ const CSP = [
   "frame-ancestors 'none'",
 ].join('; ')
 
+export type Domain = {
+  name: string
+  // CloudFront needs the certificate in us-east-1, where the account's SCP blocks CloudFormation,
+  // so it is created once outside the stack and its ARN read from this parameter.
+  certificateArnParameter: string
+}
+
 export class SegregatorStack extends Stack {
-  constructor(scope: Construct, id: string, props?: StackProps) {
+  constructor(scope: Construct, id: string, props?: StackProps & { domain?: Domain }) {
     super(scope, id, props)
 
     const bucket = new s3.Bucket(this, 'WebBucket', {
@@ -149,8 +158,17 @@ export class SegregatorStack extends Stack {
     }
     stage.node.addDependency(authRoute)
 
+    const domain = props?.domain
     const distribution = new cloudfront.Distribution(this, 'WebDistribution', {
       defaultRootObject: 'index.html',
+      domainNames: domain && [domain.name],
+      certificate:
+        domain &&
+        acm.Certificate.fromCertificateArn(
+          this,
+          'Certificate',
+          ssm.StringParameter.valueForStringParameter(this, domain.certificateArnParameter),
+        ),
       priceClass: cloudfront.PriceClass.PRICE_CLASS_100,
       defaultBehavior: {
         origin: S3BucketOrigin.withOriginAccessControl(bucket),
@@ -206,7 +224,9 @@ export class SegregatorStack extends Stack {
     // New index.html must never point at assets that are not uploaded yet.
     index.node.addDependency(assets)
 
-    new CfnOutput(this, 'Url', { value: `https://${distribution.distributionDomainName}` })
+    new CfnOutput(this, 'Url', { value: `https://${domain?.name ?? distribution.distributionDomainName}` })
+    // Target of the DNS record that points a custom domain at the distribution.
+    new CfnOutput(this, 'DistributionDomain', { value: distribution.distributionDomainName })
     // Values for api/.env when the API runs locally.
     new CfnOutput(this, 'TableName', { value: table.tableName })
     new CfnOutput(this, 'UserPoolId', { value: userPool.userPoolId })

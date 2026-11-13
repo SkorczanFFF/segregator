@@ -2,6 +2,14 @@
 
 The minor version marks a stage of the build plan and the patch version each step or fix within it, as [Semantic Versioning](https://semver.org/spec/v2.0.0.html) allows before 1.0.0. Each entry starts with the version and its commit message, followed by a description of what changed.
 
+## 0.6.4 - feat: serve prod from segregator.skoftware.pl
+
+Released 2026-11-13.
+
+- The prod web app and API answer on `https://segregator.skoftware.pl`. Dev keeps its CloudFront address.
+- The certificate comes from ACM in us-east-1, as CloudFront requires, and the stack reads its ARN from Parameter Store.
+- Each stack outputs its CloudFront domain, the target for the domain's DNS record.
+
 ## 0.6.3 - feat: harden sessions and sign-in requests
 
 Released 2026-11-13.

@@ -5,7 +5,7 @@ import { CfnConnection } from 'aws-cdk-lib/aws-codestarconnections'
 import { PipelineType } from 'aws-cdk-lib/aws-codepipeline'
 import * as pipelines from 'aws-cdk-lib/pipelines'
 import type { Construct } from 'constructs'
-import { SegregatorStack } from './segregator-stack.ts'
+import { SegregatorStack, type Domain } from './segregator-stack.ts'
 
 const REPO = 'SkorczanFFF/segregator'
 
@@ -13,9 +13,9 @@ const REPO = 'SkorczanFFF/segregator'
 const version = (pkg: string): string => createRequire(import.meta.url)(`${pkg}/package.json`).version
 
 class AppStage extends Stage {
-  constructor(scope: Construct, id: string, props?: StageProps) {
+  constructor(scope: Construct, id: string, props?: StageProps & { domain?: Domain }) {
     super(scope, id, props)
-    new SegregatorStack(this, 'Segregator')
+    new SegregatorStack(this, 'Segregator', { domain: props?.domain })
   }
 }
 
@@ -57,7 +57,11 @@ export class PipelineStack extends Stack {
     })
 
     pipeline.addStage(new AppStage(this, 'dev', { env: props?.env }))
-    pipeline.addStage(new AppStage(this, 'prod', { env: props?.env }), {
+    const prod = new AppStage(this, 'prod', {
+      env: props?.env,
+      domain: { name: 'segregator.skoftware.pl', certificateArnParameter: '/segregator/prod/certificate-arn' },
+    })
+    pipeline.addStage(prod, {
       pre: [new pipelines.ManualApprovalStep('Approve')],
     })
   }
