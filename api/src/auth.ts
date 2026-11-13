@@ -10,6 +10,7 @@ import {
   signUp,
 } from './cognito.ts'
 import { createSession, deleteAllSessions, deleteSession, type Env } from './session.ts'
+import { parse } from './validate.ts'
 
 type ErrorCode = 'invalid_input' | 'invalid_credentials' | 'invalid_code' | 'code_expired' | 'weak_password'
 
@@ -37,11 +38,6 @@ const LIMIT_ERRORS = new Set([
 ])
 
 const errorName = (err: unknown) => (err instanceof Error ? err.name : '')
-
-async function parse<T extends z.ZodType>(c: Context, schema: T) {
-  const result = schema.safeParse(await c.req.json().catch(() => undefined))
-  return result.success ? result.data : undefined
-}
 
 // Turns the Cognito errors a route expects into API error codes. Anything else ends as a 500.
 function fail(c: Context, err: unknown, expected: Record<string, ErrorCode>) {

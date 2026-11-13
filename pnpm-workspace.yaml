@@ -2,10 +2,12 @@ packages:
   - web
   - infra
   - api
+  - shared
 
 catalog:
   '@types/node': ^24.19.2
   typescript: ~7.0.2
+  zod: ^4.6.7
 
 allowBuilds:
   esbuild: false

@@ -3,6 +3,7 @@ import { handle } from '@hono/aws-lambda'
 import { csrf } from 'hono/csrf'
 import { HTTPException } from 'hono/http-exception'
 import { auth } from './auth.ts'
+import { documents } from './documents.ts'
 import { readSession, type Env } from './session.ts'
 
 export const app = new Hono<Env>().basePath('/api')
@@ -33,6 +34,7 @@ app.use(async (c, next) => {
 
 app.get('/health', (c) => c.json({ ok: true }))
 app.route('/auth', auth)
+app.route('/documents', documents)
 
 // The API answers with error codes; the web app translates them.
 app.notFound((c) => c.json({ error: 'not_found' }, 404))

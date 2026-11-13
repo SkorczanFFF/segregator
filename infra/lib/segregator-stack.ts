@@ -110,7 +110,9 @@ export class SegregatorStack extends Stack {
       sortKey: { name: 'SK', type: dynamodb.AttributeType.STRING },
       billing: dynamodb.Billing.onDemand(),
       timeToLiveAttribute: 'expiresAt',
-      // One index for per-user lists: sessions now, documents in L04.
+      // Documents can be restored to any second of the last 35 days.
+      pointInTimeRecoverySpecification: { pointInTimeRecoveryEnabled: true },
+      // One index for per-user lists: an account's sessions and documents.
       globalSecondaryIndexes: [
         {
           indexName: 'GSI1',

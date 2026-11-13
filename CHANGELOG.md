@@ -2,6 +2,16 @@
 
 The minor version marks a stage of the build plan and the patch version each step or fix within it, as [Semantic Versioning](https://semver.org/spec/v2.0.0.html) allows before 1.0.0. Each entry starts with the version and its commit message, followed by a description of what changed.
 
+## 0.7.0 - feat: store documents and list them newest first
+
+Released 2026-11-13.
+
+- Added the `shared` package with the document categories and the document schema in Zod, used by the API now and by the web app next.
+- Added `POST /api/documents` and `GET /api/documents`. Every key starts from the signed-in account, so one account can never read another's documents.
+- A document has a type and subtype from the category list, an issuer, an optional title and amount, and the date on the document. Amounts are whole grosze, so sums never round.
+- Documents get ULID ids and are listed by the date on the document, newest first, 50 per page. A cursor fetches the next page, and a cursor that points outside the account's list is rejected.
+- The table keeps point-in-time recovery for the last 35 days.
+
 ## 0.6.4 - feat: serve prod from segregator.skoftware.pl
 
 Released 2026-11-13.

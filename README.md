@@ -8,6 +8,7 @@ Live at [segregator.skoftware.pl](https://segregator.skoftware.pl).
 
 - `web/`: React front end (Vite, Mantine)
 - `api/`: Hono API, deployed as an AWS Lambda function
+- `shared/`: Zod schemas and the category list used by both the API and the web app
 - `infra/`: AWS CDK app stack and the CodePipeline that deploys it to `dev` and `prod`
 
 ## Local development
