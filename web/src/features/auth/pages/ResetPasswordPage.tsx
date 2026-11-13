@@ -1,4 +1,4 @@
-import { Alert, Anchor, Button, Input, PinInput, Stack, TextInput } from '@mantine/core'
+import { Anchor, Button, Input, PinInput, Stack, TextInput } from '@mantine/core'
 import { matches, useForm } from '@mantine/form'
 import { useTranslation } from 'react-i18next'
 import { Link, useLocation, useNavigate } from 'react-router'
@@ -6,6 +6,7 @@ import AuthScreen from '~/features/auth/components/AuthScreen.tsx'
 import { emailRule } from '~/features/auth/email.ts'
 import NewPasswordInput from '~/features/auth/components/NewPasswordInput.tsx'
 import { newPasswordRules } from '~/features/auth/password.ts'
+import StatusAlert from '~/shared/components/StatusAlert.tsx'
 import { useApiSubmit } from '~/shared/hooks/useApiSubmit.ts'
 import { useFormError } from '~/shared/hooks/useFormError.ts'
 import { api } from '~/shared/lib/api.ts'
@@ -51,9 +52,9 @@ export default function ResetPasswordPage() {
       <form onSubmit={form.onSubmit(submit, focusFirstError(form))} noValidate>
         <Stack gap="lg">
           {error && (
-            <Alert color="red">
+            <StatusAlert status="error">
               {t(error === 'code_expired' ? 'auth.resetCodeExpired' : `errors.${error}`)}
-            </Alert>
+            </StatusAlert>
           )}
           <TextInput
             label={t('common.email')}

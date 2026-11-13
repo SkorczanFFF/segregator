@@ -2,6 +2,17 @@
 
 The minor version marks a stage of the build plan and the patch version each step or fix within it, as [Semantic Versioning](https://semver.org/spec/v2.0.0.html) allows before 1.0.0. Each entry starts with the version and its commit message, followed by a description of what changed.
 
+## 0.7.2 - fix: color the password meter and messages by meaning
+
+Released 2026-11-13.
+
+- The password strength meter runs from red for a very short password through orange and yellow to green for a long one.
+- Met password requirements get a green tick.
+- Errors are red, warnings orange and confirmations green, each with its own icon, so the meaning never rests on color alone.
+- The Caps Lock note is orange.
+- In light mode, red, orange and green text uses darker shades so it keeps 4.5:1 contrast.
+- In dark mode, red, orange and green buttons and alert icons use lighter shades of their own color.
+
 ## 0.7.1 - feat: add the signed-in layout and the documents list
 
 Released 2026-11-13.

@@ -1,4 +1,4 @@
-import { Alert, Anchor, Button, Input, PinInput, Stack, Text, TextInput } from '@mantine/core'
+import { Anchor, Button, Input, PinInput, Stack, Text, TextInput } from '@mantine/core'
 import { matches, useForm } from '@mantine/form'
 import { useInterval } from '@mantine/hooks'
 import { useState } from 'react'
@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next'
 import { Link, useLocation, useNavigate } from 'react-router'
 import AuthScreen from '~/features/auth/components/AuthScreen.tsx'
 import { emailRule } from '~/features/auth/email.ts'
+import StatusAlert from '~/shared/components/StatusAlert.tsx'
 import { useApiSubmit } from '~/shared/hooks/useApiSubmit.ts'
 import { useFormError } from '~/shared/hooks/useFormError.ts'
 import { api } from '~/shared/lib/api.ts'
@@ -74,9 +75,11 @@ export default function ConfirmPage() {
       <form onSubmit={form.onSubmit(submit, focusFirstError(form))} noValidate>
         <Stack gap="lg">
           {notice && !error && (
-            <Alert>{t(notice === 'sent' ? 'auth.codeSent' : 'auth.codeResent')}</Alert>
+            <StatusAlert status={notice === 'sent' ? 'success' : 'warning'}>
+              {t(notice === 'sent' ? 'auth.codeSent' : 'auth.codeResent')}
+            </StatusAlert>
           )}
-          {apiError && <Alert color="red">{t(`errors.${apiError}`)}</Alert>}
+          {apiError && <StatusAlert status="error">{t(`errors.${apiError}`)}</StatusAlert>}
           {!knownEmail && (
             <TextInput
               label={t('common.email')}

@@ -1,9 +1,10 @@
-import { Alert, Button, Divider, Group, Paper, Skeleton, Stack, Text, Title } from '@mantine/core'
+import { Button, Divider, Group, Paper, Skeleton, Stack, Text, Title } from '@mantine/core'
 import { IconFileText } from '@tabler/icons-react'
 import { Fragment } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { Document, Subtype } from 'shared'
 import { useDocuments } from '~/features/documents/useDocuments.ts'
+import StatusAlert from '~/shared/components/StatusAlert.tsx'
 import { formatDate, formatMoney } from '~/shared/lib/format.ts'
 
 function DocumentRow({ doc }: { doc: Document }) {
@@ -44,7 +45,7 @@ export default function DocumentsPage() {
   return (
     <Stack gap="lg" maw={880}>
       <Title>{t('documents.title')}</Title>
-      {error && <Alert color="red">{t(`errors.${error}`)}</Alert>}
+      {error && <StatusAlert status="error">{t(`errors.${error}`)}</StatusAlert>}
       {!items && !error && (
         <Paper aria-busy>
           {[0, 1, 2].map((row) => (

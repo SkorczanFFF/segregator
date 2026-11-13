@@ -1,4 +1,4 @@
-import { Alert, Anchor, Button, PasswordInput, Stack, TextInput } from '@mantine/core'
+import { Anchor, Button, PasswordInput, Stack, TextInput } from '@mantine/core'
 import { isNotEmpty, useForm } from '@mantine/form'
 import type { FocusEvent } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -6,6 +6,7 @@ import { Link, useLocation, useNavigate } from 'react-router'
 import AuthScreen from '~/features/auth/components/AuthScreen.tsx'
 import { emailRule } from '~/features/auth/email.ts'
 import { useSession, type User } from '~/features/auth/session.ts'
+import StatusAlert from '~/shared/components/StatusAlert.tsx'
 import CapsLockNote from '~/shared/components/CapsLockNote.tsx'
 import { useApiSubmit } from '~/shared/hooks/useApiSubmit.ts'
 import { useCapsLock } from '~/shared/hooks/useCapsLock.ts'
@@ -57,17 +58,17 @@ export default function SignInPage() {
     >
       <form onSubmit={form.onSubmit(submit, focusFirstError(form))} noValidate>
         <Stack gap="lg">
-          {state?.confirmed && !error && <Alert>{t('auth.confirmed')}</Alert>}
-          {state?.passwordReset && !error && <Alert>{t('auth.passwordChanged')}</Alert>}
+          {state?.confirmed && !error && <StatusAlert status="success">{t('auth.confirmed')}</StatusAlert>}
+          {state?.passwordReset && !error && <StatusAlert status="success">{t('auth.passwordChanged')}</StatusAlert>}
           {error && (
-            <Alert color="red">
+            <StatusAlert status="error">
               {t(`errors.${error}`)}{' '}
               {error === 'invalid_credentials' && (
                 <Anchor component={Link} to="/forgot-password" inherit fw={600} c="inherit">
                   {t('auth.forgotPassword')}
                 </Anchor>
               )}
-            </Alert>
+            </StatusAlert>
           )}
           <TextInput
             label={t('common.email')}

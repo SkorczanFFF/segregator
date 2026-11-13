@@ -6,7 +6,7 @@ export default function CapsLockNote() {
   const { t } = useTranslation()
 
   return (
-    <Group gap={6} c="dimmed" role="status">
+    <Group gap={6} c="orange" role="status">
       <IconAlertTriangle size={16} aria-hidden />
       <Text size="sm">{t('auth.capsLock')}</Text>
     </Group>

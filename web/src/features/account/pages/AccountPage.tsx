@@ -1,7 +1,8 @@
-import { Alert, Button, Stack, Text, Title } from '@mantine/core'
+import { Button, Stack, Text, Title } from '@mantine/core'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router'
 import { useSession } from '~/features/auth/session.ts'
+import StatusAlert from '~/shared/components/StatusAlert.tsx'
 import { useApiSubmit } from '~/shared/hooks/useApiSubmit.ts'
 import { api } from '~/shared/lib/api.ts'
 
@@ -24,7 +25,7 @@ export default function AccountPage() {
       <Title>{t('account.title')}</Title>
       <Stack gap="md">
         <Text>{t('account.signedInAs', { email: user?.email ?? '' })}</Text>
-        {error && <Alert color="red">{t(`errors.${error}`)}</Alert>}
+        {error && <StatusAlert status="error">{t(`errors.${error}`)}</StatusAlert>}
         <Button variant="light" fullWidth loading={signOut.pending} onClick={() => void signOut.submit(undefined)}>
           {t('account.signOut')}
         </Button>

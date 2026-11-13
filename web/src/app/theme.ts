@@ -37,7 +37,7 @@ const dark: MantineColorsTuple = [
   '#110a14',
 ]
 
-// Mantine's default text, border and error colors miss WCAG contrast here, so they get tinted shades that pass.
+// Mantine's default text, border and status colors miss WCAG contrast here, so they get darker shades that pass.
 export const cssVariablesResolver: CSSVariablesResolver = (theme) => ({
   variables: {},
   light: {
@@ -47,11 +47,20 @@ export const cssVariablesResolver: CSSVariablesResolver = (theme) => ({
     '--mantine-color-placeholder': theme.colors.dark[3],
     '--mantine-color-default-border': theme.colors.dark[3],
     '--mantine-color-error': theme.colors.red[9],
+    '--mantine-color-red-text': theme.colors.red[9],
+    '--mantine-color-red-light-color': theme.colors.red[9],
+    '--mantine-color-orange-text': '#a8380a',
+    '--mantine-color-orange-light-color': '#a8380a',
+    '--mantine-color-green-text': '#1f6b30',
+    '--mantine-color-green-light-color': '#1f6b30',
   },
   dark: {
     '--app-page-bg': theme.colors.dark[8],
     '--mantine-color-default-border': theme.colors.dark[3],
     '--mantine-color-error': theme.colors.red[4],
+    '--mantine-color-red-light-color': theme.colors.red[4],
+    '--mantine-color-orange-light-color': theme.colors.orange[4],
+    '--mantine-color-green-light-color': theme.colors.green[4],
     // Keeps the light variant lighter than the card surface.
     '--mantine-color-brand-light': theme.colors.brand[9],
     '--mantine-color-brand-light-color': theme.colors.brand[1],

@@ -1,4 +1,4 @@
-import { Alert, Anchor, Button, Stack } from '@mantine/core'
+import { Anchor, Button, Stack } from '@mantine/core'
 import { useForm } from '@mantine/form'
 import { useTranslation } from 'react-i18next'
 import { Link, useNavigate } from 'react-router'
@@ -7,6 +7,7 @@ import { emailRule } from '~/features/auth/email.ts'
 import EmailInput from '~/features/auth/components/EmailInput.tsx'
 import NewPasswordInput from '~/features/auth/components/NewPasswordInput.tsx'
 import { newPasswordRules } from '~/features/auth/password.ts'
+import StatusAlert from '~/shared/components/StatusAlert.tsx'
 import { useApiSubmit } from '~/shared/hooks/useApiSubmit.ts'
 import { useFormError } from '~/shared/hooks/useFormError.ts'
 import { api } from '~/shared/lib/api.ts'
@@ -47,7 +48,7 @@ export default function SignUpPage() {
     >
       <form onSubmit={form.onSubmit(submit, focusFirstError(form))} noValidate>
         <Stack gap="lg">
-          {error && <Alert color="red">{t(`errors.${error}`)}</Alert>}
+          {error && <StatusAlert status="error">{t(`errors.${error}`)}</StatusAlert>}
           <EmailInput
             label={t('common.email')}
             {...form.getInputProps('email')}

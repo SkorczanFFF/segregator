@@ -12,12 +12,13 @@ import CapsLockNote from '~/shared/components/CapsLockNote.tsx'
 import { useCapsLock } from '~/shared/hooks/useCapsLock.ts'
 
 const STRENGTH = ['empty', 'short', 'short', 'good', 'strong'] as const
+const METER = ['red', 'orange', 'yellow', 'green'] as const
 const CHECKS: PasswordCheck[] = ['length', 'edges', 'email']
 
 type NewPasswordInputProps = Omit<PasswordInputProps, 'value'> & { value?: string; email: string }
 
 // A new password with a live strength meter and requirements.
-// Requirements get a tick as they are met; unmet ones turn red only once the field has an error.
+// Requirements get a green tick as they are met; unmet ones turn red only once the field has an error.
 export default function NewPasswordInput({ value = '', email, error, onBlur, ...props }: NewPasswordInputProps) {
   const { t } = useTranslation()
   const { capsLock, onKeyUp, reset } = useCapsLock()
@@ -42,7 +43,7 @@ export default function NewPasswordInput({ value = '', email, error, onBlur, ...
       {capsLock && <CapsLockNote />}
       <Group grow gap={4} aria-hidden>
         {[1, 2, 3, 4].map((level) => (
-          <Progress key={level} size={4} value={strength >= level ? 100 : 0} color={strength >= 3 ? 'brand' : 'brand.3'} />
+          <Progress key={level} size={4} value={strength >= level ? 100 : 0} color={METER[strength - 1] ?? 'gray'} />
         ))}
       </Group>
       <Group justify="space-between">
@@ -58,7 +59,7 @@ export default function NewPasswordInput({ value = '', email, error, onBlur, ...
           const met = checks[check]
           const failed = !met && Boolean(error) && (check === 'length' || value.length > 0)
           const Icon = met ? IconCheck : failed ? IconX : IconCircle
-          const color = met ? 'var(--mantine-color-brand-text)' : failed ? 'var(--mantine-color-error)' : 'dimmed'
+          const color = met ? 'green' : failed ? 'var(--mantine-color-error)' : 'dimmed'
           return (
             <Group component="li" key={check} gap={8} wrap="nowrap">
               <Text span c={color} lh={0}>
