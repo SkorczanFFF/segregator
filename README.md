@@ -2,6 +2,8 @@
 
 Segregator takes a photo or PDF of a document, straightens the image, reads the data with AI and lets you check it. Then it files the document into categories and reminds you of deadlines by email. Work in progress.
 
+Live at [segregator.skoftware.pl](https://segregator.skoftware.pl).
+
 ## Repository
 
 - `web/`: React front end (Vite, Mantine)
