@@ -12,7 +12,13 @@ import {
 import { createSession, deleteAllSessions, deleteSession, type Env } from './session.ts'
 import { parse } from './validate.ts'
 
-type ErrorCode = 'invalid_input' | 'invalid_credentials' | 'invalid_code' | 'code_expired' | 'weak_password'
+type ErrorCode =
+  | 'invalid_input'
+  | 'invalid_credentials'
+  | 'invalid_code'
+  | 'code_expired'
+  | 'weak_password'
+  | 'signup_closed'
 
 const Email = z.string().trim().toLowerCase().pipe(z.email().max(254))
 const Code = z.string().regex(/^\d{6}$/)
@@ -61,6 +67,8 @@ auth.post('/register', async (c) => {
       return fail(c, err, {
         InvalidPasswordException: 'weak_password',
         InvalidParameterException: 'invalid_input',
+        // The Pre sign-up trigger turns away addresses outside the list while sign-up is closed.
+        UserLambdaValidationException: 'signup_closed',
       })
     }
     // Cognito reveals taken addresses on sign-up, so the API answers as for a new account.

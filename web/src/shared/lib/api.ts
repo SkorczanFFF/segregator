@@ -1,11 +1,12 @@
 // Error codes the API returns. Their messages live under `errors` in the translations.
-export const API_ERRORS = [
+const API_ERRORS = [
   'invalid_input',
   'invalid_credentials',
   'not_confirmed',
   'invalid_code',
   'code_expired',
   'weak_password',
+  'signup_closed',
   'too_many_requests',
   'unauthorized',
   'forbidden',

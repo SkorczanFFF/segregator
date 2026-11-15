@@ -1,5 +1,5 @@
 import { fileURLToPath } from 'node:url'
-import { CfnOutput, Duration, Fn, RemovalPolicy, Stack, type StackProps } from 'aws-cdk-lib/core'
+import { CfnOutput, Duration, Fn, RemovalPolicy, Stack, Stage, type StackProps } from 'aws-cdk-lib/core'
 import { HttpApi, HttpMethod, type CfnStage } from 'aws-cdk-lib/aws-apigatewayv2'
 import { HttpLambdaIntegration } from 'aws-cdk-lib/aws-apigatewayv2-integrations'
 import * as acm from 'aws-cdk-lib/aws-certificatemanager'
@@ -17,6 +17,13 @@ import type { Construct } from 'constructs'
 
 const WEB_DIST = fileURLToPath(new URL('../../web/dist', import.meta.url))
 const API_ENTRY = fileURLToPath(new URL('../../api/src/index.ts', import.meta.url))
+const PRE_SIGN_UP_ENTRY = fileURLToPath(new URL('../../api/src/pre-sign-up.ts', import.meta.url))
+
+const NODE_FUNCTION = {
+  runtime: lambda.Runtime.NODEJS_24_X,
+  architecture: lambda.Architecture.ARM_64,
+  bundling: { format: nodejs.OutputFormat.ESM, minify: true },
+} satisfies nodejs.NodejsFunctionProps
 
 // Paths without a file extension belong to the client-side router.
 const SPA_REWRITE = `function handler(event) {
@@ -104,6 +111,28 @@ export class SegregatorStack extends Stack {
       refreshTokenValidity: Duration.minutes(60),
     })
 
+    // Sign-up is open to anyone ('*'). A list of addresses closes it to everyone else at once, without a deploy:
+    // aws ssm put-parameter --name /segregator/<stage>/signup-allowlist --type StringList --value "a@example.com" --overwrite
+    // CloudFormation sets '*' again only when this resource changes in the template.
+    const signUpAllowlist = new ssm.StringListParameter(this, 'SignUpAllowlist', {
+      parameterName: `/segregator/${Stage.of(this)?.stageName}/signup-allowlist`,
+      stringListValue: ['*'],
+    })
+
+    const preSignUpFunction = new nodejs.NodejsFunction(this, 'PreSignUpFunction', {
+      ...NODE_FUNCTION,
+      entry: PRE_SIGN_UP_ENTRY,
+      // Cognito waits up to 5 seconds for a trigger.
+      timeout: Duration.seconds(5),
+      environment: { SIGNUP_ALLOWLIST: signUpAllowlist.parameterName },
+      logGroup: new logs.LogGroup(this, 'PreSignUpLogs', {
+        retention: logs.RetentionDays.ONE_MONTH,
+        removalPolicy: RemovalPolicy.DESTROY,
+      }),
+    })
+    signUpAllowlist.grantRead(preSignUpFunction)
+    userPool.addTrigger(cognito.UserPoolOperation.PRE_SIGN_UP, preSignUpFunction)
+
     // One table for all data, keyed by PK and SK.
     const table = new dynamodb.TableV2(this, 'Table', {
       partitionKey: { name: 'PK', type: dynamodb.AttributeType.STRING },
@@ -123,10 +152,8 @@ export class SegregatorStack extends Stack {
     })
 
     const apiFunction = new nodejs.NodejsFunction(this, 'ApiFunction', {
+      ...NODE_FUNCTION,
       entry: API_ENTRY,
-      runtime: lambda.Runtime.NODEJS_24_X,
-      architecture: lambda.Architecture.ARM_64,
-      bundling: { format: nodejs.OutputFormat.ESM, minify: true },
       // A cold start reads the client secret from Cognito before the first sign-in call.
       timeout: Duration.seconds(10),
       environment: {

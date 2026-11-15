@@ -172,6 +172,7 @@ export const en: Translation = {
     invalid_code: 'Wrong code.',
     code_expired: 'The code has expired. Sign in to get a new one.',
     weak_password: "The password doesn't meet the requirements.",
+    signup_closed: 'Sign-up is open to invited addresses only right now.',
     too_many_requests: 'Too many attempts. Try again in a moment.',
     unauthorized: 'Your session has expired. Sign in again.',
     forbidden: 'Access denied.',

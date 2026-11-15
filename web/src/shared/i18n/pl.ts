@@ -173,6 +173,7 @@ export const pl = {
     invalid_code: 'Nieprawidłowy kod.',
     code_expired: 'Kod wygasł. Zaloguj się, aby dostać nowy.',
     weak_password: 'Hasło nie spełnia wymagań.',
+    signup_closed: 'Rejestracja jest teraz otwarta tylko dla zaproszonych adresów.',
     too_many_requests: 'Za dużo prób. Spróbuj ponownie za chwilę.',
     unauthorized: 'Sesja wygasła. Zaloguj się ponownie.',
     forbidden: 'Brak dostępu.',

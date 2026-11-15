@@ -2,6 +2,14 @@
 
 The minor version marks a stage of the build plan and the patch version each step or fix within it, as [Semantic Versioning](https://semver.org/spec/v2.0.0.html) allows before 1.0.0. Each entry starts with the version and its commit message, followed by a description of what changed.
 
+## 0.8.0 - feat: close sign-up to a list of addresses on demand
+
+Released 2026-11-15.
+
+- Sign-up stays open to anyone, but a Parameter Store setting can limit it to listed addresses at once, without a deploy.
+- A Cognito Pre sign-up trigger checks every new account against that setting before Cognito creates it.
+- An address outside the list gets a message on the sign-up screen.
+
 ## 0.7.5 - feat: add invoices as a document type
 
 Released 2026-11-15.
