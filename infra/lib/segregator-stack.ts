@@ -50,7 +50,7 @@ export type Domain = {
 }
 
 export class SegregatorStack extends Stack {
-  constructor(scope: Construct, id: string, props?: StackProps & { domain?: Domain }) {
+  constructor(scope: Construct, id: string, props: StackProps & { domain: Domain }) {
     super(scope, id, props)
 
     const bucket = new s3.Bucket(this, 'WebBucket', {
@@ -187,17 +187,15 @@ export class SegregatorStack extends Stack {
     }
     stage.node.addDependency(authRoute)
 
-    const domain = props?.domain
+    const { domain } = props
     const distribution = new cloudfront.Distribution(this, 'WebDistribution', {
       defaultRootObject: 'index.html',
-      domainNames: domain && [domain.name],
-      certificate:
-        domain &&
-        acm.Certificate.fromCertificateArn(
-          this,
-          'Certificate',
-          ssm.StringParameter.valueForStringParameter(this, domain.certificateArnParameter),
-        ),
+      domainNames: [domain.name],
+      certificate: acm.Certificate.fromCertificateArn(
+        this,
+        'Certificate',
+        ssm.StringParameter.valueForStringParameter(this, domain.certificateArnParameter),
+      ),
       priceClass: cloudfront.PriceClass.PRICE_CLASS_100,
       defaultBehavior: {
         origin: S3BucketOrigin.withOriginAccessControl(bucket),
@@ -253,7 +251,7 @@ export class SegregatorStack extends Stack {
     // New index.html must never point at assets that are not uploaded yet.
     index.node.addDependency(assets)
 
-    new CfnOutput(this, 'Url', { value: `https://${domain?.name ?? distribution.distributionDomainName}` })
+    new CfnOutput(this, 'Url', { value: `https://${domain.name}` })
     // Target of the DNS record that points a custom domain at the distribution.
     new CfnOutput(this, 'DistributionDomain', { value: distribution.distributionDomainName })
     // Values for api/.env when the API runs locally.

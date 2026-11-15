@@ -13,9 +13,9 @@ const REPO = 'SkorczanFFF/segregator'
 const version = (pkg: string): string => createRequire(import.meta.url)(`${pkg}/package.json`).version
 
 class AppStage extends Stage {
-  constructor(scope: Construct, id: string, props?: StageProps & { domain?: Domain }) {
+  constructor(scope: Construct, id: string, props: StageProps & { domain: Domain }) {
     super(scope, id, props)
-    new SegregatorStack(this, 'Segregator', { domain: props?.domain })
+    new SegregatorStack(this, 'Segregator', { domain: props.domain })
   }
 }
 
@@ -56,7 +56,12 @@ export class PipelineStack extends Stack {
       },
     })
 
-    pipeline.addStage(new AppStage(this, 'dev', { env: props?.env }))
+    pipeline.addStage(
+      new AppStage(this, 'dev', {
+        env: props?.env,
+        domain: { name: 'dev.segregator.skoftware.pl', certificateArnParameter: '/segregator/dev/certificate-arn' },
+      }),
+    )
     const prod = new AppStage(this, 'prod', {
       env: props?.env,
       domain: { name: 'segregator.skoftware.pl', certificateArnParameter: '/segregator/prod/certificate-arn' },
