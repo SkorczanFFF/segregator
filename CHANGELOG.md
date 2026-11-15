@@ -2,6 +2,13 @@
 
 The minor version marks a stage of the build plan and the patch version each step or fix within it, as [Semantic Versioning](https://semver.org/spec/v2.0.0.html) allows before 1.0.0. Each entry starts with the version and its commit message, followed by a description of what changed.
 
+## 0.8.3 - fix: end Cognito's own session right after a Google sign-in
+
+Released 2026-11-16.
+
+- A Google sign-in no longer leaves a session in Cognito. That session let the next Continue with Google in the same browser skip Google, even after signing out of Segregator.
+- On the way to the documents list the browser passes through Cognito's sign-out, so Segregator's own session is the only one.
+
 ## 0.8.2 - fix: send a new code only to an unconfirmed account
 
 Released 2026-11-15.

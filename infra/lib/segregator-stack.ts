@@ -130,6 +130,7 @@ export class SegregatorStack extends Stack {
     })
 
     const appUrl = `https://${domain.name}`
+    const appUrls = [appUrl, ...(props.localDevelopment ? ['http://localhost:5173'] : [])]
     const userPoolClient = userPool.addClient('ApiClient', {
       generateSecret: true,
       authFlows: { userPassword: true },
@@ -140,9 +141,9 @@ export class SegregatorStack extends Stack {
       oAuth: {
         flows: { authorizationCodeGrant: true },
         scopes: [cognito.OAuthScope.OPENID, cognito.OAuthScope.EMAIL],
-        callbackUrls: [appUrl, ...(props.localDevelopment ? ['http://localhost:5173'] : [])].map(
-          (url) => url + GOOGLE_CALLBACK,
-        ),
+        callbackUrls: appUrls.map((url) => url + GOOGLE_CALLBACK),
+        // The callback ends Cognito's own session and lands here.
+        logoutUrls: appUrls.map((url) => url + '/documents'),
       },
       // The API drops Cognito tokens right after sign-in, so they can be short-lived.
       idTokenValidity: Duration.minutes(5),

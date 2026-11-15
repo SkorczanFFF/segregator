@@ -72,8 +72,11 @@ test('signs in through the Google callback only when state matches the cookie', 
     })
   assert.equal((await callback('other')).headers.get('location'), '/login?error=google_failed')
   const response = await callback('expected')
-  assert.equal(response.headers.get('location'), '/documents')
   assert.match(response.headers.get('set-cookie') ?? '', /__Host-session=/)
+  // On the way to the documents list the browser ends Cognito's own session.
+  const location = new URL(response.headers.get('location') ?? '')
+  assert.equal(location.origin + location.pathname, 'https://auth.example.com/logout')
+  assert.equal(location.searchParams.get('logout_uri'), 'https://app.example.com/documents')
 })
 
 test("answers 404 for another account's document", async () => {

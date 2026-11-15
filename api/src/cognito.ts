@@ -128,6 +128,13 @@ export function googleSignInUrl(state: string, challenge: string, redirectUri: s
   return url.toString()
 }
 
+// Ends Cognito's own session in this browser and sends it on to logoutUri.
+export function cognitoSignOutUrl(logoutUri: string) {
+  const url = new URL('/logout', process.env.COGNITO_DOMAIN)
+  url.search = new URLSearchParams({ client_id: CLIENT_ID ?? '', logout_uri: logoutUri }).toString()
+  return url.toString()
+}
+
 // Trades the code from a Google sign-in for tokens at Cognito's token endpoint.
 export async function exchangeCode(code: string, verifier: string, redirectUri: string): Promise<Session> {
   const response = await fetch(new URL('/oauth2/token', process.env.COGNITO_DOMAIN), {
