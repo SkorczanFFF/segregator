@@ -2,6 +2,13 @@
 
 The minor version marks a stage of the build plan and the patch version each step or fix within it, as [Semantic Versioning](https://semver.org/spec/v2.0.0.html) allows before 1.0.0. Each entry starts with the version and its commit message, followed by a description of what changed.
 
+## 0.8.2 - fix: send a new code only to an unconfirmed account
+
+Released 2026-11-15.
+
+- A confirmation code goes only to an account that isn't confirmed yet. Cognito would also send one to a confirmed account, where it can't be used and only takes an email from the daily limit.
+- This covers sign-up with a taken address and requests for a new code.
+
 ## 0.8.1 - feat: sign in with Google
 
 Released 2026-11-15.

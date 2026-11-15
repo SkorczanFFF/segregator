@@ -52,7 +52,10 @@ export async function signUp(email: string, password: string) {
   )
 }
 
+// Cognito also sends a code to a confirmed account, where it can't be used, so only an unconfirmed one gets it.
 export async function resendCode(email: string) {
+  const { UserStatus } = await cognito.send(new AdminGetUserCommand({ UserPoolId: USER_POOL_ID, Username: email }))
+  if (UserStatus !== 'UNCONFIRMED') return
   await cognito.send(
     new ResendConfirmationCodeCommand({
       ClientId: CLIENT_ID,
