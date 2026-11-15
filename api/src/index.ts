@@ -4,6 +4,7 @@ import { csrf } from 'hono/csrf'
 import { HTTPException } from 'hono/http-exception'
 import { auth } from './auth.ts'
 import { documents } from './documents.ts'
+import { google } from './google.ts'
 import { readSession, type Env } from './session.ts'
 
 export const app = new Hono<Env>().basePath('/api')
@@ -18,6 +19,8 @@ const PUBLIC_PATHS = new Set([
   '/api/auth/forgot-password',
   '/api/auth/reset-password',
   '/api/auth/logout',
+  '/api/auth/google',
+  '/api/auth/google/callback',
 ])
 
 // Rejects writes that a page on another site can send without CORS, such as a form post.
@@ -33,6 +36,7 @@ app.use(async (c, next) => {
 })
 
 app.get('/health', (c) => c.json({ ok: true }))
+app.route('/auth/google', google)
 app.route('/auth', auth)
 app.route('/documents', documents)
 

@@ -34,7 +34,7 @@ You need Node.js 24, pnpm (the version in `packageManager`), AWS CLI v2 and acce
    cp api/.env.example api/.env
    ```
 
-3. Read the dev stack outputs and paste `TableName`, `UserPoolId` and `UserPoolClientId` into `api/.env` as `TABLE_NAME`, `USER_POOL_ID` and `USER_POOL_CLIENT_ID`:
+3. Read the dev stack outputs and paste `TableName`, `UserPoolId`, `UserPoolClientId` and `CognitoDomain` into `api/.env` as `TABLE_NAME`, `USER_POOL_ID`, `USER_POOL_CLIENT_ID` and `COGNITO_DOMAIN`:
 
    ```sh
    aws cloudformation describe-stacks --stack-name dev-Segregator --query "Stacks[0].Outputs" --output table

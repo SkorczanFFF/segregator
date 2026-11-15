@@ -7,6 +7,7 @@ const API_ERRORS = [
   'code_expired',
   'weak_password',
   'signup_closed',
+  'google_failed',
   'too_many_requests',
   'unauthorized',
   'forbidden',

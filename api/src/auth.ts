@@ -12,13 +12,7 @@ import {
 import { createSession, deleteAllSessions, deleteSession, type Env } from './session.ts'
 import { parse } from './validate.ts'
 
-type ErrorCode =
-  | 'invalid_input'
-  | 'invalid_credentials'
-  | 'invalid_code'
-  | 'code_expired'
-  | 'weak_password'
-  | 'signup_closed'
+type ErrorCode = 'invalid_input' | 'invalid_credentials' | 'invalid_code' | 'code_expired' | 'weak_password'
 
 const Email = z.string().trim().toLowerCase().pipe(z.email().max(254))
 const Code = z.string().regex(/^\d{6}$/)
@@ -45,6 +39,12 @@ const LIMIT_ERRORS = new Set([
 
 const errorName = (err: unknown) => (err instanceof Error ? err.name : '')
 
+// The Pre sign-up trigger's message reaches the API inside Cognito's UserLambdaValidationException.
+const triggerError = (err: unknown) =>
+  errorName(err) === 'UserLambdaValidationException'
+    ? (err as Error).message.match(/signup_closed|account_exists/)?.[0]
+    : undefined
+
 // Turns the Cognito errors a route expects into API error codes. Anything else ends as a 500.
 function fail(c: Context, err: unknown, expected: Record<string, ErrorCode>) {
   const name = errorName(err)
@@ -63,16 +63,14 @@ auth.post('/register', async (c) => {
   try {
     await signUp(input.email, input.password)
   } catch (err) {
-    if (errorName(err) !== 'UsernameExistsException') {
-      return fail(c, err, {
-        InvalidPasswordException: 'weak_password',
-        InvalidParameterException: 'invalid_input',
-        // The Pre sign-up trigger turns away addresses outside the list while sign-up is closed.
-        UserLambdaValidationException: 'signup_closed',
-      })
-    }
+    const trigger = triggerError(err)
+    if (trigger === 'signup_closed') return c.json({ error: 'signup_closed' }, 400)
     // Cognito reveals taken addresses on sign-up, so the API answers as for a new account.
-    // An unconfirmed account gets a new code, a confirmed one gets nothing.
+    // An address taken by a Google account counts too.
+    if (errorName(err) !== 'UsernameExistsException' && trigger !== 'account_exists') {
+      return fail(c, err, { InvalidPasswordException: 'weak_password', InvalidParameterException: 'invalid_input' })
+    }
+    // An unconfirmed account gets a new code, a confirmed or Google one gets nothing.
     await resendCode(input.email).catch(() => undefined)
   }
   return c.body(null, 204)

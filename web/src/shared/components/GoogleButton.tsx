@@ -28,7 +28,8 @@ export default function GoogleButton() {
   const { t } = useTranslation()
 
   return (
-    <Button variant="default" fullWidth leftSection={<GoogleIcon />}>
+    // A full page load: the API sends the browser on to Google and back.
+    <Button component="a" href="/api/auth/google" variant="default" fullWidth leftSection={<GoogleIcon />}>
       {t('common.continueWithGoogle')}
     </Button>
   )

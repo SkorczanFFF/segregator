@@ -1,10 +1,13 @@
 import assert from 'node:assert/strict'
 import { randomUUID } from 'node:crypto'
 import { test } from 'node:test'
+import { CognitoIdentityProviderClient } from '@aws-sdk/client-cognito-identity-provider'
 import { Hono } from 'hono'
 import { setUpLocalTable } from './local-table.ts'
 
 setUpLocalTable('api-test')
+process.env.COGNITO_DOMAIN = 'https://auth.example.com'
+process.env.APP_URL = 'https://app.example.com'
 
 const { app } = await import('./index.ts')
 const { createSession } = await import('./session.ts')
@@ -41,6 +44,36 @@ test('rejects a form post from another site, even with a session cookie', async 
   for (const path of ['/api/auth/login', '/api/documents']) {
     assert.equal((await app.request(path, { method: 'POST', headers, body })).status, 403, path)
   }
+})
+
+test('sends a Google sign-in through Cognito with PKCE and a state cookie', async () => {
+  const response = await app.request('/api/auth/google')
+  assert.equal(response.status, 302)
+  const location = new URL(response.headers.get('location') ?? '')
+  assert.equal(location.origin + location.pathname, 'https://auth.example.com/oauth2/authorize')
+  assert.equal(location.searchParams.get('identity_provider'), 'Google')
+  assert.equal(location.searchParams.get('code_challenge_method'), 'S256')
+  assert.equal(location.searchParams.get('redirect_uri'), 'https://app.example.com/api/auth/google/callback')
+
+  const cookie = response.headers.get('set-cookie') ?? ''
+  assert.match(cookie, /SameSite=Lax/)
+  assert.equal(cookie.match(/^__Host-google=([^.;]+)\./)?.[1], location.searchParams.get('state'))
+})
+
+test('signs in through the Google callback only when state matches the cookie', async (t) => {
+  // Stand-ins for Cognito: the client secret and the token endpoint.
+  t.mock.method(CognitoIdentityProviderClient.prototype, 'send', async () => ({ UserPoolClient: { ClientSecret: 'secret' } }))
+  const claims = Buffer.from(JSON.stringify({ sub: randomUUID(), email: 'someone@example.com' })).toString('base64url')
+  t.mock.method(globalThis, 'fetch', async () => Response.json({ id_token: `header.${claims}.signature` }))
+
+  const callback = (state: string) =>
+    app.request(`/api/auth/google/callback?code=a-code&state=${state}`, {
+      headers: { Cookie: '__Host-google=expected.verifier' },
+    })
+  assert.equal((await callback('other')).headers.get('location'), '/login?error=google_failed')
+  const response = await callback('expected')
+  assert.equal(response.headers.get('location'), '/documents')
+  assert.match(response.headers.get('set-cookie') ?? '', /__Host-session=/)
 })
 
 test("answers 404 for another account's document", async () => {

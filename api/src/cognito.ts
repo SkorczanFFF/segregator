@@ -106,9 +106,48 @@ export async function logIn(email: string, password: string): Promise<Session> {
   // The pool has no MFA or forced password change, so any challenge is unexpected.
   const idToken = AuthenticationResult?.IdToken
   if (!idToken) throw new Error('Unexpected sign-in challenge')
+  return sessionFrom(idToken)
+}
 
-  // The token comes straight from Cognito over TLS, so it needs no signature check.
-  // The API keeps its own session, so the Cognito tokens are dropped here.
+// Cognito's sign-in page skips straight to Google when it is named as the provider.
+export function googleSignInUrl(state: string, challenge: string, redirectUri: string) {
+  const url = new URL('/oauth2/authorize', process.env.COGNITO_DOMAIN)
+  url.search = new URLSearchParams({
+    response_type: 'code',
+    client_id: CLIENT_ID ?? '',
+    redirect_uri: redirectUri,
+    identity_provider: 'Google',
+    scope: 'openid email',
+    state,
+    code_challenge: challenge,
+    code_challenge_method: 'S256',
+  }).toString()
+  return url.toString()
+}
+
+// Trades the code from a Google sign-in for tokens at Cognito's token endpoint.
+export async function exchangeCode(code: string, verifier: string, redirectUri: string): Promise<Session> {
+  const response = await fetch(new URL('/oauth2/token', process.env.COGNITO_DOMAIN), {
+    method: 'POST',
+    headers: {
+      Authorization: `Basic ${Buffer.from(`${CLIENT_ID}:${await getClientSecret()}`).toString('base64')}`,
+      'Content-Type': 'application/x-www-form-urlencoded',
+    },
+    body: new URLSearchParams({
+      grant_type: 'authorization_code',
+      code,
+      redirect_uri: redirectUri,
+      code_verifier: verifier,
+    }),
+  })
+  if (!response.ok) throw new Error(`Cognito token endpoint answered ${response.status}`)
+  const { id_token } = (await response.json()) as { id_token: string }
+  return sessionFrom(id_token)
+}
+
+// The token comes straight from Cognito over TLS, so it needs no signature check.
+// The API keeps its own session, so the Cognito tokens are dropped here.
+function sessionFrom(idToken: string): Session {
   const claims = JSON.parse(Buffer.from(idToken.split('.')[1], 'base64url').toString())
   return { sub: String(claims.sub), email: String(claims.email) }
 }

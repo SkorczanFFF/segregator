@@ -2,6 +2,15 @@
 
 The minor version marks a stage of the build plan and the patch version each step or fix within it, as [Semantic Versioning](https://semver.org/spec/v2.0.0.html) allows before 1.0.0. Each entry starts with the version and its commit message, followed by a description of what changed.
 
+## 0.8.1 - feat: sign in with Google
+
+Released 2026-11-15.
+
+- Continue with Google signs in through Cognito's Google provider, with PKCE and a state cookie, and the API starts its own session as after a password sign-in.
+- A first Google sign-in with the address of a confirmed account joins that account, so both ways lead to the same documents.
+- A password sign-up with an address that already signs in with Google gets the same answer as any taken address.
+- Sign-up closed to a list of addresses applies to Google too, and the sign-in screen explains a failed Google sign-in.
+
 ## 0.8.0 - feat: close sign-up to a list of addresses on demand
 
 Released 2026-11-15.

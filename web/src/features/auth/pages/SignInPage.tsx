@@ -2,7 +2,7 @@ import { Anchor, Button, PasswordInput, Stack, TextInput } from '@mantine/core'
 import { isNotEmpty, useForm } from '@mantine/form'
 import type { FocusEvent } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Link, useLocation, useNavigate } from 'react-router'
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router'
 import AuthScreen from '~/features/auth/components/AuthScreen.tsx'
 import { emailRule } from '~/features/auth/email.ts'
 import { useSession, type User } from '~/features/auth/session.ts'
@@ -11,16 +11,21 @@ import CapsLockNote from '~/shared/components/CapsLockNote.tsx'
 import { useApiSubmit } from '~/shared/hooks/useApiSubmit.ts'
 import { useCapsLock } from '~/shared/hooks/useCapsLock.ts'
 import { useFormError } from '~/shared/hooks/useFormError.ts'
-import { ApiError, api } from '~/shared/lib/api.ts'
+import { ApiError, api, type ApiErrorCode } from '~/shared/lib/api.ts'
 import { focusFirstError, validateFilledOnBlur } from '~/shared/lib/form.ts'
 
 type SignInState = { email?: string; confirmed?: boolean; passwordReset?: boolean } | null
 type SignInValues = { email: string; password: string }
 
+// Codes the API adds to the address when a Google sign-in comes back without a session.
+const GOOGLE_ERRORS: ApiErrorCode[] = ['google_failed', 'signup_closed']
+
 export default function SignInPage() {
   const { t } = useTranslation()
   const navigate = useNavigate()
   const state = useLocation().state as SignInState
+  const [searchParams] = useSearchParams()
+  const googleError = GOOGLE_ERRORS.find((code) => code === searchParams.get('error'))
   const { setUser } = useSession()
   const formError = useFormError()
   const { capsLock, onKeyUp, reset } = useCapsLock()
@@ -60,6 +65,7 @@ export default function SignInPage() {
         <Stack gap="lg">
           {state?.confirmed && !error && <StatusAlert status="success">{t('auth.confirmed')}</StatusAlert>}
           {state?.passwordReset && !error && <StatusAlert status="success">{t('auth.passwordChanged')}</StatusAlert>}
+          {googleError && !error && <StatusAlert status="error">{t(`errors.${googleError}`)}</StatusAlert>}
           {error && (
             <StatusAlert status="error">
               {t(`errors.${error}`)}{' '}

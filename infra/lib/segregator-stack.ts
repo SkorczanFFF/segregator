@@ -1,5 +1,5 @@
 import { fileURLToPath } from 'node:url'
-import { CfnOutput, Duration, Fn, RemovalPolicy, Stack, Stage, type StackProps } from 'aws-cdk-lib/core'
+import { CfnOutput, Duration, Fn, RemovalPolicy, SecretValue, Stack, Stage, type StackProps } from 'aws-cdk-lib/core'
 import { HttpApi, HttpMethod, type CfnStage } from 'aws-cdk-lib/aws-apigatewayv2'
 import { HttpLambdaIntegration } from 'aws-cdk-lib/aws-apigatewayv2-integrations'
 import * as acm from 'aws-cdk-lib/aws-certificatemanager'
@@ -7,6 +7,7 @@ import * as cloudfront from 'aws-cdk-lib/aws-cloudfront'
 import { HttpOrigin, S3BucketOrigin } from 'aws-cdk-lib/aws-cloudfront-origins'
 import * as cognito from 'aws-cdk-lib/aws-cognito'
 import * as dynamodb from 'aws-cdk-lib/aws-dynamodb'
+import * as iam from 'aws-cdk-lib/aws-iam'
 import * as lambda from 'aws-cdk-lib/aws-lambda'
 import * as nodejs from 'aws-cdk-lib/aws-lambda-nodejs'
 import * as logs from 'aws-cdk-lib/aws-logs'
@@ -18,6 +19,10 @@ import type { Construct } from 'constructs'
 const WEB_DIST = fileURLToPath(new URL('../../web/dist', import.meta.url))
 const API_ENTRY = fileURLToPath(new URL('../../api/src/index.ts', import.meta.url))
 const PRE_SIGN_UP_ENTRY = fileURLToPath(new URL('../../api/src/pre-sign-up.ts', import.meta.url))
+// clientId and clientSecret of the OAuth client in Google Cloud, stored once by hand.
+const GOOGLE_SECRET = 'segregator/google-oauth'
+// Served by api/src/google.ts.
+const GOOGLE_CALLBACK = '/api/auth/google/callback'
 
 const NODE_FUNCTION = {
   runtime: lambda.Runtime.NODEJS_24_X,
@@ -42,16 +47,24 @@ const CSP = [
   "frame-ancestors 'none'",
 ].join('; ')
 
-export type Domain = {
+type Domain = {
   name: string
   // CloudFront needs the certificate in us-east-1, where the account's SCP blocks CloudFormation,
   // so it is created once outside the stack and its ARN read from this parameter.
   certificateArnParameter: string
 }
 
+export type SiteProps = {
+  domain: Domain
+  // pnpm dev signs in through this stage's pool, so Google may also send people back to localhost.
+  localDevelopment?: boolean
+}
+
 export class SegregatorStack extends Stack {
-  constructor(scope: Construct, id: string, props: StackProps & { domain: Domain }) {
+  constructor(scope: Construct, id: string, props: StackProps & SiteProps) {
     super(scope, id, props)
+    const { domain } = props
+    const stageName = Stage.of(this)?.stageName
 
     const bucket = new s3.Bucket(this, 'WebBucket', {
       blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
@@ -100,22 +113,50 @@ export class SegregatorStack extends Stack {
       deletionProtection: true,
     })
 
+    // Cognito's own address for OAuth. Google sends people back to its /oauth2/idpresponse.
+    const cognitoDomain = userPool.addDomain('Domain', {
+      cognitoDomain: { domainPrefix: `segregator-${stageName}` },
+    })
+
+    const google = new cognito.UserPoolIdentityProviderGoogle(this, 'Google', {
+      userPool,
+      clientId: SecretValue.secretsManager(GOOGLE_SECRET, { jsonField: 'clientId' }).unsafeUnwrap(),
+      clientSecretValue: SecretValue.secretsManager(GOOGLE_SECRET, { jsonField: 'clientSecret' }),
+      scopes: ['openid', 'email'],
+      attributeMapping: {
+        email: cognito.ProviderAttribute.GOOGLE_EMAIL,
+        emailVerified: cognito.ProviderAttribute.GOOGLE_EMAIL_VERIFIED,
+      },
+    })
+
+    const appUrl = `https://${domain.name}`
     const userPoolClient = userPool.addClient('ApiClient', {
       generateSecret: true,
       authFlows: { userPassword: true },
       preventUserExistenceErrors: true,
-      disableOAuth: true,
+      // Without COGNITO, Cognito's own pages offer no password sign-up or reset that would skip the API's limits.
+      // The API's password calls don't depend on this list.
+      supportedIdentityProviders: [cognito.UserPoolClientIdentityProvider.GOOGLE],
+      oAuth: {
+        flows: { authorizationCodeGrant: true },
+        scopes: [cognito.OAuthScope.OPENID, cognito.OAuthScope.EMAIL],
+        callbackUrls: [appUrl, ...(props.localDevelopment ? ['http://localhost:5173'] : [])].map(
+          (url) => url + GOOGLE_CALLBACK,
+        ),
+      },
       // The API drops Cognito tokens right after sign-in, so they can be short-lived.
       idTokenValidity: Duration.minutes(5),
       accessTokenValidity: Duration.minutes(5),
       refreshTokenValidity: Duration.minutes(60),
     })
+    // The client can name Google only once the provider exists.
+    userPoolClient.node.addDependency(google)
 
     // Sign-up is open to anyone ('*'). A list of addresses closes it to everyone else at once, without a deploy:
     // aws ssm put-parameter --name /segregator/<stage>/signup-allowlist --type StringList --value "a@example.com" --overwrite
     // CloudFormation sets '*' again only when this resource changes in the template.
     const signUpAllowlist = new ssm.StringListParameter(this, 'SignUpAllowlist', {
-      parameterName: `/segregator/${Stage.of(this)?.stageName}/signup-allowlist`,
+      parameterName: `/segregator/${stageName}/signup-allowlist`,
       stringListValue: ['*'],
     })
 
@@ -131,6 +172,17 @@ export class SegregatorStack extends Stack {
       }),
     })
     signUpAllowlist.grantRead(preSignUpFunction)
+    // A policy of its own: in the function's default policy the pool would end up depending on itself.
+    preSignUpFunction.role?.attachInlinePolicy(
+      new iam.Policy(this, 'PreSignUpUsers', {
+        statements: [
+          new iam.PolicyStatement({
+            actions: ['cognito-idp:ListUsers', 'cognito-idp:AdminLinkProviderForUser'],
+            resources: [userPool.userPoolArn],
+          }),
+        ],
+      }),
+    )
     userPool.addTrigger(cognito.UserPoolOperation.PRE_SIGN_UP, preSignUpFunction)
 
     // One table for all data, keyed by PK and SK.
@@ -160,6 +212,8 @@ export class SegregatorStack extends Stack {
         TABLE_NAME: table.tableName,
         USER_POOL_ID: userPool.userPoolId,
         USER_POOL_CLIENT_ID: userPoolClient.userPoolClientId,
+        COGNITO_DOMAIN: cognitoDomain.baseUrl(),
+        APP_URL: appUrl,
       },
       logGroup: new logs.LogGroup(this, 'ApiLogs', {
         retention: logs.RetentionDays.ONE_MONTH,
@@ -187,7 +241,6 @@ export class SegregatorStack extends Stack {
     }
     stage.node.addDependency(authRoute)
 
-    const { domain } = props
     const distribution = new cloudfront.Distribution(this, 'WebDistribution', {
       defaultRootObject: 'index.html',
       domainNames: [domain.name],
@@ -251,12 +304,13 @@ export class SegregatorStack extends Stack {
     // New index.html must never point at assets that are not uploaded yet.
     index.node.addDependency(assets)
 
-    new CfnOutput(this, 'Url', { value: `https://${domain.name}` })
+    new CfnOutput(this, 'Url', { value: appUrl })
     // Target of the DNS record that points a custom domain at the distribution.
     new CfnOutput(this, 'DistributionDomain', { value: distribution.distributionDomainName })
     // Values for api/.env when the API runs locally.
     new CfnOutput(this, 'TableName', { value: table.tableName })
     new CfnOutput(this, 'UserPoolId', { value: userPool.userPoolId })
     new CfnOutput(this, 'UserPoolClientId', { value: userPoolClient.userPoolClientId })
+    new CfnOutput(this, 'CognitoDomain', { value: cognitoDomain.baseUrl() })
   }
 }
