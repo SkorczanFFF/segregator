@@ -142,6 +142,7 @@ export const pl = {
   categories: {
     types: {
       receipt: 'Paragon',
+      invoice: 'Faktura',
       warranty: 'Gwarancja',
       policy: 'Polisa',
       contract: 'Umowa',

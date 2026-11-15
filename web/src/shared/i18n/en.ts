@@ -141,6 +141,7 @@ export const en: Translation = {
   categories: {
     types: {
       receipt: 'Receipt',
+      invoice: 'Invoice',
       warranty: 'Warranty',
       policy: 'Policy',
       contract: 'Contract',
