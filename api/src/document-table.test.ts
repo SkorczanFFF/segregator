@@ -1,22 +1,12 @@
-// Runs against DynamoDB Local: docker run --rm -p 8000:8000 amazon/dynamodb-local:3.3.2
-import { CreateTableCommand, DeleteTableCommand, DynamoDBClient } from '@aws-sdk/client-dynamodb'
 import assert from 'node:assert/strict'
 import { randomUUID } from 'node:crypto'
-import { after, before, test } from 'node:test'
+import { test } from 'node:test'
 import type { DocumentInput } from 'shared'
+import { setUpLocalTable } from './local-table.ts'
 
-const TABLE = 'documents-test'
+setUpLocalTable('documents-test')
 
-process.env.AWS_ENDPOINT_URL_DYNAMODB = 'http://localhost:8000'
-process.env.AWS_REGION = 'eu-north-1'
-process.env.AWS_ACCESS_KEY_ID = 'local'
-process.env.AWS_SECRET_ACCESS_KEY = 'local'
-process.env.TABLE_NAME = TABLE
-
-// Imported after the variables above, which the module reads when it loads.
 const { createDocument, deleteDocument, getDocument, listDocuments, updateDocument } = await import('./document-table.ts')
-
-const db = new DynamoDBClient({})
 
 const doc = (docDate: string, extra: Partial<DocumentInput> = {}): DocumentInput => ({
   type: 'receipt',
@@ -24,33 +14,6 @@ const doc = (docDate: string, extra: Partial<DocumentInput> = {}): DocumentInput
   docDate,
   ...extra,
 })
-
-// Same keys and index as the table in infra/lib/segregator-stack.ts.
-before(() =>
-  db.send(
-    new CreateTableCommand({
-      TableName: TABLE,
-      BillingMode: 'PAY_PER_REQUEST',
-      AttributeDefinitions: ['PK', 'SK', 'GSI1PK', 'GSI1SK'].map((name) => ({ AttributeName: name, AttributeType: 'S' })),
-      KeySchema: [
-        { AttributeName: 'PK', KeyType: 'HASH' },
-        { AttributeName: 'SK', KeyType: 'RANGE' },
-      ],
-      GlobalSecondaryIndexes: [
-        {
-          IndexName: 'GSI1',
-          KeySchema: [
-            { AttributeName: 'GSI1PK', KeyType: 'HASH' },
-            { AttributeName: 'GSI1SK', KeyType: 'RANGE' },
-          ],
-          Projection: { ProjectionType: 'ALL' },
-        },
-      ],
-    }),
-  ),
-)
-
-after(() => db.send(new DeleteTableCommand({ TableName: TABLE })))
 
 test('lists documents newest first by the date on the document', async () => {
   const sub = randomUUID()
