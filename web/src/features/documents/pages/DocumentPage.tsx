@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next'
 import { useNavigate, useParams } from 'react-router'
 import type { Document, DocumentInput } from 'shared'
 import DocumentForm from '~/features/documents/components/DocumentForm.tsx'
+import FilePreview from '~/features/documents/components/FilePreview.tsx'
 import { documentKey, refreshDocuments } from '~/features/documents/useDocuments.ts'
 import Page from '~/shared/components/Page.tsx'
 import StatusAlert from '~/shared/components/StatusAlert.tsx'
@@ -42,6 +43,7 @@ export default function DocumentPage() {
           <Skeleton h={320} />
         </Paper>
       )}
+      {doc?.file && <FilePreview id={doc.id} file={doc.file} />}
       {doc && (
         <DocumentForm
           key={doc.id}

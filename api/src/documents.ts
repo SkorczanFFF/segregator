@@ -1,7 +1,7 @@
 import { ConditionalCheckFailedException } from '@aws-sdk/client-dynamodb'
 import { Hono } from 'hono'
 import { DocumentInput, NewDocumentInput, UploadInput } from 'shared'
-import { deleteFile, fileInfo, signUpload } from './document-files.ts'
+import { deleteFile, fileInfo, fileUrl, signUpload } from './document-files.ts'
 import { createDocument, deleteDocument, getDocument, listDocuments, updateDocument } from './document-table.ts'
 import { apiError } from './errors.ts'
 import type { Env } from './session.ts'
@@ -42,6 +42,16 @@ documents.post('/', jsonBody(NewDocumentInput), async (c) => {
 documents.get(BY_ID, async (c) => {
   const doc = await getDocument(c.get('session').sub, c.req.param('id'))
   return doc ? c.json(doc) : apiError(c, 'not_found', 404)
+})
+
+// Sends the browser on to S3 with an address that works for five minutes.
+documents.get(`${BY_ID}/file`, async (c) => {
+  const sub = c.get('session').sub
+  const doc = await getDocument(sub, c.req.param('id'))
+  if (!doc?.file) return apiError(c, 'not_found', 404)
+  // The browser may reuse the redirect until shortly before the address expires.
+  c.header('Cache-Control', 'private, max-age=240')
+  return c.redirect(await fileUrl(sub, doc.id))
 })
 
 documents.put(BY_ID, jsonBody(DocumentInput), async (c) => {

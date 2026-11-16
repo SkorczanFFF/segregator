@@ -1,5 +1,6 @@
-import { DeleteObjectCommand, HeadObjectCommand, NotFound, S3Client } from '@aws-sdk/client-s3'
+import { DeleteObjectCommand, GetObjectCommand, HeadObjectCommand, NotFound, S3Client } from '@aws-sdk/client-s3'
 import { createPresignedPost } from '@aws-sdk/s3-presigned-post'
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 import { FILE_MAX_SIZE, type DocumentFile, type FileType, type Upload } from 'shared'
 import { ulid } from 'ulid'
 
@@ -32,6 +33,10 @@ export async function fileInfo(sub: string, id: string): Promise<DocumentFile | 
     throw err
   }
 }
+
+// A short-lived address of the file itself, for an img tag or a new tab.
+export const fileUrl = (sub: string, id: string) =>
+  getSignedUrl(s3, new GetObjectCommand({ Bucket: BUCKET, Key: fileKey(sub, id) }), { expiresIn: 300 })
 
 export async function deleteFile(sub: string, id: string) {
   await s3.send(new DeleteObjectCommand({ Bucket: BUCKET, Key: fileKey(sub, id) }))

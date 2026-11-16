@@ -159,6 +159,14 @@ test('turns an uploaded file into one document and deletes the file with it', as
   assert.deepEqual(((await created.json()) as Document).file, { type: 'image/jpeg', size: 2048 })
   assert.equal((await create(owner, fileId)).status, 400, 'a second document for the same file')
 
+  const shown = await app.request(`/api/documents/${fileId}/file`, { headers: json(owner) })
+  assert.equal(shown.status, 302)
+  const location = new URL(shown.headers.get('location') ?? '')
+  assert.equal(location.pathname, `/raw/${sub}/${fileId}`)
+  assert.equal(location.searchParams.get('X-Amz-Expires'), '300')
+  const asOther = await app.request(`/api/documents/${fileId}/file`, { headers: json(await signIn()) })
+  assert.equal(asOther.status, 404, "another account's file")
+
   assert.equal((await app.request(`/api/documents/${fileId}`, { method: 'DELETE', headers: json(owner) })).status, 204)
   assert.equal(sent.at(-1), `DeleteObjectCommand raw/${sub}/${fileId}`)
 })

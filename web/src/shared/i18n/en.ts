@@ -116,6 +116,8 @@ export const en: Translation = {
     cancel: 'Cancel',
     uploading: 'Uploading the file',
     file: '{{format}} file, {{size}}',
+    photo: 'Photo of the document',
+    openFile: 'Open file',
     fields: {
       type: 'Type',
       subtype: 'Subcategory',

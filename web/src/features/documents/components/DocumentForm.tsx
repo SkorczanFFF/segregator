@@ -1,4 +1,4 @@
-import { Button, FileInput, Group, NumberInput, Paper, Progress, Select, Stack, Text, TextInput } from '@mantine/core'
+import { Button, FileInput, Group, NumberInput, Paper, Progress, Select, Stack, TextInput } from '@mantine/core'
 import { DatePickerInput } from '@mantine/dates'
 import { schemaResolver, useForm } from '@mantine/form'
 import dayjs from 'dayjs'
@@ -25,7 +25,7 @@ import StatusAlert from '~/shared/components/StatusAlert.tsx'
 import { useApiSubmit } from '~/shared/hooks/useApiSubmit.ts'
 import { useFormError } from '~/shared/hooks/useFormError.ts'
 import { focusFirstError, validateFilledOnBlur } from '~/shared/lib/form.ts'
-import { fileFormat, formatFileSize, formatMoney } from '~/shared/lib/format.ts'
+import { formatFileSize, formatMoney } from '~/shared/lib/format.ts'
 
 type DocumentValues = {
   type: DocumentType
@@ -164,11 +164,6 @@ export default function DocumentForm({ doc, onSave, extraAction }: DocumentFormP
               {...form.getInputProps('file')}
               error={formError(form.errors.file)}
             />
-          )}
-          {doc?.file && (
-            <Text size="sm" c="dimmed">
-              {t('documents.file', { format: fileFormat(doc.file.type), size: formatFileSize(doc.file.size) })}
-            </Text>
           )}
           {pending && form.values.file && <Progress value={progress} aria-label={t('documents.uploading')} />}
           <Group justify="flex-end" mt="sm">

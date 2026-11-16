@@ -88,12 +88,13 @@ export class SegregatorStack extends Stack {
       // The browser posts files here directly, past the API.
       cors: [{ allowedOrigins: appUrls, allowedMethods: [s3.HttpMethods.POST] }],
     })
-    const uploadOrigin = `https://${documentsBucket.bucketRegionalDomainName}`
+    // The browser sends files to the bucket and shows them from it.
+    const filesOrigin = `https://${documentsBucket.bucketRegionalDomainName}`
 
     const headers = new cloudfront.ResponseHeadersPolicy(this, 'WebHeaders', {
       securityHeadersBehavior: {
         contentSecurityPolicy: {
-          contentSecurityPolicy: [...CSP, `connect-src 'self' ${uploadOrigin}`].join('; '),
+          contentSecurityPolicy: [...CSP, `connect-src 'self' ${filesOrigin}`, `img-src 'self' ${filesOrigin}`].join('; '),
           override: true,
         },
         strictTransportSecurity: {

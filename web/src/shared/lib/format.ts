@@ -8,10 +8,15 @@ export const formatMoney = (grosze: number, notation: Intl.NumberFormatOptions['
 export const formatDate = (isoDate: string) =>
   new Intl.DateTimeFormat(i18n.language, { dateStyle: 'medium', timeZone: 'UTC' }).format(new Date(isoDate))
 
+const MEGABYTE = 1024 * 1024
+
+// Below 1 MB in kB, so a small file doesn't show as 0 MB.
 export const formatFileSize = (bytes: number) =>
-  new Intl.NumberFormat(i18n.language, { style: 'unit', unit: 'megabyte', maximumFractionDigits: 1 }).format(
-    bytes / 1024 / 1024,
-  )
+  new Intl.NumberFormat(i18n.language, {
+    style: 'unit',
+    unit: bytes < MEGABYTE ? 'kilobyte' : 'megabyte',
+    maximumFractionDigits: 1,
+  }).format(bytes < MEGABYTE ? bytes / 1024 : bytes / MEGABYTE)
 
 // The short name of a file type, e.g. JPEG for image/jpeg.
 export const fileFormat = (type: string) => type.slice(type.indexOf('/') + 1).toUpperCase()

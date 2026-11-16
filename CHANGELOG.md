@@ -2,6 +2,13 @@
 
 The minor version marks a stage of the build plan and the patch version each step or fix within it, as [Semantic Versioning](https://semver.org/spec/v2.0.0.html) allows before 1.0.0. Each entry starts with the version and its commit message, followed by a description of what changed.
 
+## 0.9.2 - feat: show the document's file
+
+Released 2026-11-16.
+
+- The document page shows the photo above the fields, and Open file opens the photo or PDF in a new tab.
+- The API answers the file's address with a link to S3 that works for five minutes, and only for the document's own account.
+
 ## 0.9.1 - refactor: clean up shared rules, validation and setup leftovers
 
 Released 2026-11-16.

@@ -117,6 +117,8 @@ export const pl = {
     cancel: 'Anuluj',
     uploading: 'Wysyłanie pliku',
     file: 'Plik {{format}}, {{size}}',
+    photo: 'Zdjęcie dokumentu',
+    openFile: 'Otwórz plik',
     fields: {
       type: 'Rodzaj',
       subtype: 'Podkategoria',
