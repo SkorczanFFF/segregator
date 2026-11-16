@@ -118,6 +118,8 @@ export const pl = {
     deleteConfirm: 'Usuń dokument',
     save: 'Zapisz',
     cancel: 'Anuluj',
+    uploading: 'Wysyłanie pliku',
+    file: 'Plik {{format}}, {{size}}',
     fields: {
       type: 'Rodzaj',
       subtype: 'Podkategoria',
@@ -125,10 +127,12 @@ export const pl = {
       title: 'Nazwa',
       amount: 'Kwota w zł',
       docDate: 'Data dokumentu',
+      file: 'Plik',
     },
     placeholders: {
       issuer: 'np. Sklep AGD',
       title: 'np. Pralka 8 kg',
+      file: 'Zdjęcie JPEG lub PNG albo PDF, do {{max}}',
     },
     errors: {
       type: 'Wybierz rodzaj dokumentu.',
@@ -137,6 +141,7 @@ export const pl = {
       title: 'Nazwa może mieć najwyżej 120 znaków.',
       amount: 'Kwota może wynosić najwyżej 10 mln zł.',
       docDate: 'Podaj datę z dokumentu.',
+      file: 'Wybierz zdjęcie JPEG lub PNG albo PDF do {{max}}.',
     },
   },
   categories: {

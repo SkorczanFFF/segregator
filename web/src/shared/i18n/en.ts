@@ -117,6 +117,8 @@ export const en: Translation = {
     deleteConfirm: 'Delete document',
     save: 'Save',
     cancel: 'Cancel',
+    uploading: 'Uploading the file',
+    file: '{{format}} file, {{size}}',
     fields: {
       type: 'Type',
       subtype: 'Subcategory',
@@ -124,10 +126,12 @@ export const en: Translation = {
       title: 'Name',
       amount: 'Amount in PLN',
       docDate: 'Document date',
+      file: 'File',
     },
     placeholders: {
       issuer: 'e.g. Appliance store',
       title: 'e.g. Washing machine 8 kg',
+      file: 'JPEG or PNG photo, or PDF, up to {{max}}',
     },
     errors: {
       type: 'Choose the document type.',
@@ -136,6 +140,7 @@ export const en: Translation = {
       title: 'The name can have up to 120 characters.',
       amount: 'The amount can be at most PLN 10 million.',
       docDate: 'Enter the date on the document.',
+      file: 'Choose a JPEG or PNG photo, or a PDF, up to {{max}}.',
     },
   },
   categories: {

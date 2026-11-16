@@ -2,19 +2,22 @@ import assert from 'node:assert/strict'
 import { randomUUID } from 'node:crypto'
 import { test } from 'node:test'
 import { CognitoIdentityProviderClient } from '@aws-sdk/client-cognito-identity-provider'
+import { NotFound, S3Client } from '@aws-sdk/client-s3'
 import { Hono } from 'hono'
+import { FILE_MAX_SIZE, type Document, type Upload } from 'shared'
+import { ulid } from 'ulid'
 import { setUpLocalTable } from './local-table.ts'
 
 setUpLocalTable('api-test')
 process.env.COGNITO_DOMAIN = 'https://auth.example.com'
 process.env.APP_URL = 'https://app.example.com'
+process.env.DOCUMENTS_BUCKET = 'documents-test'
 
 const { app } = await import('./index.ts')
 const { createSession } = await import('./session.ts')
 
 // Starts a session through the real session code and returns the cookie a browser would send back.
-async function signIn() {
-  const sub = randomUUID()
+async function signIn(sub = randomUUID()) {
   const issuer = new Hono().post('/', async (c) => {
     await createSession(c, { sub, email: `${sub}@example.com` })
     return c.body(null, 204)
@@ -92,4 +95,49 @@ test("answers 404 for another account's document", async () => {
     assert.equal((await app.request(`/api/documents/${id}`, { method, headers: json(other), body })).status, 404, method)
   }
   assert.equal((await app.request(`/api/documents/${id}`, { headers: json(owner) })).status, 200)
+})
+
+test("signs an upload only into the account's own folder, with the type and size limits", async () => {
+  const sub = randomUUID()
+  const cookie = await signIn(sub)
+  const upload = (type: string) =>
+    app.request('/api/documents/upload', { method: 'POST', headers: json(cookie), body: JSON.stringify({ type }) })
+
+  assert.equal((await upload('image/svg+xml')).status, 400)
+  const response = await upload('image/png')
+  assert.equal(response.status, 201)
+  const { id, fields } = (await response.json()) as Upload
+  const conditions = Buffer.from(fields.Policy ?? '', 'base64').toString()
+  for (const condition of [{ key: `raw/${sub}/${id}` }, { 'Content-Type': 'image/png' }, ['content-length-range', 1, FILE_MAX_SIZE]]) {
+    assert.ok(conditions.includes(JSON.stringify(condition)), JSON.stringify(condition))
+  }
+})
+
+test('turns an uploaded file into one document and deletes the file with it', async (t) => {
+  const sub = randomUUID()
+  const fileId = ulid()
+  const sent: string[] = []
+  // Stands in for S3, which holds only this account's file.
+  t.mock.method(S3Client.prototype, 'send', async (command: { input: { Key: string } }) => {
+    sent.push(`${command.constructor.name} ${command.input.Key}`)
+    if (command.input.Key !== `raw/${sub}/${fileId}`) throw new NotFound({ message: 'Not Found', $metadata: {} })
+    return { ContentType: 'image/jpeg', ContentLength: 2048 }
+  })
+  const owner = await signIn(sub)
+  const create = (cookie: string, id: string) =>
+    app.request('/api/documents', {
+      method: 'POST',
+      headers: json(cookie),
+      body: JSON.stringify({ type: 'receipt', issuer: 'Sklep', docDate: '2026-11-16', fileId: id }),
+    })
+
+  assert.equal((await create(owner, ulid())).status, 400, 'a file that never arrived')
+  assert.equal((await create(await signIn(), fileId)).status, 400, "another account's file")
+  const created = await create(owner, fileId)
+  assert.equal(created.status, 201)
+  assert.deepEqual(((await created.json()) as Document).file, { type: 'image/jpeg', size: 2048 })
+  assert.equal((await create(owner, fileId)).status, 400, 'a second document for the same file')
+
+  assert.equal((await app.request(`/api/documents/${fileId}`, { method: 'DELETE', headers: json(owner) })).status, 204)
+  assert.equal(sent.at(-1), `DeleteObjectCommand raw/${sub}/${fileId}`)
 })

@@ -8,6 +8,7 @@ import { HttpOrigin, S3BucketOrigin } from 'aws-cdk-lib/aws-cloudfront-origins'
 import * as cognito from 'aws-cdk-lib/aws-cognito'
 import * as dynamodb from 'aws-cdk-lib/aws-dynamodb'
 import * as iam from 'aws-cdk-lib/aws-iam'
+import * as kms from 'aws-cdk-lib/aws-kms'
 import * as lambda from 'aws-cdk-lib/aws-lambda'
 import * as nodejs from 'aws-cdk-lib/aws-lambda-nodejs'
 import * as logs from 'aws-cdk-lib/aws-logs'
@@ -27,7 +28,14 @@ const GOOGLE_CALLBACK = '/api/auth/google/callback'
 const NODE_FUNCTION = {
   runtime: lambda.Runtime.NODEJS_24_X,
   architecture: lambda.Architecture.ARM_64,
-  bundling: { format: nodejs.OutputFormat.ESM, minify: true },
+  // The runtime ships the SDK clients, but not helpers such as s3-presigned-post, so those are bundled.
+  // Their ESM build imports the clients; the CommonJS one would require them, which an ES module can't.
+  bundling: {
+    format: nodejs.OutputFormat.ESM,
+    minify: true,
+    externalModules: ['@aws-sdk/client-*'],
+    mainFields: ['module', 'main'],
+  },
 } satisfies nodejs.NodejsFunctionProps
 
 // Paths without a file extension belong to the client-side router.
@@ -45,7 +53,7 @@ const CSP = [
   "base-uri 'self'",
   "form-action 'self'",
   "frame-ancestors 'none'",
-].join('; ')
+]
 
 type Domain = {
   name: string
@@ -73,9 +81,29 @@ export class SegregatorStack extends Stack {
       autoDeleteObjects: true,
     })
 
+    const appUrl = `https://${domain.name}`
+    const appUrls = [appUrl, ...(props.localDevelopment ? ['http://localhost:5173'] : [])]
+
+    // Documents are personal data, so they get a key of their own. Rotation is off,
+    // because each of its first two rounds adds 1 USD a month to the key's 1 USD.
+    const documentsKey = new kms.Key(this, 'DocumentsKey')
+    const documentsBucket = new s3.Bucket(this, 'DocumentsBucket', {
+      blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
+      enforceSSL: true,
+      encryptionKey: documentsKey,
+      // One data key for the bucket instead of a KMS request for every file.
+      bucketKeyEnabled: true,
+      // The browser posts files here directly, past the API.
+      cors: [{ allowedOrigins: appUrls, allowedMethods: [s3.HttpMethods.POST] }],
+    })
+    const uploadOrigin = `https://${documentsBucket.bucketRegionalDomainName}`
+
     const headers = new cloudfront.ResponseHeadersPolicy(this, 'WebHeaders', {
       securityHeadersBehavior: {
-        contentSecurityPolicy: { contentSecurityPolicy: CSP, override: true },
+        contentSecurityPolicy: {
+          contentSecurityPolicy: [...CSP, `connect-src 'self' ${uploadOrigin}`].join('; '),
+          override: true,
+        },
         strictTransportSecurity: {
           accessControlMaxAge: Duration.days(365),
           includeSubdomains: true,
@@ -129,8 +157,6 @@ export class SegregatorStack extends Stack {
       },
     })
 
-    const appUrl = `https://${domain.name}`
-    const appUrls = [appUrl, ...(props.localDevelopment ? ['http://localhost:5173'] : [])]
     const userPoolClient = userPool.addClient('ApiClient', {
       generateSecret: true,
       authFlows: { userPassword: true },
@@ -215,6 +241,7 @@ export class SegregatorStack extends Stack {
         USER_POOL_CLIENT_ID: userPoolClient.userPoolClientId,
         COGNITO_DOMAIN: cognitoDomain.baseUrl(),
         APP_URL: appUrl,
+        DOCUMENTS_BUCKET: documentsBucket.bucketName,
       },
       logGroup: new logs.LogGroup(this, 'ApiLogs', {
         retention: logs.RetentionDays.ONE_MONTH,
@@ -224,6 +251,8 @@ export class SegregatorStack extends Stack {
 
     table.grantReadWriteData(apiFunction)
     userPool.grant(apiFunction, 'cognito-idp:DescribeUserPoolClient', 'cognito-idp:AdminGetUser')
+    // Signing an upload needs the right to put the file itself, and with it the KMS key.
+    documentsBucket.grantReadWrite(apiFunction, 'raw/*')
 
     const integration = new HttpLambdaIntegration('ApiIntegration', apiFunction)
     const api = new HttpApi(this, 'Api', { defaultIntegration: integration, createDefaultStage: false })
@@ -313,5 +342,6 @@ export class SegregatorStack extends Stack {
     new CfnOutput(this, 'UserPoolId', { value: userPool.userPoolId })
     new CfnOutput(this, 'UserPoolClientId', { value: userPoolClient.userPoolClientId })
     new CfnOutput(this, 'CognitoDomain', { value: cognitoDomain.baseUrl() })
+    new CfnOutput(this, 'DocumentsBucketName', { value: documentsBucket.bucketName })
   }
 }

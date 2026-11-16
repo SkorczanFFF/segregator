@@ -2,6 +2,15 @@
 
 The minor version marks a stage of the build plan and the patch version each step or fix within it, as [Semantic Versioning](https://semver.org/spec/v2.0.0.html) allows before 1.0.0. Each entry starts with the version and its commit message, followed by a description of what changed.
 
+## 0.9.0 - feat: attach a file to a new document
+
+Released 2026-11-16.
+
+- A new document can come with a JPEG or PNG photo or a PDF of up to 10 MB. The browser sends it straight to S3 with a form the API signs, and a bar shows the progress.
+- The document is saved only once S3 holds the file, and one file belongs to one document.
+- Files sit in a private bucket encrypted with a key of their own, and deleting a document deletes its file.
+- The document page shows the file's type and size.
+
 ## 0.8.3 - fix: end Cognito's own session right after a Google sign-in
 
 Released 2026-11-16.

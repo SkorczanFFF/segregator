@@ -6,7 +6,7 @@ import {
   QueryCommand,
   type AttributeValue,
 } from '@aws-sdk/client-dynamodb'
-import type { Document, DocumentInput } from 'shared'
+import type { Document, DocumentFile, DocumentInput, FileType } from 'shared'
 import { ulid } from 'ulid'
 
 type Item = Record<string, AttributeValue>
@@ -34,6 +34,7 @@ function toItem(sub: string, doc: Document): Item {
     ...(doc.subtype ? { subtype: { S: doc.subtype } } : {}),
     ...(doc.title ? { title: { S: doc.title } } : {}),
     ...(doc.amount !== undefined ? { amount: { N: String(doc.amount) } } : {}),
+    ...(doc.file ? { fileType: { S: doc.file.type }, fileSize: { N: String(doc.file.size) } } : {}),
   }
 }
 
@@ -47,13 +48,22 @@ function fromItem(item: Item): Document {
     ...(item.subtype?.S ? { subtype: item.subtype.S } : {}),
     ...(item.title?.S ? { title: item.title.S } : {}),
     ...(item.amount?.N ? { amount: Number(item.amount.N) } : {}),
+    ...(item.fileType?.S ? { file: { type: item.fileType.S as FileType, size: Number(item.fileSize?.N) } } : {}),
   }
 }
 
-export async function createDocument(sub: string, input: DocumentInput): Promise<Document> {
-  // ULIDs need no counter and sort by creation time.
-  const doc: Document = { ...input, id: ulid(), createdAt: new Date().toISOString() }
-  await db.send(new PutItemCommand({ TableName: TABLE, Item: toItem(sub, doc) }))
+// A document with a file takes the file's id, and the condition keeps one file from becoming two documents.
+// ULIDs need no counter and sort by creation time.
+export async function createDocument(sub: string, input: DocumentInput, file?: { id: string } & DocumentFile) {
+  const doc: Document = {
+    ...input,
+    id: file?.id ?? ulid(),
+    createdAt: new Date().toISOString(),
+    ...(file ? { file: { type: file.type, size: file.size } } : {}),
+  }
+  await db.send(
+    new PutItemCommand({ TableName: TABLE, Item: toItem(sub, doc), ConditionExpression: 'attribute_not_exists(PK)' }),
+  )
   return doc
 }
 
@@ -62,21 +72,17 @@ export async function getDocument(sub: string, id: string) {
   return Item && fromItem(Item)
 }
 
-// Replaces what a person entered and keeps the id and creation time. Undefined means no such document.
+// Replaces what a person entered and keeps the id, creation time and file. Undefined means no such document.
 export async function updateDocument(sub: string, id: string, input: DocumentInput) {
   const current = await getDocument(sub, id)
   if (!current) return undefined
-  const doc: Document = { ...input, id, createdAt: current.createdAt }
+  const doc: Document = { ...input, id, createdAt: current.createdAt, file: current.file }
   await db.send(new PutItemCommand({ TableName: TABLE, Item: toItem(sub, doc) }))
   return doc
 }
 
-// False means no such document.
 export async function deleteDocument(sub: string, id: string) {
-  const { Attributes } = await db.send(
-    new DeleteItemCommand({ TableName: TABLE, Key: docKey(sub, id), ReturnValues: 'ALL_OLD' }),
-  )
-  return Attributes !== undefined
+  await db.send(new DeleteItemCommand({ TableName: TABLE, Key: docKey(sub, id) }))
 }
 
 // The cursor is the last key of a page. One that points outside the caller's list is rejected.

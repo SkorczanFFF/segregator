@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import { randomUUID } from 'node:crypto'
 import { test } from 'node:test'
 import type { DocumentInput } from 'shared'
+import { ulid } from 'ulid'
 import { setUpLocalTable } from './local-table.ts'
 
 setUpLocalTable('documents-test')
@@ -34,7 +35,7 @@ test("never reaches another account's documents", async () => {
   assert.equal((await listDocuments(other))?.items.length, 0)
   assert.equal(await getDocument(other, id), undefined)
   assert.equal(await updateDocument(other, id, doc('2026-11-11')), undefined)
-  assert.equal(await deleteDocument(other, id), false)
+  await deleteDocument(other, id)
   assert.equal((await getDocument(owner, id))?.docDate, '2026-11-10')
 })
 
@@ -65,11 +66,15 @@ test('updates what a person entered and keeps the id and creation time', async (
   assert.equal((await listDocuments(sub))?.items.at(-1)?.id, created.id)
 })
 
-test('deletes a document once', async () => {
+test('keeps the file through updates and gives it to one document only', async () => {
   const sub = randomUUID()
-  const { id } = await createDocument(sub, doc('2026-11-10'))
+  const file = { id: ulid(), type: 'image/jpeg', size: 1234 } as const
+  assert.equal((await createDocument(sub, doc('2026-11-10'), file)).id, file.id)
 
-  assert.equal(await deleteDocument(sub, id), true)
-  assert.equal(await getDocument(sub, id), undefined)
-  assert.equal(await deleteDocument(sub, id), false)
+  await updateDocument(sub, file.id, doc('2026-11-11'))
+  assert.deepEqual((await getDocument(sub, file.id))?.file, { type: 'image/jpeg', size: 1234 })
+  await assert.rejects(createDocument(sub, doc('2026-11-12'), file), { name: 'ConditionalCheckFailedException' })
+
+  await deleteDocument(sub, file.id)
+  assert.equal(await getDocument(sub, file.id), undefined)
 })

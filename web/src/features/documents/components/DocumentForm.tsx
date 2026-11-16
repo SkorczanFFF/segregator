@@ -1,23 +1,30 @@
-import { Button, Group, NumberInput, Paper, Select, Stack, TextInput } from '@mantine/core'
+import { Button, FileInput, Group, NumberInput, Paper, Progress, Select, Stack, Text, TextInput } from '@mantine/core'
 import { DatePickerInput } from '@mantine/dates'
 import { schemaResolver, useForm } from '@mantine/form'
 import dayjs from 'dayjs'
 import 'dayjs/locale/pl'
-import type { ReactNode } from 'react'
+import { useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router'
 import {
   CATEGORIES,
   DOCUMENT_TYPES,
   DocumentInput,
+  FILE_MAX_SIZE,
+  FILE_TYPES,
   TEXT_MAX_LENGTH,
+  UploadInput,
+  type Document,
   type DocumentType,
+  type NewDocumentInput,
   type Subtype,
 } from 'shared'
+import { uploadFile } from '~/features/upload/upload.ts'
 import StatusAlert from '~/shared/components/StatusAlert.tsx'
 import { useApiSubmit } from '~/shared/hooks/useApiSubmit.ts'
 import { useFormError } from '~/shared/hooks/useFormError.ts'
 import { focusFirstError, validateFilledOnBlur } from '~/shared/lib/form.ts'
+import { fileFormat, formatFileSize } from '~/shared/lib/format.ts'
 
 type DocumentValues = {
   type: DocumentType
@@ -26,6 +33,7 @@ type DocumentValues = {
   issuer: string
   amount: number | string
   docDate: string | null
+  file: File | null
 }
 
 const toValues = (doc?: DocumentInput): DocumentValues => ({
@@ -35,6 +43,7 @@ const toValues = (doc?: DocumentInput): DocumentValues => ({
   issuer: doc?.issuer ?? '',
   amount: doc?.amount === undefined ? '' : doc.amount / 100,
   docDate: doc?.docDate ?? dayjs().format('YYYY-MM-DD'),
+  file: null,
 })
 
 // Empty fields drop out and the amount turns into grosze.
@@ -49,25 +58,36 @@ const toInput = (values: DocumentValues): DocumentInput => ({
 
 const checkInput = schemaResolver(DocumentInput, { sync: true })
 
+const fileFits = (file: File) =>
+  UploadInput.safeParse({ type: file.type }).success && file.size > 0 && file.size <= FILE_MAX_SIZE
+
 type DocumentFormProps = {
-  doc?: DocumentInput
-  onSave: (input: DocumentInput) => Promise<void>
+  // Without a document the form creates one, and only a new document can get a file.
+  doc?: Document
+  onSave: (input: NewDocumentInput) => Promise<void>
   // Placed at the start of the button row, e.g. a delete button.
   extraAction?: ReactNode
 }
 
 export default function DocumentForm({ doc, onSave, extraAction }: DocumentFormProps) {
   const { t, i18n } = useTranslation()
-  const formError = useFormError()
+  const formError = useFormError({ max: formatFileSize(FILE_MAX_SIZE) })
+  const [progress, setProgress] = useState(0)
   // Controlled, so the subcategory list follows the chosen type.
   const form = useForm<DocumentValues>({
     initialValues: toValues(doc),
     enhanceGetInputProps: validateFilledOnBlur(),
     // The API's schema decides what is valid; each field gets its own message.
-    validate: (values) =>
-      Object.fromEntries(Object.keys(checkInput(toInput(values))).map((field) => [field, `documents.errors.${field}`])),
+    validate: (values) => {
+      const fields = Object.keys(checkInput(toInput(values)))
+      if (values.file && !fileFits(values.file)) fields.push('file')
+      return Object.fromEntries(fields.map((field) => [field, `documents.errors.${field}`]))
+    },
   })
-  const { submit, pending, error } = useApiSubmit((values: DocumentValues) => onSave(toInput(values)))
+  const { submit, pending, error } = useApiSubmit(async (values: DocumentValues) => {
+    const fileId = values.file ? await uploadFile(values.file, setProgress) : undefined
+    await onSave({ ...toInput(values), fileId })
+  })
   const subtypes: readonly Subtype[] = CATEGORIES[form.values.type]
 
   return (
@@ -130,6 +150,22 @@ export default function DocumentForm({ doc, onSave, extraAction }: DocumentFormP
               error={formError(form.errors.docDate)}
             />
           </Group>
+          {!doc && (
+            <FileInput
+              label={t('documents.fields.file')}
+              placeholder={t('documents.placeholders.file', { max: formatFileSize(FILE_MAX_SIZE) })}
+              accept={FILE_TYPES.join(',')}
+              clearable
+              {...form.getInputProps('file')}
+              error={formError(form.errors.file)}
+            />
+          )}
+          {doc?.file && (
+            <Text size="sm" c="dimmed">
+              {t('documents.file', { format: fileFormat(doc.file.type), size: formatFileSize(doc.file.size) })}
+            </Text>
+          )}
+          {pending && form.values.file && <Progress value={progress} aria-label={t('documents.uploading')} />}
           <Group justify="flex-end" mt="sm">
             {extraAction}
             <Button component={Link} to="/documents" variant="default">

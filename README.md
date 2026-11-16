@@ -34,7 +34,7 @@ You need Node.js 24, pnpm (the version in `packageManager`), AWS CLI v2 and acce
    cp api/.env.example api/.env
    ```
 
-3. Read the dev stack outputs and paste `TableName`, `UserPoolId`, `UserPoolClientId` and `CognitoDomain` into `api/.env` as `TABLE_NAME`, `USER_POOL_ID`, `USER_POOL_CLIENT_ID` and `COGNITO_DOMAIN`:
+3. Read the dev stack outputs and paste `TableName`, `UserPoolId`, `UserPoolClientId`, `CognitoDomain` and `DocumentsBucketName` into `api/.env` as `TABLE_NAME`, `USER_POOL_ID`, `USER_POOL_CLIENT_ID`, `COGNITO_DOMAIN` and `DOCUMENTS_BUCKET`:
 
    ```sh
    aws cloudformation describe-stacks --stack-name dev-Segregator --query "Stacks[0].Outputs" --output table
@@ -54,6 +54,7 @@ You need Node.js 24, pnpm (the version in `packageManager`), AWS CLI v2 and acce
 - The local API acts with your own AWS credentials, not the Lambda role. A permission missing from the stack works locally and fails only after deployment, so check new AWS calls on dev as well.
 - The Cognito client secret is read from Cognito at startup and never goes into `.env`.
 - The API listens on `127.0.0.1` only, because it holds your AWS credentials.
+- Files go straight from the browser to the dev documents bucket, which accepts uploads from `http://localhost:5173`.
 - The session cookie is `__Host-session` with `Secure`. Chrome and Firefox accept it on `http://localhost`.
 - When the dev stack is recreated, its outputs change, so `api/.env` needs the new values.
 
