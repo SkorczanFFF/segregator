@@ -1,6 +1,5 @@
 import { createContext, use } from 'react'
-
-export type User = { email: string }
+import type { User } from 'shared'
 
 type SessionValue = {
   // undefined until the first check finishes, null when signed out.

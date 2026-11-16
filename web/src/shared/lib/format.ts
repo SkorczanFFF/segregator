@@ -1,8 +1,8 @@
 import i18n from 'i18next'
 
-// Amounts are stored in grosze.
-export const formatMoney = (grosze: number) =>
-  new Intl.NumberFormat(i18n.language, { style: 'currency', currency: 'PLN' }).format(grosze / 100)
+// Amounts are stored in grosze. Compact notation shortens large ones, e.g. 10 mln zł.
+export const formatMoney = (grosze: number, notation: Intl.NumberFormatOptions['notation'] = 'standard') =>
+  new Intl.NumberFormat(i18n.language, { style: 'currency', currency: 'PLN', notation }).format(grosze / 100)
 
 // A date from a document has no time zone, so it is formatted in UTC to keep the same day everywhere.
 export const formatDate = (isoDate: string) =>

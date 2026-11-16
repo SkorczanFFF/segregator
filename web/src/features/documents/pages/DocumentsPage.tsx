@@ -21,10 +21,10 @@ function DocumentRow({ doc }: { doc: Document }) {
   return (
     <UnstyledButton component={Link} to={`/documents/${doc.id}`} display="block" py="sm">
       <Group wrap="nowrap" gap="md" align="flex-start">
-        <Text ff="monospace" size="sm" c="dimmed" w={104} style={{ flex: 'none' }}>
+        <Text ff="monospace" size="sm" c="dimmed" w={104} flex="none">
           {formatDate(doc.docDate)}
         </Text>
-        <Stack gap={2} style={{ flex: 1, minWidth: 0 }}>
+        <Stack gap={2} flex={1} miw={0}>
           <Text fw={600} truncate>
             {doc.title ?? doc.issuer}
           </Text>
@@ -33,7 +33,7 @@ function DocumentRow({ doc }: { doc: Document }) {
           </Text>
         </Stack>
         {doc.amount !== undefined && (
-          <Text ff="monospace" size="sm" style={{ flex: 'none' }}>
+          <Text ff="monospace" size="sm" flex="none">
             {formatMoney(doc.amount)}
           </Text>
         )}

@@ -59,13 +59,13 @@ export class PipelineStack extends Stack {
     pipeline.addStage(
       new AppStage(this, 'dev', {
         env: props?.env,
-        domain: { name: 'dev.segregator.skoftware.pl', certificateArnParameter: '/segregator/dev/certificate-arn' },
+        domain: 'dev.segregator.skoftware.pl',
         localDevelopment: true,
       }),
     )
     const prod = new AppStage(this, 'prod', {
       env: props?.env,
-      domain: { name: 'segregator.skoftware.pl', certificateArnParameter: '/segregator/prod/certificate-arn' },
+      domain: 'segregator.skoftware.pl',
     })
     pipeline.addStage(prod, {
       pre: [new pipelines.ManualApprovalStep('Approve')],

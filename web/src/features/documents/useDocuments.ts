@@ -1,8 +1,6 @@
 import { useInfiniteQuery, type QueryClient } from '@tanstack/react-query'
-import type { Document } from 'shared'
+import type { DocumentList } from 'shared'
 import { api, errorCode } from '~/shared/lib/api.ts'
-
-type Page = { items: Document[]; cursor?: string }
 
 const documentsKey = ['documents']
 
@@ -17,7 +15,7 @@ export function useDocuments() {
   const query = useInfiniteQuery({
     queryKey: documentsKey,
     queryFn: ({ pageParam }) =>
-      api.get<Page>(pageParam ? `/documents?cursor=${encodeURIComponent(pageParam)}` : '/documents'),
+      api.get<DocumentList>(pageParam ? `/documents?cursor=${encodeURIComponent(pageParam)}` : '/documents'),
     initialPageParam: '',
     getNextPageParam: (page) => page.cursor,
   })

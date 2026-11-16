@@ -15,17 +15,17 @@ function SampleReceipt() {
       w={300}
       p="lg"
       pb={28}
-      radius={0}
       shadow="none"
       withBorder={false}
       bg="brand.0"
       c="dark.8"
       pos="relative"
-      style={{ transform: 'rotate(-2deg)', borderRadius: '4px 4px 0 0' }}
+      bdrs="4px 4px 0 0"
+      style={{ transform: 'rotate(-2deg)' }}
       aria-hidden
     >
       <Stack gap="xs">
-        <Text ff="monospace" fz={11} c="dark.4" style={{ letterSpacing: '0.08em' }}>
+        <Text ff="monospace" fz={11} c="dark.4" lts="0.08em">
           {t('brand.receipt.meta')}
         </Text>
         <Text ff="heading" fw={600} fz={20}>
@@ -49,7 +49,7 @@ function SampleReceipt() {
       </Stack>
       <Group justify="space-between" pos="absolute" left={2} right={2} bottom={-8} gap={0}>
         {Array.from({ length: 16 }, (_, i) => (
-          <Box key={i} w={16} h={16} bg="brand.9" style={{ borderRadius: '50%' }} />
+          <Box key={i} w={16} h={16} bg="brand.9" bdrs="50%" />
         ))}
       </Group>
     </Paper>

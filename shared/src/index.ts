@@ -1,3 +1,5 @@
+export * from './auth.ts'
 export * from './categories.ts'
 export * from './document.ts'
+export * from './errors.ts'
 export * from './file.ts'

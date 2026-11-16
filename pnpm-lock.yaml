@@ -88,9 +88,6 @@ importers:
       cdk-assets:
         specifier: ^4.8.0
         version: 4.8.0
-      tsx:
-        specifier: ^4.23.0
-        version: 4.23.15
       typescript:
         specifier: 'catalog:'
         version: 7.0.2
@@ -2406,6 +2403,7 @@ snapshots:
       esbuild: 0.28.2
     optionalDependencies:
       fsevents: 2.3.3
+    optional: true
 
   type-fest@5.10.0:
     dependencies:

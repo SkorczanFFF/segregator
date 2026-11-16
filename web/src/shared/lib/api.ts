@@ -1,22 +1,7 @@
-// Error codes the API returns. Their messages live under `errors` in the translations.
-const API_ERRORS = [
-  'invalid_input',
-  'invalid_credentials',
-  'not_confirmed',
-  'invalid_code',
-  'code_expired',
-  'weak_password',
-  'signup_closed',
-  'google_failed',
-  'too_many_requests',
-  'unauthorized',
-  'forbidden',
-  'not_found',
-  'internal_error',
-  'network_error',
-] as const
+import { ERROR_CODES, type ErrorCode } from 'shared'
 
-export type ApiErrorCode = (typeof API_ERRORS)[number]
+// The API's codes, plus network_error when it can't be reached. Their messages live under `errors` in the translations.
+export type ApiErrorCode = ErrorCode | 'network_error'
 
 export class ApiError extends Error {
   readonly code: ApiErrorCode
@@ -29,8 +14,7 @@ export class ApiError extends Error {
 
 export const errorCode = (err: unknown): ApiErrorCode => (err instanceof ApiError ? err.code : 'internal_error')
 
-const isApiErrorCode = (value: unknown): value is ApiErrorCode =>
-  API_ERRORS.includes(value as ApiErrorCode)
+const isErrorCode = (value: unknown): value is ErrorCode => ERROR_CODES.includes(value as ErrorCode)
 
 async function request<T>(method: 'GET' | 'POST' | 'PUT' | 'DELETE', path: string, body?: unknown): Promise<T> {
   let response: Response
@@ -51,7 +35,7 @@ async function request<T>(method: 'GET' | 'POST' | 'PUT' | 'DELETE', path: strin
   if (response.ok && data !== undefined) return data as T
 
   const code = (data as { error?: unknown } | undefined)?.error
-  throw new ApiError(isApiErrorCode(code) ? code : 'internal_error')
+  throw new ApiError(isErrorCode(code) ? code : 'internal_error')
 }
 
 export const api = {

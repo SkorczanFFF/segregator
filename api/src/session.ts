@@ -19,6 +19,7 @@ export type Env = { Variables: { session: Session } }
 const db = new DynamoDBClient({})
 const TABLE = process.env.TABLE_NAME ?? ''
 const COOKIE = 'session'
+const COOKIE_OPTIONS = { prefix: 'host', httpOnly: true, sameSite: 'Strict' } as const
 const DAY = 24 * 60 * 60
 const IDLE_LIMIT = 7 * DAY
 const ABSOLUTE_LIMIT = 30 * DAY
@@ -33,6 +34,12 @@ const key = (id: string) => ({
 
 // Index key that lists one user's sessions, so all of them can be ended at once.
 const userSessions = (sub: string) => ({ S: `USER#${sub}#SESSIONS` })
+
+// The cookie's value when it can be a session id at all. A real one has 43 characters.
+function sessionId(c: Context) {
+  const id = getCookie(c, COOKIE, 'host')
+  return id && id.length <= 64 ? id : undefined
+}
 
 export async function createSession(c: Context, session: Session) {
   const id = randomBytes(32).toString('base64url')
@@ -52,17 +59,12 @@ export async function createSession(c: Context, session: Session) {
       },
     }),
   )
-  setCookie(c, COOKIE, id, {
-    prefix: 'host',
-    httpOnly: true,
-    sameSite: 'Strict',
-    maxAge: ABSOLUTE_LIMIT,
-  })
+  setCookie(c, COOKIE, id, { ...COOKIE_OPTIONS, maxAge: ABSOLUTE_LIMIT })
 }
 
 export async function readSession(c: Context): Promise<Session | undefined> {
-  const id = getCookie(c, COOKIE, 'host')
-  if (!id || id.length > 64) return undefined
+  const id = sessionId(c)
+  if (!id) return undefined
 
   const { Item } = await db.send(
     new GetItemCommand({ TableName: TABLE, Key: key(id), ConsistentRead: true }),
@@ -90,11 +92,9 @@ export async function readSession(c: Context): Promise<Session | undefined> {
 }
 
 export async function deleteSession(c: Context) {
-  const id = getCookie(c, COOKIE, 'host')
-  if (id && id.length <= 64) {
-    await db.send(new DeleteItemCommand({ TableName: TABLE, Key: key(id) }))
-  }
-  deleteCookie(c, COOKIE, { prefix: 'host', httpOnly: true, sameSite: 'Strict' })
+  const id = sessionId(c)
+  if (id) await db.send(new DeleteItemCommand({ TableName: TABLE, Key: key(id) }))
+  deleteCookie(c, COOKIE, COOKIE_OPTIONS)
 }
 
 export async function deleteAllSessions(sub: string) {

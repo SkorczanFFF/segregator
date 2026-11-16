@@ -1,6 +1,7 @@
 import { useQueryClient } from '@tanstack/react-query'
 import { useEffect, useState, type ReactNode } from 'react'
-import { SessionContext, type User } from '~/features/auth/session.ts'
+import type { User } from 'shared'
+import { SessionContext } from '~/features/auth/session.ts'
 import { api } from '~/shared/lib/api.ts'
 
 export default function SessionProvider({ children }: { children: ReactNode }) {

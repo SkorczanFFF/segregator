@@ -6,7 +6,7 @@ import {
   QueryCommand,
   type AttributeValue,
 } from '@aws-sdk/client-dynamodb'
-import type { Document, DocumentFile, DocumentInput, FileType } from 'shared'
+import type { Document, DocumentFile, DocumentInput, DocumentList, FileType } from 'shared'
 import { ulid } from 'ulid'
 
 type Item = Record<string, AttributeValue>
@@ -96,7 +96,7 @@ function readCursor(sub: string, cursor: string): Item | undefined {
 }
 
 // Newest first by the date on the document. Undefined means the cursor is invalid.
-export async function listDocuments(sub: string, cursor?: string) {
+export async function listDocuments(sub: string, cursor?: string): Promise<DocumentList | undefined> {
   const startKey = cursor === undefined ? undefined : readCursor(sub, cursor)
   if (cursor !== undefined && !startKey) return undefined
 

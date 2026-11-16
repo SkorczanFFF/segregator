@@ -49,6 +49,27 @@ test('rejects a form post from another site, even with a session cookie', async 
   }
 })
 
+test('answers invalid_input to a body that is not valid JSON', async () => {
+  const response = await app.request('/api/auth/login', { method: 'POST', headers: json(''), body: '{' })
+  assert.equal(response.status, 400)
+  assert.deepEqual(await response.json(), { error: 'invalid_input' })
+})
+
+test('lets only a six-digit code through to Cognito', async (t) => {
+  const send = t.mock.method(CognitoIdentityProviderClient.prototype, 'send', async () => {
+    throw Object.assign(new Error('Wrong code'), { name: 'CodeMismatchException' })
+  })
+  const confirm = async (code: string) => {
+    const body = JSON.stringify({ email: 'someone@example.com', code })
+    const response = await app.request('/api/auth/confirm', { method: 'POST', headers: json(''), body })
+    return ((await response.json()) as { error: string }).error
+  }
+
+  for (const code of ['dddddd', '12345', '1234567']) assert.equal(await confirm(code), 'invalid_input', code)
+  assert.equal(send.mock.callCount(), 0)
+  assert.equal(await confirm('123456'), 'invalid_code')
+})
+
 test('sends a Google sign-in through Cognito with PKCE and a state cookie', async () => {
   const response = await app.request('/api/auth/google')
   assert.equal(response.status, 302)

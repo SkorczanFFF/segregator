@@ -1,4 +1,5 @@
 import { Hono, type Context } from 'hono'
+import { CODE_PATTERN, PASSWORD_MIN_LENGTH, type ErrorCode, type User } from 'shared'
 import * as z from 'zod'
 import {
   confirmSignUp,
@@ -9,14 +10,13 @@ import {
   resetPassword,
   signUp,
 } from './cognito.ts'
+import { apiError } from './errors.ts'
 import { createSession, deleteAllSessions, deleteSession, type Env } from './session.ts'
-import { parse } from './validate.ts'
-
-type ErrorCode = 'invalid_input' | 'invalid_credentials' | 'invalid_code' | 'code_expired' | 'weak_password'
+import { jsonBody } from './validate.ts'
 
 const Email = z.string().trim().toLowerCase().pipe(z.email().max(254))
-const Code = z.string().regex(/^\d{6}$/)
-const NewPassword = z.string().min(12).max(256)
+const Code = z.string().regex(CODE_PATTERN)
+const NewPassword = z.string().min(PASSWORD_MIN_LENGTH).max(256)
 const RegisterInput = z.object({ email: Email, password: NewPassword })
 const LoginInput = z.object({ email: Email, password: z.string().min(1).max(256) })
 const ConfirmInput = z.object({ email: Email, code: Code })
@@ -48,23 +48,21 @@ const triggerError = (err: unknown) =>
 // Turns the Cognito errors a route expects into API error codes. Anything else ends as a 500.
 function fail(c: Context, err: unknown, expected: Record<string, ErrorCode>) {
   const name = errorName(err)
-  if (LIMIT_ERRORS.has(name)) return c.json({ error: 'too_many_requests' }, 429)
+  if (LIMIT_ERRORS.has(name)) return apiError(c, 'too_many_requests', 429)
   const code = expected[name]
   if (!code) throw err
-  return c.json({ error: code }, 400)
+  return apiError(c, code, 400)
 }
 
 export const auth = new Hono<Env>()
 
-auth.post('/register', async (c) => {
-  const input = await parse(c, RegisterInput)
-  if (!input) return c.json({ error: 'invalid_input' }, 400)
-
+auth.post('/register', jsonBody(RegisterInput), async (c) => {
+  const input = c.req.valid('json')
   try {
     await signUp(input.email, input.password)
   } catch (err) {
     const trigger = triggerError(err)
-    if (trigger === 'signup_closed') return c.json({ error: 'signup_closed' }, 400)
+    if (trigger === 'signup_closed') return apiError(c, 'signup_closed', 400)
     // Cognito reveals taken addresses on sign-up, so the API answers as for a new account.
     // An address taken by a Google account counts too.
     if (errorName(err) !== 'UsernameExistsException' && trigger !== 'account_exists') {
@@ -76,10 +74,8 @@ auth.post('/register', async (c) => {
   return c.body(null, 204)
 })
 
-auth.post('/confirm', async (c) => {
-  const input = await parse(c, ConfirmInput)
-  if (!input) return c.json({ error: 'invalid_input' }, 400)
-
+auth.post('/confirm', jsonBody(ConfirmInput), async (c) => {
+  const input = c.req.valid('json')
   try {
     await confirmSignUp(input.email, input.code)
   } catch (err) {
@@ -94,10 +90,8 @@ auth.post('/confirm', async (c) => {
   return c.body(null, 204)
 })
 
-auth.post('/login', async (c) => {
-  const input = await parse(c, LoginInput)
-  if (!input) return c.json({ error: 'invalid_input' }, 400)
-
+auth.post('/login', jsonBody(LoginInput), async (c) => {
+  const input = c.req.valid('json')
   let user
   try {
     user = await logIn(input.email, input.password)
@@ -105,47 +99,41 @@ auth.post('/login', async (c) => {
     if (errorName(err) === 'UserNotConfirmedException') {
       // A fresh code lets the user finish a sign-up whose code has expired.
       await resendCode(input.email).catch(() => undefined)
-      return c.json({ error: 'not_confirmed' }, 400)
+      return apiError(c, 'not_confirmed', 400)
     }
     return fail(c, err, { NotAuthorizedException: 'invalid_credentials' })
   }
   // Always a new session, so a session id planted before sign-in never gets access.
   await createSession(c, user)
-  return c.json({ email: user.email })
+  return c.json({ email: user.email } satisfies User)
 })
 
-auth.post('/resend-code', async (c) => {
-  const input = await parse(c, ForgotInput)
-  if (!input) return c.json({ error: 'invalid_input' }, 400)
-
+auth.post('/resend-code', jsonBody(ForgotInput), async (c) => {
+  const input = c.req.valid('json')
   try {
     await resendCode(input.email)
   } catch (err) {
-    if (LIMIT_ERRORS.has(errorName(err))) return c.json({ error: 'too_many_requests' }, 429)
+    if (LIMIT_ERRORS.has(errorName(err))) return apiError(c, 'too_many_requests', 429)
     // Confirmed and unknown accounts get the same answer, so the screen does not reveal who has an account.
   }
   return c.body(null, 204)
 })
 
-auth.post('/forgot-password', async (c) => {
-  const input = await parse(c, ForgotInput)
-  if (!input) return c.json({ error: 'invalid_input' }, 400)
-
+auth.post('/forgot-password', jsonBody(ForgotInput), async (c) => {
+  const input = c.req.valid('json')
   try {
     await forgotPassword(input.email)
   } catch (err) {
     const name = errorName(err)
-    if (LIMIT_ERRORS.has(name)) return c.json({ error: 'too_many_requests' }, 429)
+    if (LIMIT_ERRORS.has(name)) return apiError(c, 'too_many_requests', 429)
     // Every address gets the same answer, so the form does not reveal who has an account.
     if (!SILENT_FORGOT_ERRORS.has(name)) throw err
   }
   return c.body(null, 204)
 })
 
-auth.post('/reset-password', async (c) => {
-  const input = await parse(c, ResetInput)
-  if (!input) return c.json({ error: 'invalid_input' }, 400)
-
+auth.post('/reset-password', jsonBody(ResetInput), async (c) => {
+  const input = c.req.valid('json')
   try {
     await resetPassword(input.email, input.code, input.password)
   } catch (err) {
@@ -175,4 +163,4 @@ auth.post('/logout-all', async (c) => {
   return c.body(null, 204)
 })
 
-auth.get('/me', (c) => c.json({ email: c.get('session').email }))
+auth.get('/me', (c) => c.json({ email: c.get('session').email } satisfies User))

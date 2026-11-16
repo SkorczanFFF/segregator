@@ -55,15 +55,8 @@ const CSP = [
   "frame-ancestors 'none'",
 ]
 
-type Domain = {
-  name: string
-  // CloudFront needs the certificate in us-east-1, where the account's SCP blocks CloudFormation,
-  // so it is created once outside the stack and its ARN read from this parameter.
-  certificateArnParameter: string
-}
-
 export type SiteProps = {
-  domain: Domain
+  domain: string
   // pnpm dev signs in through this stage's pool, so Google may also send people back to localhost.
   localDevelopment?: boolean
 }
@@ -71,7 +64,6 @@ export type SiteProps = {
 export class SegregatorStack extends Stack {
   constructor(scope: Construct, id: string, props: StackProps & SiteProps) {
     super(scope, id, props)
-    const { domain } = props
     const stageName = Stage.of(this)?.stageName
 
     const bucket = new s3.Bucket(this, 'WebBucket', {
@@ -81,7 +73,7 @@ export class SegregatorStack extends Stack {
       autoDeleteObjects: true,
     })
 
-    const appUrl = `https://${domain.name}`
+    const appUrl = `https://${props.domain}`
     const appUrls = [appUrl, ...(props.localDevelopment ? ['http://localhost:5173'] : [])]
 
     // Documents are personal data, so they get a key of their own. Rotation is off,
@@ -130,6 +122,7 @@ export class SegregatorStack extends Stack {
         emailBody: 'Kod weryfikacyjny / Verification code: {####}',
       },
       // Length over character classes, as NIST SP 800-63B recommends.
+      // minLength matches PASSWORD_MIN_LENGTH in shared/src/auth.ts.
       passwordPolicy: {
         minLength: 12,
         requireLowercase: false,
@@ -273,11 +266,13 @@ export class SegregatorStack extends Stack {
 
     const distribution = new cloudfront.Distribution(this, 'WebDistribution', {
       defaultRootObject: 'index.html',
-      domainNames: [domain.name],
+      domainNames: [props.domain],
       certificate: acm.Certificate.fromCertificateArn(
         this,
         'Certificate',
-        ssm.StringParameter.valueForStringParameter(this, domain.certificateArnParameter),
+        // CloudFront needs the certificate in us-east-1, where the account's SCP blocks CloudFormation,
+        // so it is created once outside the stack and its ARN kept in this parameter.
+        ssm.StringParameter.valueForStringParameter(this, `/segregator/${stageName}/certificate-arn`),
       ),
       priceClass: cloudfront.PriceClass.PRICE_CLASS_100,
       defaultBehavior: {

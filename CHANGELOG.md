@@ -2,6 +2,14 @@
 
 The minor version marks a stage of the build plan and the patch version each step or fix within it, as [Semantic Versioning](https://semver.org/spec/v2.0.0.html) allows before 1.0.0. Each entry starts with the version and its commit message, followed by a description of what changed.
 
+## 0.9.1 - refactor: clean up shared rules, validation and setup leftovers
+
+Released 2026-11-16.
+
+- The entry page no longer offers a demo whose button led nowhere. The demo comes back with the public launch.
+- Error messages take their limits from the same constants as the checks, such as the longest name and the highest amount.
+- Behind the scenes, api and web share limits, error codes and response types, and the API checks every JSON body in one place.
+
 ## 0.9.0 - feat: attach a file to a new document
 
 Released 2026-11-16.

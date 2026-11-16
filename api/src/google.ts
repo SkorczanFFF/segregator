@@ -1,6 +1,7 @@
 import { createHash, randomBytes } from 'node:crypto'
-import { Hono } from 'hono'
+import { Hono, type Context } from 'hono'
 import { deleteCookie, getCookie, setCookie } from 'hono/cookie'
+import type { ErrorCode } from 'shared'
 import { cognitoSignOutUrl, exchangeCode, googleSignInUrl } from './cognito.ts'
 import { createSession, type Env } from './session.ts'
 
@@ -11,6 +12,9 @@ const AFTER_SIGN_IN = `${process.env.APP_URL}/documents`
 const COOKIE_OPTIONS = { prefix: 'host', httpOnly: true, sameSite: 'Lax' } as const
 
 const random = () => randomBytes(32).toString('base64url')
+
+// The sign-in page shows the message for this code.
+const backToSignIn = (c: Context, code: ErrorCode) => c.redirect(`/login?error=${code}`)
 
 export const google = new Hono<Env>()
 
@@ -27,16 +31,16 @@ google.get('/callback', async (c) => {
   deleteCookie(c, COOKIE, COOKIE_OPTIONS)
   const { code, error_description } = c.req.query()
 
-  if (!state || !verifier || c.req.query('state') !== state) return c.redirect('/login?error=google_failed')
+  if (!state || !verifier || c.req.query('state') !== state) return backToSignIn(c, 'google_failed')
   // The Pre sign-up trigger's message reaches this page inside Cognito's error description.
-  if (error_description?.includes('signup_closed')) return c.redirect('/login?error=signup_closed')
-  if (!code) return c.redirect('/login?error=google_failed')
+  if (error_description?.includes('signup_closed')) return backToSignIn(c, 'signup_closed')
+  if (!code) return backToSignIn(c, 'google_failed')
 
   try {
     await createSession(c, await exchangeCode(code, verifier, CALLBACK))
   } catch (err) {
     console.error(err)
-    return c.redirect('/login?error=google_failed')
+    return backToSignIn(c, 'google_failed')
   }
   // Cognito keeps a session of its own, which would skip Google on the next sign-in in this browser,
   // even after signing out of the app. The app has its own session, so Cognito's ends right away.

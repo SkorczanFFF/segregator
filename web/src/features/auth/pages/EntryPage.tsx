@@ -1,4 +1,4 @@
-import { Button, Group, Paper, Stack, Text, Title } from '@mantine/core'
+import { Button, Stack, Text, Title } from '@mantine/core'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router'
 import AuthLayout from '~/features/auth/components/AuthLayout.tsx'
@@ -23,19 +23,6 @@ export default function EntryPage() {
             {t('auth.signIn')}
           </Button>
         </Stack>
-        <Paper p="md" shadow="none" style={{ borderStyle: 'dashed' }}>
-          <Group justify="space-between" wrap="nowrap" gap="md">
-            <Stack gap={2}>
-              <Text fw={600}>{t('entry.demoTitle')}</Text>
-              <Text size="sm" c="dimmed">
-                {t('entry.demoText')}
-              </Text>
-            </Stack>
-            <Button variant="subtle" size="sm" style={{ flex: 'none' }}>
-              {t('entry.demo')}
-            </Button>
-          </Group>
-        </Paper>
       </Stack>
     </AuthLayout>
   )

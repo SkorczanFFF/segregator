@@ -7,6 +7,7 @@ import { useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router'
 import {
+  AMOUNT_MAX,
   CATEGORIES,
   DOCUMENT_TYPES,
   DocumentInput,
@@ -24,7 +25,7 @@ import StatusAlert from '~/shared/components/StatusAlert.tsx'
 import { useApiSubmit } from '~/shared/hooks/useApiSubmit.ts'
 import { useFormError } from '~/shared/hooks/useFormError.ts'
 import { focusFirstError, validateFilledOnBlur } from '~/shared/lib/form.ts'
-import { fileFormat, formatFileSize } from '~/shared/lib/format.ts'
+import { fileFormat, formatFileSize, formatMoney } from '~/shared/lib/format.ts'
 
 type DocumentValues = {
   type: DocumentType
@@ -71,7 +72,11 @@ type DocumentFormProps = {
 
 export default function DocumentForm({ doc, onSave, extraAction }: DocumentFormProps) {
   const { t, i18n } = useTranslation()
-  const formError = useFormError({ max: formatFileSize(FILE_MAX_SIZE) })
+  const formError = useFormError({
+    maxLength: TEXT_MAX_LENGTH,
+    maxAmount: formatMoney(AMOUNT_MAX, 'compact'),
+    maxSize: formatFileSize(FILE_MAX_SIZE),
+  })
   const [progress, setProgress] = useState(0)
   // Controlled, so the subcategory list follows the chosen type.
   const form = useForm<DocumentValues>({
@@ -153,7 +158,7 @@ export default function DocumentForm({ doc, onSave, extraAction }: DocumentFormP
           {!doc && (
             <FileInput
               label={t('documents.fields.file')}
-              placeholder={t('documents.placeholders.file', { max: formatFileSize(FILE_MAX_SIZE) })}
+              placeholder={t('documents.placeholders.file', { maxSize: formatFileSize(FILE_MAX_SIZE) })}
               accept={FILE_TYPES.join(',')}
               clearable
               {...form.getInputProps('file')}

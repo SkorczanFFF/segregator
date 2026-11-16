@@ -2,12 +2,8 @@ import { Group, PasswordInput, Progress, Stack, Text, type PasswordInputProps } 
 import { IconCheck, IconCircle, IconX } from '@tabler/icons-react'
 import { useId, type FocusEvent } from 'react'
 import { useTranslation } from 'react-i18next'
-import {
-  PASSWORD_MIN_LENGTH,
-  passwordChecks,
-  passwordStrength,
-  type PasswordCheck,
-} from '~/features/auth/password.ts'
+import { PASSWORD_MIN_LENGTH } from 'shared'
+import { passwordChecks, passwordStrength, type PasswordCheck } from '~/features/auth/password.ts'
 import CapsLockNote from '~/shared/components/CapsLockNote.tsx'
 import { useCapsLock } from '~/shared/hooks/useCapsLock.ts'
 

@@ -1,4 +1,3 @@
-#!/usr/bin/env node
 import { App } from 'aws-cdk-lib/core'
 import { PipelineStack } from '../lib/pipeline-stack.ts'
 

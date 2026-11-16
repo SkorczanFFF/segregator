@@ -4,6 +4,7 @@ import { csrf } from 'hono/csrf'
 import { HTTPException } from 'hono/http-exception'
 import { auth } from './auth.ts'
 import { documents } from './documents.ts'
+import { apiError } from './errors.ts'
 import { google } from './google.ts'
 import { readSession, type Env } from './session.ts'
 
@@ -30,7 +31,7 @@ app.use(csrf())
 app.use(async (c, next) => {
   if (PUBLIC_PATHS.has(c.req.path)) return next()
   const session = await readSession(c)
-  if (!session) return c.json({ error: 'unauthorized' }, 401)
+  if (!session) return apiError(c, 'unauthorized', 401)
   c.set('session', session)
   return next()
 })
@@ -41,11 +42,13 @@ app.route('/auth', auth)
 app.route('/documents', documents)
 
 // The API answers with error codes; the web app translates them.
-app.notFound((c) => c.json({ error: 'not_found' }, 404))
+app.notFound((c) => apiError(c, 'not_found', 404))
 app.onError((err, c) => {
-  if (err instanceof HTTPException && err.status === 403) return c.json({ error: 'forbidden' }, 403)
+  // Hono's own refusals: csrf() answers 403 and a body that isn't JSON 400.
+  if (err instanceof HTTPException && err.status === 403) return apiError(c, 'forbidden', 403)
+  if (err instanceof HTTPException && err.status === 400) return apiError(c, 'invalid_input', 400)
   console.error(err)
-  return c.json({ error: 'internal_error' }, 500)
+  return apiError(c, 'internal_error', 500)
 })
 
 export const handler = handle(app)

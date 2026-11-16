@@ -1,10 +1,12 @@
-import { Anchor, Button, Input, PinInput, Stack, Text, TextInput } from '@mantine/core'
-import { matches, useForm } from '@mantine/form'
+import { Anchor, Button, Stack, Text, TextInput } from '@mantine/core'
+import { useForm } from '@mantine/form'
 import { useInterval } from '@mantine/hooks'
 import { useState } from 'react'
-import { useTranslation } from 'react-i18next'
+import { Trans, useTranslation } from 'react-i18next'
 import { Link, useLocation, useNavigate } from 'react-router'
+import { codeRule } from '~/features/auth/code.ts'
 import AuthScreen from '~/features/auth/components/AuthScreen.tsx'
+import CodeInput from '~/features/auth/components/CodeInput.tsx'
 import { emailRule } from '~/features/auth/email.ts'
 import StatusAlert from '~/shared/components/StatusAlert.tsx'
 import { useApiSubmit } from '~/shared/hooks/useApiSubmit.ts'
@@ -30,7 +32,7 @@ export default function ConfirmPage() {
     enhanceGetInputProps: validateFilledOnBlur('email'),
     validate: {
       email: emailRule,
-      code: matches(/^\d{6}$/, 'auth.errors.invalidCode'),
+      code: codeRule,
     },
   })
   const { submit, pending, error } = useApiSubmit(async (values: ConfirmValues) => {
@@ -91,32 +93,34 @@ export default function ConfirmPage() {
               error={formError(form.errors.email)}
             />
           )}
-          <Input.Wrapper label={t('common.code')} error={formError(form.errors.code)}>
-            <PinInput
-              length={6}
-              type="number"
-              size="lg"
-              gap="sm"
-              mt={6}
-              oneTimeCode
-              autoFocus={Boolean(knownEmail)}
-              ariaLabel={t('common.code')}
-              key={form.key('code')}
-              {...form.getInputProps('code')}
-              error={Boolean(form.errors.code)}
-              onComplete={completeCode}
-            />
-          </Input.Wrapper>
+          <CodeInput
+            autoFocus={Boolean(knownEmail)}
+            key={form.key('code')}
+            {...form.getInputProps('code')}
+            error={formError(form.errors.code)}
+            onComplete={completeCode}
+          />
           <Text size="sm" c="dimmed">
             {t('auth.notArrived')}{' '}
             {seconds > 0 ? (
               t('auth.resendIn', { seconds })
             ) : (
-              <Anchor component="button" type="button" fz="sm" fw={600} onClick={() => void resend.submit(undefined)}>
-                {t('auth.resend')}
-              </Anchor>
-            )}
-            . {t('auth.checkSpam')}
+              <Trans
+                i18nKey="auth.resend"
+                components={{
+                  link: (
+                    <Anchor
+                      component="button"
+                      type="button"
+                      fz="sm"
+                      fw={600}
+                      onClick={() => void resend.submit(undefined)}
+                    />
+                  ),
+                }}
+              />
+            )}{' '}
+            {t('auth.checkSpam')}
           </Text>
           <Button type="submit" fullWidth loading={pending || resend.pending}>
             {t('auth.confirm')}

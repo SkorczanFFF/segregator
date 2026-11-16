@@ -1,8 +1,10 @@
-import { Anchor, Button, Input, PinInput, Stack, TextInput } from '@mantine/core'
-import { matches, useForm } from '@mantine/form'
+import { Anchor, Button, Stack, TextInput } from '@mantine/core'
+import { useForm } from '@mantine/form'
 import { useTranslation } from 'react-i18next'
 import { Link, useLocation, useNavigate } from 'react-router'
+import { codeRule } from '~/features/auth/code.ts'
 import AuthScreen from '~/features/auth/components/AuthScreen.tsx'
+import CodeInput from '~/features/auth/components/CodeInput.tsx'
 import { emailRule } from '~/features/auth/email.ts'
 import NewPasswordInput from '~/features/auth/components/NewPasswordInput.tsx'
 import { newPasswordRules } from '~/features/auth/password.ts'
@@ -26,7 +28,7 @@ export default function ResetPasswordPage() {
     enhanceGetInputProps: validateFilledOnBlur('email', 'password'),
     validate: {
       email: emailRule,
-      code: matches(/^\d{6}$/, 'auth.errors.invalidCode'),
+      code: codeRule,
       ...newPasswordRules,
     },
   })
@@ -64,19 +66,7 @@ export default function ResetPasswordPage() {
             {...form.getInputProps('email')}
             error={formError(form.errors.email)}
           />
-          <Input.Wrapper label={t('common.code')} error={formError(form.errors.code)}>
-            <PinInput
-              length={6}
-              type="number"
-              size="lg"
-              gap="sm"
-              mt={6}
-              oneTimeCode
-              ariaLabel={t('common.code')}
-              {...form.getInputProps('code')}
-              error={Boolean(form.errors.code)}
-            />
-          </Input.Wrapper>
+          <CodeInput {...form.getInputProps('code')} error={formError(form.errors.code)} />
           <NewPasswordInput
             label={t('auth.newPassword')}
             email={form.values.email}

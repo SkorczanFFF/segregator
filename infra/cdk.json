@@ -1,21 +1,5 @@
 {
-  "app": "pnpm exec tsc && pnpm exec tsx bin/infra.ts",
-  "watch": {
-    "include": [
-      "**"
-    ],
-    "exclude": [
-      "README.md",
-      "cdk*.json",
-      "**/*.d.ts",
-      "**/*.js",
-      "tsconfig.json",
-      "package*.json",
-      "pnpm-lock.yaml",
-      "node_modules",
-      "test"
-    ]
-  },
+  "app": "node bin/infra.ts",
   "context": {
     "@aws-cdk-containers/ecs-service-extensions:enableDefaultLogDriver": true,
     "@aws-cdk/aws-apigateway:authorizerChangeDeploymentLogicalId": true,

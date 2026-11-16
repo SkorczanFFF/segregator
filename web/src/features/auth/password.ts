@@ -1,4 +1,4 @@
-export const PASSWORD_MIN_LENGTH = 12
+import { PASSWORD_MIN_LENGTH } from 'shared'
 
 // Length matters more than character types (NIST SP 800-63B). Cognito also rejects spaces at either end.
 export function passwordChecks(password: string, email: string) {
