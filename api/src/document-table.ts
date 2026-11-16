@@ -1,4 +1,5 @@
 import {
+  ConditionalCheckFailedException,
   DeleteItemCommand,
   DynamoDBClient,
   GetItemCommand,
@@ -72,12 +73,20 @@ export async function getDocument(sub: string, id: string) {
   return Item && fromItem(Item)
 }
 
-// Replaces what a person entered and keeps the id, creation time and file. Undefined means no such document.
+// Replaces what a person entered and keeps the id, creation time and file. Undefined means no such document,
+// also when it is deleted between the read and the write, so an edit never brings it back.
 export async function updateDocument(sub: string, id: string, input: DocumentInput) {
   const current = await getDocument(sub, id)
   if (!current) return undefined
   const doc: Document = { ...input, id, createdAt: current.createdAt, file: current.file }
-  await db.send(new PutItemCommand({ TableName: TABLE, Item: toItem(sub, doc) }))
+  try {
+    await db.send(
+      new PutItemCommand({ TableName: TABLE, Item: toItem(sub, doc), ConditionExpression: 'attribute_exists(PK)' }),
+    )
+  } catch (err) {
+    if (err instanceof ConditionalCheckFailedException) return undefined
+    throw err
+  }
   return doc
 }
 

@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 import { randomUUID } from 'node:crypto'
 import { test } from 'node:test'
+import { DynamoDBClient, GetItemCommand } from '@aws-sdk/client-dynamodb'
 import type { DocumentInput } from 'shared'
 import { ulid } from 'ulid'
 import { setUpLocalTable } from './local-table.ts'
@@ -64,6 +65,22 @@ test('updates what a person entered and keeps the id and creation time', async (
   assert.equal(stored?.title, undefined)
   assert.equal(stored?.amount, 5000)
   assert.equal((await listDocuments(sub))?.items.at(-1)?.id, created.id)
+})
+
+test('does not bring back a document deleted while it was being updated', async (t) => {
+  const sub = randomUUID()
+  const created = await createDocument(sub, doc('2026-11-10'))
+  // The delete lands right after the update has read the document.
+  const send = DynamoDBClient.prototype.send as (this: DynamoDBClient, command: object) => Promise<unknown>
+  t.mock.method(DynamoDBClient.prototype, 'send', async function (this: DynamoDBClient, command: object) {
+    const result = await send.call(this, command)
+    if (command instanceof GetItemCommand) await deleteDocument(sub, created.id)
+    return result
+  })
+
+  assert.equal(await updateDocument(sub, created.id, doc('2026-11-11')), undefined)
+  t.mock.restoreAll()
+  assert.equal(await getDocument(sub, created.id), undefined)
 })
 
 test('keeps the file through updates and gives it to one document only', async () => {

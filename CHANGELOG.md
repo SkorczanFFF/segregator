@@ -2,6 +2,12 @@
 
 The minor version marks a stage of the build plan and the patch version each step or fix within it, as [Semantic Versioning](https://semver.org/spec/v2.0.0.html) allows before 1.0.0. Each entry starts with the version and its commit message, followed by a description of what changed.
 
+## 0.9.6 - fix: keep an edit from bringing back a deleted document
+
+Released 2026-11-16.
+
+- Saving a document that was deleted at the same moment, for example in another tab, no longer brings it back. The save ends with "not found", so the document can't point at a file that is gone.
+
 ## 0.9.5 - feat: redesign the entry pages and the document's fields
 
 Released 2026-11-16.
