@@ -5,11 +5,10 @@
 
 /* A large faint folder in the corner, behind the page. */
 .watermark {
-  position: absolute;
+  composes: watermark from './decor.module.css';
   right: -90px;
   bottom: -110px;
   rotate: 12deg;
   opacity: 0.05;
   color: var(--mantine-primary-color-filled);
-  pointer-events: none;
 }

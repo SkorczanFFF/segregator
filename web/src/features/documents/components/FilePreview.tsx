@@ -2,7 +2,7 @@ import { Group, Paper, Stack, Text, ThemeIcon } from '@mantine/core'
 import { IconFileText } from '@tabler/icons-react'
 import { useState, type PointerEvent, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
-import classes from '~/features/documents/components/file.module.css'
+import classes from '~/features/documents/components/documents.module.css'
 import { fileFormat, formatFileSize } from '~/shared/lib/format.ts'
 
 // How much the loupe enlarges the image as shown.

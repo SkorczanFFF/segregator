@@ -1,6 +1,7 @@
 import pdfWorker from 'pdfjs-dist/build/pdf.worker.min.mjs?url'
+import { isPdf } from 'shared'
 
-// A photo shrinks to this longer side: about 1 MB, with the text of a receipt still sharp for OpenCV and the model.
+// A photo shrinks to this longer side: about 1 MB, with the text of a receipt still sharp enough to read.
 const PHOTO_MAX_SIDE = 2560
 // Sharp enough for the preview on a phone screen.
 const PREVIEW_WIDTH = 1200
@@ -13,9 +14,9 @@ export type PreparedFile = {
   pages: number
 }
 
-// Any file other than a PDF is treated as a photo. One the browser can't open throws.
+// A photo the browser can't open throws.
 export const prepareFile = (file: File, quarterTurns: number) =>
-  file.type === 'application/pdf' ? preparePdf(file) : preparePhoto(file, quarterTurns)
+  isPdf(file.type) ? preparePdf(file) : preparePhoto(file, quarterTurns)
 
 // Draws the photo upright by its EXIF, turned clockwise by quarterTurns × 90° and no larger than PHOTO_MAX_SIDE.
 // The new JPEG has no EXIF, so the location a phone may have saved in it is gone.

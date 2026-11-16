@@ -81,6 +81,9 @@ importers:
       constructs:
         specifier: ^10.5.0
         version: 10.8.1
+      shared:
+        specifier: workspace:*
+        version: link:../shared
     devDependencies:
       '@types/node':
         specifier: 'catalog:'

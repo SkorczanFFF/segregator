@@ -16,6 +16,7 @@ import * as s3 from 'aws-cdk-lib/aws-s3'
 import * as s3deploy from 'aws-cdk-lib/aws-s3-deployment'
 import * as ssm from 'aws-cdk-lib/aws-ssm'
 import type { Construct } from 'constructs'
+import { PASSWORD_MIN_LENGTH } from 'shared'
 
 const WEB_DIST = fileURLToPath(new URL('../../web/dist', import.meta.url))
 const API_ENTRY = fileURLToPath(new URL('../../api/src/index.ts', import.meta.url))
@@ -124,9 +125,8 @@ export class SegregatorStack extends Stack {
         emailBody: 'Kod weryfikacyjny / Verification code: {####}',
       },
       // Length over character classes, as NIST SP 800-63B recommends.
-      // minLength matches PASSWORD_MIN_LENGTH in shared/src/auth.ts.
       passwordPolicy: {
-        minLength: 12,
+        minLength: PASSWORD_MIN_LENGTH,
         requireLowercase: false,
         requireUppercase: false,
         requireDigits: false,

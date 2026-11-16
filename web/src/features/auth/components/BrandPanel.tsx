@@ -1,57 +1,50 @@
-import { Badge, Box, Divider, Group, Paper, Stack, Text, Title } from '@mantine/core'
-import { useTranslation } from 'react-i18next'
+import { ActionIcon, Badge, Box, Group, Image, List, Paper, Popover, Stack, Text, ThemeIcon, Title } from '@mantine/core'
+import { IconAdjustmentsHorizontal, IconFolderFilled, IconSparkles } from '@tabler/icons-react'
+import { Trans, useTranslation } from 'react-i18next'
+import classes from '~/features/auth/components/BrandPanel.module.css'
+import sampleReceipt from '~/features/auth/components/sample-receipt.svg'
+import AppControls from '~/shared/components/AppControls.tsx'
 import Logo from '~/shared/components/Logo.tsx'
+import { formatDate, formatMoney } from '~/shared/lib/format.ts'
 
 const STEPS = ['add', 'check', 'remind'] as const
 
-// A receipt with a torn edge, showing what the app reads from a document.
-function SampleReceipt() {
+function ReadRow({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
+  return (
+    <Group justify="space-between" fz="sm" wrap="nowrap">
+      <Text span c="dimmed" inherit>
+        {label}
+      </Text>
+      <Text span fw={mono ? undefined : 600} ff={mono ? 'monospace' : undefined} inherit>
+        {value}
+      </Text>
+    </Group>
+  )
+}
+
+// A photo of a receipt beside what the app reads from it, which is the app's main idea.
+function SampleRead() {
   const { t } = useTranslation()
 
   return (
-    <Paper
-      visibleFrom="sm"
-      w={300}
-      p="lg"
-      pb={28}
-      shadow="none"
-      withBorder={false}
-      bg="brand.0"
-      c="dark.8"
-      pos="relative"
-      bdrs="4px 4px 0 0"
-      style={{ transform: 'rotate(-2deg)' }}
-      aria-hidden
-    >
-      <Stack gap="xs">
-        <Text ff="monospace" fz={11} c="dark.4" lts="0.08em">
-          {t('brand.receipt.meta')}
-        </Text>
-        <Text ff="heading" fw={600} fz={20}>
-          {t('brand.receipt.shop')}
-        </Text>
-        <Group justify="space-between" fz="sm">
-          <span>{t('brand.receipt.item')}</span>
-          <Text span ff="monospace" fz="sm">
-            {t('brand.receipt.amount')}
-          </Text>
-        </Group>
-        <Divider variant="dashed" color="dark.3" />
-        <Group gap="xs">
-          <Badge bg="brand.1" c="brand.9" tt="none">
-            {t('brand.receipt.warranty')}
+    <Group gap={0} wrap="nowrap" visibleFrom="sm" aria-hidden>
+      <Image src={sampleReceipt} h={240} w={180} radius="md" className={classes.photo} />
+      {/* The card follows the color scheme, unlike the always dark panel around it. */}
+      <Paper p="md" w={250} c="var(--mantine-color-text)" className={classes.read}>
+        <Stack gap={10}>
+          <Group gap={6} fz="xs" fw={700} tt="uppercase" lts="0.04em" className={classes.readTitle}>
+            <IconSparkles size={16} />
+            {t('brand.sample.read')}
+          </Group>
+          <ReadRow label={t('documents.fields.issuer')} value={t('brand.sample.issuer')} />
+          <ReadRow label={t('documents.fields.amount')} value={formatMoney(189900)} mono />
+          <ReadRow label={t('brand.sample.warrantyUntil')} value={formatDate('2028-11-12')} mono />
+          <Badge color="saffron" variant="light" radius="sm" tt="none" fw={500} size="lg">
+            {t('brand.sample.reminder', { date: formatDate('2028-10-12') })}
           </Badge>
-          <Badge bg="white" c="dark.4" tt="none" fw={500} bd="1px solid var(--mantine-color-dark-1)">
-            {t('brand.receipt.reminder')}
-          </Badge>
-        </Group>
-      </Stack>
-      <Group justify="space-between" pos="absolute" left={2} right={2} bottom={-8} gap={0}>
-        {Array.from({ length: 16 }, (_, i) => (
-          <Box key={i} w={16} h={16} bg="brand.9" bdrs="50%" />
-        ))}
-      </Group>
-    </Paper>
+        </Stack>
+      </Paper>
+    </Group>
   )
 }
 
@@ -59,38 +52,49 @@ export default function BrandPanel() {
   const { t } = useTranslation()
 
   return (
-    <Stack
-      component="aside"
-      justify="space-between"
-      gap="xl"
-      w="100%"
-      p={{ base: 'lg', sm: 48 }}
-      bg="brand.9"
-      c="brand.0"
-      style={{ overflow: 'hidden' }}
-    >
-      <Logo to="/" c="brand.2" />
-      <Stack gap="md" maw={440}>
-        <Title order={2} c="brand.0" fz={{ base: 28, sm: 44 }} lh={1.1}>
-          {t('brand.headline')}
-        </Title>
-        <Text c="brand.2" lh={1.6}>
-          {t('brand.lead')}
-        </Text>
-      </Stack>
-      <SampleReceipt />
-      <Stack component="ol" gap="sm" m={0} p={0} visibleFrom="sm" style={{ listStyle: 'none' }}>
-        {STEPS.map((step, i) => (
-          <Group component="li" key={step} gap="md" align="baseline">
-            <Text span ff="monospace" fw={700} fz={13} c="brand.3">
-              {i + 1}
-            </Text>
-            <Text span fz={15}>
+    <Box component="aside" w="100%" p={{ base: 'lg', sm: 48 }} bg="brand.9" c="brand.0" className={classes.panel}>
+      <IconFolderFilled size={520} className={classes.watermark} aria-hidden />
+      <Stack justify="space-between" gap="xl" h="100%" pos="relative">
+        <Group justify="space-between" wrap="nowrap">
+          <Logo to="/" c="brand.2" />
+          {/* A phone has no room for both controls beside the logo, so one button opens them. */}
+          <Popover position="bottom-end" width={260} shadow="md">
+            <Popover.Target>
+              <ActionIcon variant="light" color="saffron" hiddenFrom="sm" aria-label={t('common.preferences')}>
+                <IconAdjustmentsHorizontal size={18} />
+              </ActionIcon>
+            </Popover.Target>
+            <Popover.Dropdown>
+              <AppControls withLabels />
+            </Popover.Dropdown>
+          </Popover>
+        </Group>
+        <Stack gap="md" maw={460}>
+          <Title order={2} c="brand.0" fz={{ base: 28, sm: 44 }} lh={1.1}>
+            <Trans i18nKey="brand.headline" components={{ accent: <Text span inherit c="saffron.5" /> }} />
+          </Title>
+          <Text c="brand.2" lh={1.6} visibleFrom="sm">
+            {t('brand.lead')}
+          </Text>
+        </Stack>
+        <SampleRead />
+        <List type="ordered" listStyleType="none" spacing="sm" center fz={{ base: 14, sm: 15 }} c="inherit">
+          {STEPS.map((step, i) => (
+            <List.Item
+              key={step}
+              icon={
+                <ThemeIcon size={26} radius="xl" color="saffron.5" variant={i === 0 ? 'filled' : 'outline'}>
+                  <Text span ff="monospace" fw={700} fz={13}>
+                    {i + 1}
+                  </Text>
+                </ThemeIcon>
+              }
+            >
               {t(`brand.steps.${step}`)}
-            </Text>
-          </Group>
-        ))}
+            </List.Item>
+          ))}
+        </List>
       </Stack>
-    </Stack>
+    </Box>
   )
 }

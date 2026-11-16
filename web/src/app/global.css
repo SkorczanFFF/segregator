@@ -1,0 +1,19 @@
+/* How hover and focus changes ease in, here and in the CSS modules. */
+:root {
+  --app-transition: 300ms ease;
+}
+
+/* Colors only, so reduced motion is respected. */
+.mantine-Button-root,
+.mantine-ActionIcon-root,
+.mantine-NavLink-root,
+.mantine-ThemeIcon-root,
+.mantine-Anchor-root,
+.mantine-Input-input,
+.mantine-Dropzone-root {
+  transition:
+    background-color var(--app-transition),
+    color var(--app-transition),
+    border-color var(--app-transition),
+    box-shadow var(--app-transition);
+}

@@ -1,0 +1,65 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 800" width="600" height="800">
+  <defs>
+    <linearGradient id="table" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#5a4636"/>
+      <stop offset="1" stop-color="#3a2c21"/>
+    </linearGradient>
+    <linearGradient id="paper" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fdfcf8"/>
+      <stop offset="1" stop-color="#ece8df"/>
+    </linearGradient>
+  </defs>
+  <rect width="600" height="800" fill="url(#table)"/>
+  <g stroke="#2a2018" stroke-opacity="0.35" stroke-width="2" fill="none">
+    <path d="M0 120 C150 100 300 140 600 110"/>
+    <path d="M0 330 C200 310 380 360 600 320"/>
+    <path d="M0 560 C180 540 420 590 600 550"/>
+    <path d="M0 720 C220 700 360 740 600 710"/>
+  </g>
+  <g transform="rotate(-3 300 400)">
+    <rect x="138" y="74" width="352" height="680" fill="#000000" opacity="0.35"/>
+    <rect x="128" y="62" width="352" height="680" fill="url(#paper)"/>
+    <g font-family="Courier New, monospace" fill="#2b2730">
+      <g text-anchor="middle">
+        <text x="304" y="118" font-size="26" font-weight="700">SKLEP AGD</text>
+        <text x="304" y="148" font-size="16">ul. Przykładowa 1</text>
+        <text x="304" y="172" font-size="16">00-000 Miasto</text>
+        <text x="304" y="196" font-size="16">NIP 000-000-00-00</text>
+        <text x="304" y="256" font-size="19" font-weight="700">PARAGON FISKALNY</text>
+      </g>
+      <g font-size="16">
+        <text x="150" y="296">Pralka 8 kg</text><text x="458" y="296" text-anchor="end">1 899,00 A</text>
+        <text x="150" y="320" font-size="13">  1 szt. x 1 899,00</text>
+        <text x="150" y="350">Wniesienie</text><text x="458" y="350" text-anchor="end">0,00 A</text>
+        <text x="150" y="376">Odbiór starej</text><text x="458" y="376" text-anchor="end">0,00 A</text>
+        <text x="150" y="436">Sprzedaż opod. A</text><text x="458" y="436" text-anchor="end">1 899,00</text>
+        <text x="150" y="462">PTU A 23%</text><text x="458" y="462" text-anchor="end">355,10</text>
+        <text x="150" y="590">Karta płatnicza</text><text x="458" y="590" text-anchor="end">1 899,00</text>
+        <text x="150" y="630">2026-11-12 14:32</text><text x="458" y="630" text-anchor="end">nr 0042</text>
+      </g>
+      <g font-size="25" font-weight="700">
+        <text x="150" y="528">SUMA PLN</text><text x="458" y="528" text-anchor="end">1 899,00</text>
+      </g>
+    </g>
+    <g stroke="#8a8590" stroke-width="2" stroke-dasharray="6 6">
+      <line x1="150" y1="222" x2="458" y2="222"/>
+      <line x1="150" y1="402" x2="458" y2="402"/>
+      <line x1="150" y1="490" x2="458" y2="490"/>
+      <line x1="150" y1="556" x2="458" y2="556"/>
+    </g>
+    <g fill="#2b2730">
+      <rect x="172" y="660" width="4" height="50"/><rect x="180" y="660" width="2" height="50"/><rect x="186" y="660" width="6" height="50"/>
+      <rect x="196" y="660" width="2" height="50"/><rect x="202" y="660" width="4" height="50"/><rect x="210" y="660" width="2" height="50"/>
+      <rect x="216" y="660" width="8" height="50"/><rect x="228" y="660" width="2" height="50"/><rect x="234" y="660" width="4" height="50"/>
+      <rect x="242" y="660" width="2" height="50"/><rect x="248" y="660" width="6" height="50"/><rect x="258" y="660" width="2" height="50"/>
+      <rect x="264" y="660" width="4" height="50"/><rect x="272" y="660" width="2" height="50"/><rect x="278" y="660" width="8" height="50"/>
+      <rect x="290" y="660" width="2" height="50"/><rect x="296" y="660" width="4" height="50"/><rect x="304" y="660" width="6" height="50"/>
+      <rect x="314" y="660" width="2" height="50"/><rect x="320" y="660" width="4" height="50"/><rect x="328" y="660" width="2" height="50"/>
+      <rect x="334" y="660" width="6" height="50"/><rect x="344" y="660" width="2" height="50"/><rect x="350" y="660" width="4" height="50"/>
+      <rect x="358" y="660" width="8" height="50"/><rect x="370" y="660" width="2" height="50"/><rect x="376" y="660" width="4" height="50"/>
+      <rect x="384" y="660" width="2" height="50"/><rect x="390" y="660" width="6" height="50"/><rect x="400" y="660" width="2" height="50"/>
+      <rect x="406" y="660" width="4" height="50"/><rect x="414" y="660" width="2" height="50"/><rect x="420" y="660" width="6" height="50"/>
+      <rect x="430" y="660" width="4" height="50"/>
+    </g>
+  </g>
+</svg>

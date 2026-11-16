@@ -23,15 +23,18 @@ import {
 } from '@tabler/icons-react'
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { FILE_MAX_SIZE, FILE_TYPES } from 'shared'
-import classes from '~/features/documents/components/file.module.css'
+import { FILE_MAX_SIZE, FILE_TYPES, isPdf, type DocumentType } from 'shared'
+import classes from '~/features/documents/components/documents.module.css'
 import FilePreview from '~/features/documents/components/FilePreview.tsx'
+import { TYPE_LOOKS } from '~/features/documents/look.ts'
 import { prepareFile, type PreparedFile } from '~/features/upload/prepare.ts'
 import { formatFileSize } from '~/shared/lib/format.ts'
 
 const ACCEPT = FILE_TYPES.join(',')
 
 type FileFieldProps = {
+  // The chosen type, whose color the icon and the main button take, like the card's top and Save.
+  type: DocumentType
   // Gets what to send, or null when there is nothing to send.
   onChange: (file: Blob | null) => void
   // True while a picked file is being prepared, so the form waits with sending.
@@ -41,13 +44,14 @@ type FileFieldProps = {
 
 type FileError = 'fileSize' | 'fileUnreadable'
 
-// Picks the document's file and shows it before sending. A photo can be turned by 90°,
-// because neither OpenCV nor the model can tell where the top of the text is.
-export default function FileField({ onChange, onPreparing, disabled }: FileFieldProps) {
+// Picks the document's file and shows it before sending. A photo can be turned by 90°, so its text is upright.
+export default function FileField({ type, onChange, onPreparing, disabled }: FileFieldProps) {
   const { t } = useTranslation()
+  const { color, strong } = TYPE_LOOKS[type]
   const maxSize = formatFileSize(FILE_MAX_SIZE)
-  // On a phone the camera comes first, so picking a file steps back.
-  const chooseVariant = useMatches({ base: 'default', sm: 'gradient' })
+  // On a phone the camera comes first, so picking a file steps back. Read at once, so a computer
+  // doesn't show the phone's variant first.
+  const chooseVariant = useMatches({ base: 'default', sm: 'filled' }, { getInitialValueInEffect: false })
   const [source, setSource] = useState<File | null>(null)
   const [turns, setTurns] = useState(0)
   const [prepared, setPrepared] = useState<PreparedFile & { image: string }>()
@@ -61,6 +65,8 @@ export default function FileField({ onChange, onPreparing, disabled }: FileField
 
   // Every turn starts from the picked file, so a photo is never compressed twice.
   async function prepare(file: File, quarterTurns: number) {
+    // A PDF goes as it is, so one that is too big is refused before pdf.js reads it.
+    if (isPdf(file.type) && file.size > FILE_MAX_SIZE) return reset('fileSize')
     onPreparing(true)
     try {
       const result = await prepareFile(file, quarterTurns)
@@ -97,7 +103,7 @@ export default function FileField({ onChange, onPreparing, disabled }: FileField
   if (prepared) {
     return (
       <FilePreview file={prepared.file} image={prepared.image} pages={prepared.pages}>
-        {prepared.file.type !== 'application/pdf' && (
+        {!isPdf(prepared.file.type) && (
           <ActionIcon.Group>
             <Tooltip label={t('documents.rotateLeft')}>
               <ActionIcon
@@ -150,6 +156,7 @@ export default function FileField({ onChange, onPreparing, disabled }: FileField
       accept={[...FILE_TYPES]}
       multiple={false}
       activateOnClick={false}
+      activateOnKeyboard={false}
       enablePointerEvents
       loading={source !== null}
       disabled={disabled}
@@ -159,8 +166,8 @@ export default function FileField({ onChange, onPreparing, disabled }: FileField
       classNames={{ root: classes.dropzone, inner: classes.dropzoneInner }}
     >
       <IconReceipt size={260} stroke={0.75} className={classes.watermark} aria-hidden />
-      <Indicator color="saffron" size={28} offset={6} withBorder label={<IconPlus size={16} stroke={3} />}>
-        <ThemeIcon size={88} radius="xl" variant="light">
+      <Indicator size={28} offset={6} withBorder label={<IconPlus size={16} stroke={3} />}>
+        <ThemeIcon size={88} radius="xl" variant="light" color={color}>
           <IconPhoto size={44} stroke={1.5} />
         </ThemeIcon>
       </Indicator>
@@ -175,14 +182,14 @@ export default function FileField({ onChange, onPreparing, disabled }: FileField
       <Flex direction={{ base: 'column', sm: 'row' }} gap="sm" w={{ base: '100%', sm: 'auto' }}>
         <FileButton onChange={pick} accept="image/*" capture="environment" disabled={disabled}>
           {(props) => (
-            <Button hiddenFrom="sm" leftSection={<IconCamera size={18} />} {...props}>
+            <Button hiddenFrom="sm" variant="filled" color={strong} leftSection={<IconCamera size={18} />} {...props}>
               {t('documents.takePhoto')}
             </Button>
           )}
         </FileButton>
         <FileButton onChange={pick} accept={ACCEPT} disabled={disabled}>
           {(props) => (
-            <Button variant={chooseVariant} leftSection={<IconUpload size={18} />} {...props}>
+            <Button variant={chooseVariant} color={strong} leftSection={<IconUpload size={18} />} {...props}>
               {t('documents.chooseFile')}
             </Button>
           )}

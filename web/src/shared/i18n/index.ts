@@ -1,5 +1,6 @@
 import i18n from 'i18next'
 import { initReactI18next } from 'react-i18next'
+import { CODE_LENGTH } from 'shared'
 import { en } from '~/shared/i18n/en.ts'
 import { pl } from '~/shared/i18n/pl.ts'
 
@@ -23,7 +24,8 @@ void i18n.use(initReactI18next).init({
   lng: detectLanguage(),
   fallbackLng: 'pl',
   resources: { pl: { translation: pl }, en: { translation: en } },
-  interpolation: { escapeValue: false },
+  // Every text can use {{codeLength}}, so the length of a code is written in one place.
+  interpolation: { escapeValue: false, defaultVariables: { codeLength: CODE_LENGTH } },
   initAsync: false,
 })
 

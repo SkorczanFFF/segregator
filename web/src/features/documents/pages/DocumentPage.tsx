@@ -5,11 +5,13 @@ import { useTranslation } from 'react-i18next'
 import { useNavigate, useParams } from 'react-router'
 import type { Document, DocumentInput } from 'shared'
 import DocumentForm, { PAGE_WIDTH_WITH_FILE } from '~/features/documents/components/DocumentForm.tsx'
+import { documentName } from '~/features/documents/look.ts'
 import { documentKey, refreshDocuments } from '~/features/documents/useDocuments.ts'
 import Page from '~/shared/components/Page.tsx'
 import StatusAlert from '~/shared/components/StatusAlert.tsx'
 import { useApiSubmit } from '~/shared/hooks/useApiSubmit.ts'
 import { api, errorCode } from '~/shared/lib/api.ts'
+import { formatDay } from '~/shared/lib/format.ts'
 
 export default function DocumentPage() {
   const { t } = useTranslation()
@@ -36,7 +38,15 @@ export default function DocumentPage() {
 
   return (
     <Page
-      title={doc ? (doc.title ?? doc.issuer) : t('documents.document')}
+      title={doc ? documentName(doc) : t('documents.document')}
+      back={{ to: '/documents', label: t('documents.title') }}
+      actions={
+        doc && (
+          <Text size="sm" c="dimmed">
+            {t('documents.added', { date: formatDay(doc.createdAt) })}
+          </Text>
+        )
+      }
       width={doc && !doc.file ? 560 : PAGE_WIDTH_WITH_FILE}
     >
       {error && <StatusAlert status="error">{t(`errors.${errorCode(error)}`)}</StatusAlert>}
@@ -50,11 +60,7 @@ export default function DocumentPage() {
           key={doc.id}
           doc={doc}
           onSave={save}
-          extraAction={
-            <Button variant="subtle" color="red" mr="auto" onClick={open}>
-              {t('documents.delete')}
-            </Button>
-          }
+          onDelete={open}
         />
       )}
       <Modal opened={confirming} onClose={close} title={t('documents.deleteTitle')} centered>

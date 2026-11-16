@@ -1,5 +1,5 @@
 // A receipt and an invoice both record a purchase, so they share subcategories.
-const PURCHASE = ['fuel', 'groceries', 'pharmacy', 'electronics', 'other'] as const
+const PURCHASE = ['fuel', 'groceries', 'pharmacy', 'electronics', 'appliances', 'other'] as const
 
 // Stable keys stored in the database; the web app translates them.
 export const CATEGORIES = {

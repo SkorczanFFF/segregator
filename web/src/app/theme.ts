@@ -3,6 +3,7 @@ import {
   Autocomplete,
   Button,
   createTheme,
+  Indicator,
   NumberInput,
   Paper,
   PasswordInput,
@@ -14,6 +15,7 @@ import {
   type MantineColorsTuple,
 } from '@mantine/core'
 import { DatePickerInput } from '@mantine/dates'
+import { TYPE_LOOKS } from '~/features/documents/look.ts'
 
 const brand: MantineColorsTuple = [
   '#f9f2fc',
@@ -28,7 +30,7 @@ const brand: MantineColorsTuple = [
   '#3c0e4f',
 ]
 
-// The second brand color, kept for small accents beside the purple: the logo's label, the current step, the loupe.
+// The second brand color, for small accents beside the purple.
 const saffron: MantineColorsTuple = [
   '#fff8e6',
   '#ffefc2',
@@ -55,10 +57,37 @@ const dark: MantineColorsTuple = [
   '#110a14',
 ]
 
+const typeColors = [...new Set(Object.values(TYPE_LOOKS).map(({ color }) => color))]
+
+// The light variant of the document type colors, used by their tiles, chosen buttons and the card's top:
+// a stronger tint than Mantine's on the dark surface, a pastel on white, and text that keeps WCAG AA on it.
+const typeTints = (scheme: 'light' | 'dark') =>
+  Object.fromEntries(
+    typeColors.flatMap((color) => {
+      const shade = (n: number) => `var(--mantine-color-${color}-${n})`
+      const tint = (percent: number) => `color-mix(in srgb, ${shade(5)} ${percent}%, var(--mantine-color-body))`
+      return scheme === 'dark'
+        ? [
+            [`--mantine-color-${color}-light`, tint(30)],
+            [`--mantine-color-${color}-light-hover`, tint(38)],
+            [`--mantine-color-${color}-light-color`, shade(2)],
+          ]
+        : [
+            [`--mantine-color-${color}-light`, shade(1)],
+            [`--mantine-color-${color}-light-hover`, shade(2)],
+            [`--mantine-color-${color}-light-color`, `color-mix(in srgb, ${shade(9)} 75%, black)`],
+          ]
+    }),
+  )
+
+// Mantine's orange-9 still misses WCAG AA as text on white.
+const ORANGE_TEXT = '#a8380a'
+
 // Mantine's default text, border and status colors miss WCAG contrast here, so they get darker shades that pass.
 export const cssVariablesResolver: CSSVariablesResolver = (theme) => ({
   variables: {},
   light: {
+    ...typeTints('light'),
     '--app-page-bg': theme.colors.brand[0],
     '--mantine-color-text': theme.colors.dark[8],
     '--mantine-color-dimmed': theme.colors.dark[4],
@@ -67,21 +96,17 @@ export const cssVariablesResolver: CSSVariablesResolver = (theme) => ({
     '--mantine-color-error': theme.colors.red[9],
     '--mantine-color-red-text': theme.colors.red[9],
     '--mantine-color-red-light-color': theme.colors.red[9],
-    '--mantine-color-orange-text': '#a8380a',
-    '--mantine-color-orange-light-color': '#a8380a',
+    '--mantine-color-orange-text': ORANGE_TEXT,
+    '--mantine-color-orange-light-color': ORANGE_TEXT,
     '--mantine-color-green-text': '#1f6b30',
-    '--mantine-color-green-light-color': '#1f6b30',
   },
   dark: {
+    ...typeTints('dark'),
     '--app-page-bg': theme.colors.dark[8],
     '--mantine-color-default-border': theme.colors.dark[3],
     '--mantine-color-error': theme.colors.red[4],
     '--mantine-color-red-light-color': theme.colors.red[4],
     '--mantine-color-orange-light-color': theme.colors.orange[4],
-    '--mantine-color-green-light-color': theme.colors.green[4],
-    // Keeps the light variant lighter than the card surface.
-    '--mantine-color-brand-light': theme.colors.brand[9],
-    '--mantine-color-brand-light-color': theme.colors.brand[1],
   },
 })
 
@@ -89,12 +114,15 @@ export const theme = createTheme({
   primaryColor: 'brand',
   primaryShade: { light: 6, dark: 5 },
   colors: { brand, saffron, dark },
-  // Dark text and icons on light fills such as saffron, white on dark ones.
+  // Dark text and icons on light fills such as saffron, white on dark ones. The threshold is below
+  // Mantine's 0.3, so mid fills like blue, pink and gray get dark text, which keeps WCAG AA contrast.
   autoContrast: true,
+  luminanceThreshold: 0.2,
   defaultGradient: { from: 'brand.5', to: 'brand.7', deg: 135 },
   defaultRadius: 'sm',
   cursorType: 'pointer',
-  shadows: { md: `0 16px 40px -20px ${rgba(brand[9], 0.35)}` },
+  // xl lifts something off the page, such as a photo of a document or the loupe.
+  shadows: { md: `0 16px 40px -20px ${rgba(brand[9], 0.35)}`, xl: '0 18px 38px rgb(0 0 0 / 0.42)' },
   fontFamily: "'Hanken Grotesk Variable', sans-serif",
   fontFamilyMonospace: "'JetBrains Mono Variable', monospace",
   headings: {
@@ -110,6 +138,12 @@ export const theme = createTheme({
       defaultProps: { variant: 'gradient', size: 'md' },
     }),
     DatePickerInput: DatePickerInput.extend({ defaultProps: { size: 'md' } }),
+    // Bright saffron with a dark brown mark in both schemes, since the light scheme's shade 6 turns muddy.
+    // Above what it marks, yet under the app shell, so the open menu on a phone covers it.
+    Indicator: Indicator.extend({
+      defaultProps: { color: 'saffron.5', zIndex: 1 },
+      vars: () => ({ root: { '--indicator-text-color': 'var(--mantine-color-saffron-9)' } }),
+    }),
     NumberInput: NumberInput.extend({ defaultProps: { size: 'md' } }),
     // No default padding: a modal is a Paper too, and it has padding of its own.
     Paper: Paper.extend({

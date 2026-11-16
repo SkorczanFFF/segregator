@@ -1,0 +1,13 @@
+/* Decoration shared by the screens, taken in with `composes`. */
+
+/* A large faint icon behind the content. Each use sets its place, angle, opacity and color. */
+.watermark {
+  position: absolute;
+  pointer-events: none;
+}
+
+/* A dotted ground. Each use sets the dots' color in --dots. */
+.dots {
+  background-image: radial-gradient(var(--dots) 1px, transparent 1px);
+  background-size: 20px 20px;
+}

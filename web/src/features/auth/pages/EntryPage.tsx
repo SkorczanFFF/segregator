@@ -1,4 +1,4 @@
-import { Button, Stack, Text, Title } from '@mantine/core'
+import { Button, Divider, Stack, Text, Title } from '@mantine/core'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router'
 import AuthLayout from '~/features/auth/components/AuthLayout.tsx'
@@ -16,6 +16,7 @@ export default function EntryPage() {
         </Stack>
         <Stack gap="sm">
           <GoogleButton />
+          <Divider label={t('auth.orEmail')} labelPosition="center" />
           <Button component={Link} to="/register" fullWidth>
             {t('entry.signUpEmail')}
           </Button>

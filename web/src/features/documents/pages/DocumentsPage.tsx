@@ -1,7 +1,11 @@
 import {
+  Affix,
+  Box,
   Button,
   Divider,
+  getDefaultZIndex,
   Group,
+  Indicator,
   Paper,
   Skeleton,
   Stack,
@@ -9,40 +13,20 @@ import {
   ThemeIcon,
   Title,
   UnstyledButton,
-  type MantineColor,
+  VisuallyHidden,
+  type ButtonProps,
 } from '@mantine/core'
-import {
-  IconBolt,
-  IconCertificate,
-  IconChevronRight,
-  IconFileInvoice,
-  IconFileText,
-  IconPaperclip,
-  IconPlus,
-  IconReceipt,
-  IconShieldCheck,
-  IconSignature,
-  type Icon,
-} from '@tabler/icons-react'
+import { IconChevronRight, IconFileText, IconPaperclip, IconPlus } from '@tabler/icons-react'
 import { Fragment } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router'
-import type { Document, DocumentType, Subtype } from 'shared'
+import type { Document } from 'shared'
+import classes from '~/features/documents/components/documents.module.css'
+import { CARD_INSET, describeDocument, documentName, TYPE_LOOKS } from '~/features/documents/look.ts'
 import { useDocuments } from '~/features/documents/useDocuments.ts'
 import Page from '~/shared/components/Page.tsx'
 import StatusAlert from '~/shared/components/StatusAlert.tsx'
-import { formatDate, formatMoney, formatMonth } from '~/shared/lib/format.ts'
-
-// Each type has its icon and one of a few colors, so the list reads at a glance.
-const TYPE_LOOKS = {
-  receipt: { icon: IconReceipt, color: 'brand' },
-  bill: { icon: IconBolt, color: 'brand' },
-  invoice: { icon: IconFileInvoice, color: 'saffron' },
-  warranty: { icon: IconCertificate, color: 'saffron' },
-  policy: { icon: IconShieldCheck, color: 'cyan' },
-  contract: { icon: IconSignature, color: 'cyan' },
-  other: { icon: IconFileText, color: 'gray' },
-} satisfies Record<DocumentType, { icon: Icon; color: MantineColor }>
+import { formatDate, formatDayMonth, formatMoney, formatMonth } from '~/shared/lib/format.ts'
 
 // The list comes newest first, so the documents of one month follow each other.
 function byMonth(items: Document[]) {
@@ -56,39 +40,61 @@ function byMonth(items: Document[]) {
   return months
 }
 
+function AddButton(props: ButtonProps) {
+  const { t } = useTranslation()
+  return (
+    <Button component={Link} to="/documents/new" leftSection={<IconPlus size={18} aria-hidden />} {...props}>
+      {t('documents.add')}
+    </Button>
+  )
+}
+
 function DocumentRow({ doc }: { doc: Document }) {
   const { t } = useTranslation()
   const { icon: TypeIcon, color } = TYPE_LOOKS[doc.type]
-  const details = [
-    formatDate(doc.docDate),
-    t(`categories.types.${doc.type}`),
-    doc.subtype && t(`categories.subtypes.${doc.subtype as Subtype}`),
-    doc.title && doc.issuer,
-  ]
-    .filter(Boolean)
-    .join(' · ')
 
   return (
-    <UnstyledButton component={Link} to={`/documents/${doc.id}`} display="block" py="sm">
+    <UnstyledButton
+      component={Link}
+      to={`/documents/${doc.id}`}
+      py="sm"
+      px={CARD_INSET}
+      className={classes.row}
+    >
       <Group wrap="nowrap" gap="md">
-        <ThemeIcon variant="light" color={color} size={40} radius="md">
-          <TypeIcon size={20} aria-hidden />
-        </ThemeIcon>
+        <Indicator
+          disabled={!doc.file}
+          size={20}
+          offset={4}
+          position="bottom-end"
+          withBorder
+          label={<IconPaperclip size={12} stroke={2.5} role="img" aria-label={t('documents.hasFile')} />}
+        >
+          <ThemeIcon variant="light" color={color} size={44} radius="md">
+            <TypeIcon size={32} stroke={1.5} aria-hidden />
+          </ThemeIcon>
+        </Indicator>
         <Stack gap={2} flex={1} miw={0}>
           <Text fw={600} truncate>
-            {doc.title ?? doc.issuer}
+            {documentName(doc)}
           </Text>
           <Text size="sm" c="dimmed" truncate>
-            {details}
+            {describeDocument(t, doc).join(' · ')}
           </Text>
         </Stack>
-        {doc.amount !== undefined && (
-          <Text ff="monospace" size="sm" flex="none">
-            {formatMoney(doc.amount)}
+        {/* The year is in the month's heading, so the date is short. */}
+        <Stack gap={2} align="flex-end" flex="none">
+          {doc.amount !== undefined && (
+            <Text ff="monospace" size="sm">
+              {formatMoney(doc.amount)}
+            </Text>
+          )}
+          <Text ff="monospace" size="xs" c="dimmed">
+            <span aria-hidden>{formatDayMonth(doc.docDate)}</span>
+            <VisuallyHidden>{formatDate(doc.docDate)}</VisuallyHidden>
           </Text>
-        )}
-        {doc.file && <IconPaperclip size={16} role="img" aria-label={t('documents.hasFile')} />}
-        <IconChevronRight size={18} aria-hidden style={{ flex: 'none' }} />
+        </Stack>
+        <IconChevronRight size={18} aria-hidden className={classes.chevron} />
       </Group>
     </UnstyledButton>
   )
@@ -101,11 +107,7 @@ export default function DocumentsPage() {
   return (
     <Page
       title={t('documents.title')}
-      actions={
-        <Button component={Link} to="/documents/new" leftSection={<IconPlus size={18} aria-hidden />}>
-          {t('documents.add')}
-        </Button>
-      }
+      actions={<AddButton visibleFrom="sm" />}
     >
       {error && <StatusAlert status="error">{t(`errors.${error}`)}</StatusAlert>}
       {!items && !error && (
@@ -132,7 +134,7 @@ export default function DocumentsPage() {
             <Title order={2} size="h4" tt="capitalize">
               {formatMonth(month)}
             </Title>
-            <Paper px="xl" py="xs">
+            <Paper className={classes.card}>
               {docs.map((doc, index) => (
                 <Fragment key={doc.id}>
                   {index > 0 && <Divider />}
@@ -147,6 +149,12 @@ export default function DocumentsPage() {
           {t('documents.loadMore')}
         </Button>
       )}
+      {/* On a phone the add button floats in the corner, below the app shell so the open menu covers it.
+          The empty box keeps it off the end of the list. */}
+      <Affix hiddenFrom="sm" position={{ bottom: 16, right: 16 }} zIndex={getDefaultZIndex('app') - 1}>
+        <AddButton size="lg" className={classes.fab} />
+      </Affix>
+      <Box h={40} hiddenFrom="sm" />
     </Page>
   )
 }

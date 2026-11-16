@@ -19,7 +19,11 @@ export default function NewDocumentPage() {
   }
 
   return (
-    <Page title={t('documents.new')} width={PAGE_WIDTH_WITH_FILE}>
+    <Page
+      title={t('documents.new')}
+      back={{ to: '/documents', label: t('documents.title') }}
+      width={PAGE_WIDTH_WITH_FILE}
+    >
       <DocumentForm onSave={create} />
     </Page>
   )

@@ -1,4 +1,4 @@
-// The user pool in infra/lib/segregator-stack.ts requires the same length.
+// Also the minimum of the Cognito user pool in infra.
 export const PASSWORD_MIN_LENGTH = 12
 
 // Cognito's confirmation and reset codes.

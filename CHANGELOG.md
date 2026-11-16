@@ -2,6 +2,21 @@
 
 The minor version marks a stage of the build plan and the patch version each step or fix within it, as [Semantic Versioning](https://semver.org/spec/v2.0.0.html) allows before 1.0.0. Each entry starts with the version and its commit message, followed by a description of what changed.
 
+## 0.9.5 - feat: redesign the entry pages and the document's fields
+
+Released 2026-11-16.
+
+- The entry and sign-in pages show a photo of a receipt beside what the app reads from it, with the steps in saffron. The forms sit on a card.
+- A document's fields form a card whose top shows the document as it is filled in: the type's icon and color, the name and the category, with the amount on a tag at its lower edge.
+- Type and subcategory are picked with buttons instead of drop-down lists, and the fields are grouped into sections. Each type has its own color: a clear tint in the dark scheme, a pastel in the light one, and Save in a deep shade of it with white text, all with WCAG AA contrast. On a new document the photo icon and the main file button take the type's color too.
+- Buttons, links, fields and list rows change on hover with a 300 ms transition.
+- A link above the title leads back to the documents list, and a saved document shows when it was added.
+- The documents list shows each date as day and month under the amount, since the month heads its group, and a paperclip on the type's icon marks a document with a file. On a phone the add button floats in the bottom corner.
+- Receipts and invoices can be filed under home appliances too.
+- While a document is saving its fields are locked, so nothing changes after it was sent.
+- Saving again after a failed save sends the file only once, and a PDF over 10 MB is refused before it is read.
+- Behind the scenes, the length of a code, the shortest password and the PDF type each come from one place, and the screens share their decoration and shadow.
+
 ## 0.9.4 - feat: give the app its own look and sign out from the header
 
 Released 2026-11-16.

@@ -5,6 +5,9 @@ export const FILE_TYPES = ['image/jpeg', 'image/png', 'application/pdf'] as cons
 
 export type FileType = (typeof FILE_TYPES)[number]
 
+// A PDF goes to S3 as it is; any other type is a photo.
+export const isPdf = (type: string) => type === 'application/pdf'
+
 export const FILE_MAX_SIZE = 10 * 1024 * 1024
 
 // Asks the API for a signed form that sends one file straight to S3.

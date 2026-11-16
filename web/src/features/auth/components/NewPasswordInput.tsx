@@ -1,4 +1,4 @@
-import { Group, PasswordInput, Progress, Stack, Text, type PasswordInputProps } from '@mantine/core'
+import { Group, List, PasswordInput, Progress, Stack, Text, type PasswordInputProps } from '@mantine/core'
 import { IconCheck, IconCircle, IconX } from '@tabler/icons-react'
 import { useId, type FocusEvent } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -50,24 +50,28 @@ export default function NewPasswordInput({ value = '', email, error, onBlur, ...
           {value.length} / {PASSWORD_MIN_LENGTH}
         </Text>
       </Group>
-      <Stack component="ul" id={listId} gap={4} m={0} p={0} style={{ listStyle: 'none' }}>
+      <List id={listId} listStyleType="none" spacing={4} center>
         {CHECKS.map((check) => {
           const met = checks[check]
           const failed = !met && Boolean(error) && (check === 'length' || value.length > 0)
           const Icon = met ? IconCheck : failed ? IconX : IconCircle
           const color = met ? 'green' : failed ? 'var(--mantine-color-error)' : 'dimmed'
           return (
-            <Group component="li" key={check} gap={8} wrap="nowrap">
-              <Text span c={color} lh={0}>
-                <Icon size={16} aria-hidden />
-              </Text>
-              <Text size="sm" c={met ? undefined : color}>
+            <List.Item
+              key={check}
+              icon={
+                <Text span c={color} lh={0}>
+                  <Icon size={16} aria-hidden />
+                </Text>
+              }
+            >
+              <Text span size="sm" c={met ? undefined : color}>
                 {t(`auth.requirements.${check}`, { min: PASSWORD_MIN_LENGTH })}
               </Text>
-            </Group>
+            </List.Item>
           )
         })}
-      </Stack>
+      </List>
       <Text size="xs" c="dimmed">
         {t('auth.passwordTip')}
       </Text>
