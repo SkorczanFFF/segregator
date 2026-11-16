@@ -6,8 +6,13 @@ export const en: Translation = {
     password: 'Password',
     code: 'Code',
     continueWithGoogle: 'Continue with Google',
-    toggleColorScheme: 'Toggle light and dark mode',
-    switchLanguage: 'Switch language to Polish',
+    language: 'Language',
+    colorScheme: 'Theme',
+    schemes: {
+      light: 'Light',
+      dark: 'Dark',
+      auto: 'Same as the device',
+    },
   },
   entry: {
     title: 'Start organizing your documents',
@@ -89,12 +94,12 @@ export const en: Translation = {
   account: {
     title: 'Your account',
     signedInAs: 'Signed in as {{email}}',
-    signOut: 'Sign out',
     signOutEverywhere: 'Sign out on all devices',
     signOutEverywhereHint: "Ends the sessions on every device, this one included. Useful after signing in on someone else's computer.",
   },
   app: {
     menu: 'Menu',
+    signOut: 'Sign out',
     nav: {
       documents: 'Documents',
       account: 'Account',
@@ -121,6 +126,7 @@ export const en: Translation = {
     rotateLeft: 'Rotate left',
     rotateRight: 'Rotate right',
     openFile: 'Open file',
+    hasFile: 'Has a file',
     dropTitle: 'Drop a photo or a PDF here',
     dropText: 'The photo is made smaller, and the location saved by the camera is removed, before it is sent.',
     dropHint: 'JPEG, PNG or PDF, up to {{maxSize}}',

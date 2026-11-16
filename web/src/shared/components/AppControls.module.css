@@ -1,0 +1,11 @@
+/* The chosen option in saffron: full on the dark scheme, a pastel with deep text on white,
+   where full saffron is too loud. */
+.accent {
+  --sc-color: var(--mantine-color-saffron-2);
+  --sc-label-color: var(--mantine-color-saffron-9);
+}
+
+:global([data-mantine-color-scheme='dark']) .accent {
+  --sc-color: var(--mantine-color-saffron-5);
+  --sc-label-color: var(--mantine-color-black);
+}

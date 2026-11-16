@@ -7,8 +7,13 @@ export const pl = {
     password: 'Hasło',
     code: 'Kod',
     continueWithGoogle: 'Kontynuuj z Google',
-    toggleColorScheme: 'Przełącz tryb jasny i ciemny',
-    switchLanguage: 'Zmień język na angielski',
+    language: 'Język',
+    colorScheme: 'Motyw',
+    schemes: {
+      light: 'Jasny',
+      dark: 'Ciemny',
+      auto: 'Jak w urządzeniu',
+    },
   },
   entry: {
     title: 'Zacznij porządkować dokumenty',
@@ -90,12 +95,12 @@ export const pl = {
   account: {
     title: 'Twoje konto',
     signedInAs: 'Zalogowano jako {{email}}',
-    signOut: 'Wyloguj się',
     signOutEverywhere: 'Wyloguj ze wszystkich urządzeń',
     signOutEverywhereHint: 'Kończy sesje na wszystkich urządzeniach, także na tym. Przydaje się po zalogowaniu na cudzym komputerze.',
   },
   app: {
     menu: 'Menu',
+    signOut: 'Wyloguj',
     nav: {
       documents: 'Dokumenty',
       account: 'Konto',
@@ -122,6 +127,7 @@ export const pl = {
     rotateLeft: 'Obróć w lewo',
     rotateRight: 'Obróć w prawo',
     openFile: 'Otwórz plik',
+    hasFile: 'Ma plik',
     dropTitle: 'Przeciągnij tu zdjęcie albo PDF',
     dropText: 'Zdjęcie zostanie zmniejszone, a lokalizacja z aparatu usunięta, jeszcze przed wysłaniem.',
     dropHint: 'JPEG, PNG albo PDF do {{maxSize}}',

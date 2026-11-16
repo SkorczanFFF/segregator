@@ -30,7 +30,7 @@ export default function FilePreview({ file, image, pages = 1, children }: FilePr
   }
 
   return (
-    <Paper p={0} className={classes.card}>
+    <Paper className={classes.card}>
       <div className={`${classes.ground} ${classes.stage}`}>
         <div className={classes.fit}>
           {image ? (

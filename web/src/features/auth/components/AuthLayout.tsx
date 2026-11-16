@@ -1,4 +1,4 @@
-import { Box, Center, Flex } from '@mantine/core'
+import { Affix, Box, Center, Flex } from '@mantine/core'
 import type { ReactNode } from 'react'
 import BrandPanel from '~/features/auth/components/BrandPanel.tsx'
 import AppControls from '~/shared/components/AppControls.tsx'
@@ -7,7 +7,9 @@ import AppControls from '~/shared/components/AppControls.tsx'
 export default function AuthLayout({ children }: { children: ReactNode }) {
   return (
     <Flex mih="100dvh" wrap="wrap">
-      <AppControls />
+      <Affix position={{ top: 16, right: 16 }}>
+        <AppControls />
+      </Affix>
       <Flex flex="9 1 480px">
         <BrandPanel />
       </Flex>

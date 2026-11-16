@@ -1,7 +1,6 @@
-import { Anchor, Badge, Box, Divider, Group, Paper, Stack, Text, Title } from '@mantine/core'
+import { Badge, Box, Divider, Group, Paper, Stack, Text, Title } from '@mantine/core'
 import { useTranslation } from 'react-i18next'
-import { Link } from 'react-router'
-import { APP_NAME } from '~/shared/lib/app.ts'
+import Logo from '~/shared/components/Logo.tsx'
 
 const STEPS = ['add', 'check', 'remind'] as const
 
@@ -70,9 +69,7 @@ export default function BrandPanel() {
       c="brand.0"
       style={{ overflow: 'hidden' }}
     >
-      <Anchor component={Link} to="/" ff="heading" fw={600} fz={22} c="brand.2" underline="never" w="fit-content">
-        {APP_NAME}
-      </Anchor>
+      <Logo to="/" c="brand.2" />
       <Stack gap="md" maw={440}>
         <Title order={2} c="brand.0" fz={{ base: 28, sm: 44 }} lh={1.1}>
           {t('brand.headline')}

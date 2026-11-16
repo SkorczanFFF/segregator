@@ -41,7 +41,7 @@ export default function DocumentPage() {
     >
       {error && <StatusAlert status="error">{t(`errors.${errorCode(error)}`)}</StatusAlert>}
       {!doc && !error && (
-        <Paper aria-busy>
+        <Paper p="xl" aria-busy>
           <Skeleton h={320} />
         </Paper>
       )}

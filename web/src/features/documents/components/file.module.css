@@ -33,7 +33,7 @@
   bottom: -40px;
   rotate: -14deg;
   opacity: 0.08;
-  color: var(--mantine-primary-color-filled);
+  color: var(--mantine-color-saffron-filled);
   pointer-events: none;
 }
 
@@ -84,7 +84,7 @@
   height: 220px;
   translate: -50% -50%;
   overflow: hidden;
-  border: 3px solid var(--mantine-primary-color-filled);
+  border: 3px solid var(--mantine-color-saffron-filled);
   border-radius: var(--mantine-radius-md);
   box-shadow: 0 12px 32px rgb(0 0 0 / 0.45);
   background-color: var(--app-page-bg);

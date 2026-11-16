@@ -1,59 +1,88 @@
 import {
-  ActionIcon,
-  Affix,
+  Center,
+  Group,
+  SegmentedControl,
+  Stack,
+  Text,
   Tooltip,
-  useComputedColorScheme,
   useMantineColorScheme,
+  VisuallyHidden,
+  type MantineColorScheme,
 } from '@mantine/core'
-import { IconMoon, IconSun } from '@tabler/icons-react'
+import { IconDeviceDesktop, IconMoon, IconSun, type Icon } from '@tabler/icons-react'
+import type { ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
+import classes from '~/shared/components/AppControls.module.css'
 
-function ColorSchemeToggle() {
-  const { t } = useTranslation()
-  const { setColorScheme } = useMantineColorScheme()
-  const colorScheme = useComputedColorScheme('light', {
-    getInitialValueInEffect: false,
-  })
-  const isDark = colorScheme === 'dark'
+const LANGUAGES = ['pl', 'en'] as const
 
+// Auto follows the device's setting.
+const SCHEMES: { value: MantineColorScheme; icon: Icon }[] = [
+  { value: 'light', icon: IconSun },
+  { value: 'dark', icon: IconMoon },
+  { value: 'auto', icon: IconDeviceDesktop },
+]
+
+function Labeled({ label, children }: { label: string; children: ReactNode }) {
   return (
-    <Tooltip label={t('common.toggleColorScheme')}>
-      <ActionIcon
-        aria-label={t('common.toggleColorScheme')}
-        onClick={() => setColorScheme(isDark ? 'light' : 'dark')}
-      >
-        {isDark ? <IconSun size={18} /> : <IconMoon size={18} />}
-      </ActionIcon>
-    </Tooltip>
+    <Group justify="space-between" wrap="nowrap">
+      <Text size="sm" c="dimmed">
+        {label}
+      </Text>
+      {children}
+    </Group>
   )
 }
 
-function LanguageToggle() {
+// Language and color scheme, each picked from all its options. With labels in the side menu,
+// without them in a corner of the entry pages.
+export default function AppControls({ withLabels = false }: { withLabels?: boolean }) {
   const { t, i18n } = useTranslation()
-  const nextLanguage = i18n.language === 'pl' ? 'en' : 'pl'
-
-  return (
-    <Tooltip label={t('common.switchLanguage')}>
-      <ActionIcon
-        ff="monospace"
-        fz="xs"
-        fw={700}
-        aria-label={t('common.switchLanguage')}
-        onClick={() => void i18n.changeLanguage(nextLanguage)}
-      >
-        {nextLanguage.toUpperCase()}
-      </ActionIcon>
-    </Tooltip>
+  const { colorScheme, setColorScheme } = useMantineColorScheme()
+  const language = (
+    <SegmentedControl
+      size="sm"
+      className={classes.accent}
+      aria-label={t('common.language')}
+      value={i18n.language}
+      onChange={(value) => void i18n.changeLanguage(value)}
+      data={LANGUAGES.map((value) => ({ value, label: value.toUpperCase() }))}
+    />
   )
-}
+  const scheme = (
+    <SegmentedControl
+      size="sm"
+      className={classes.accent}
+      aria-label={t('common.colorScheme')}
+      value={colorScheme}
+      onChange={(value) => setColorScheme(value as MantineColorScheme)}
+      data={SCHEMES.map(({ value, icon: SchemeIcon }) => ({
+        value,
+        label: (
+          <Tooltip label={t(`common.schemes.${value}`)}>
+            {/* As tall as a line of text, so the icon segments match PL and EN. */}
+            <Center h="calc(1em * var(--mantine-line-height))">
+              <SchemeIcon size={16} aria-hidden />
+              <VisuallyHidden>{t(`common.schemes.${value}`)}</VisuallyHidden>
+            </Center>
+          </Tooltip>
+        ),
+      }))}
+    />
+  )
 
-export default function AppControls() {
+  if (!withLabels) {
+    return (
+      <Group gap="xs">
+        {language}
+        {scheme}
+      </Group>
+    )
+  }
   return (
-    <Affix position={{ top: 16, right: 16 }}>
-      <ActionIcon.Group>
-        <LanguageToggle />
-        <ColorSchemeToggle />
-      </ActionIcon.Group>
-    </Affix>
+    <Stack gap="xs">
+      <Labeled label={t('common.language')}>{language}</Labeled>
+      <Labeled label={t('common.colorScheme')}>{scheme}</Labeled>
+    </Stack>
   )
 }

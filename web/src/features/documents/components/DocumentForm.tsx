@@ -131,14 +131,14 @@ export default function DocumentForm({ doc, onSave, extraAction }: DocumentFormP
   return (
     <Stack gap="lg">
       {!doc && (
-        <Stepper active={form.values.file ? 1 : 0} size="sm" maw={320}>
+        <Stepper active={form.values.file ? 1 : 0} size="sm" color="saffron" maw={320}>
           <Stepper.Step label={t('documents.steps.file')} />
           <Stepper.Step label={t('documents.steps.fields')} />
         </Stepper>
       )}
       <SimpleGrid cols={{ base: 1, md: fileColumn ? 2 : 1 }} spacing="lg">
         {fileColumn}
-        <Paper>
+        <Paper p="xl">
           <form onSubmit={form.onSubmit(submit, focusFirstError(form))} noValidate>
             <Stack gap="md">
               <Title order={2} size="h3">

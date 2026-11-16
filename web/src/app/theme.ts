@@ -28,6 +28,20 @@ const brand: MantineColorsTuple = [
   '#3c0e4f',
 ]
 
+// The second brand color, kept for small accents beside the purple: the logo's label, the current step, the loupe.
+const saffron: MantineColorsTuple = [
+  '#fff8e6',
+  '#ffefc2',
+  '#ffe299',
+  '#ffd36b',
+  '#fbc244',
+  '#f7b733',
+  '#e09f1a',
+  '#b77f0e',
+  '#8a5903',
+  '#5f3d02',
+]
+
 const dark: MantineColorsTuple = [
   '#e1dce4',
   '#cec8d1',
@@ -74,7 +88,9 @@ export const cssVariablesResolver: CSSVariablesResolver = (theme) => ({
 export const theme = createTheme({
   primaryColor: 'brand',
   primaryShade: { light: 6, dark: 5 },
-  colors: { brand, dark },
+  colors: { brand, saffron, dark },
+  // Dark text and icons on light fills such as saffron, white on dark ones.
+  autoContrast: true,
   defaultGradient: { from: 'brand.5', to: 'brand.7', deg: 135 },
   defaultRadius: 'sm',
   cursorType: 'pointer',
@@ -95,8 +111,9 @@ export const theme = createTheme({
     }),
     DatePickerInput: DatePickerInput.extend({ defaultProps: { size: 'md' } }),
     NumberInput: NumberInput.extend({ defaultProps: { size: 'md' } }),
+    // No default padding: a modal is a Paper too, and it has padding of its own.
     Paper: Paper.extend({
-      defaultProps: { radius: 'md', shadow: 'md', p: 'xl', withBorder: true },
+      defaultProps: { radius: 'md', shadow: 'md', withBorder: true },
     }),
     PasswordInput: PasswordInput.extend({ defaultProps: { size: 'md' } }),
     Select: Select.extend({ defaultProps: { size: 'md' } }),

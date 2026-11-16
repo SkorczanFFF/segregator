@@ -2,6 +2,17 @@
 
 The minor version marks a stage of the build plan and the patch version each step or fix within it, as [Semantic Versioning](https://semver.org/spec/v2.0.0.html) allows before 1.0.0. Each entry starts with the version and its commit message, followed by a description of what changed.
 
+## 0.9.4 - feat: give the app its own look and sign out from the header
+
+Released 2026-11-16.
+
+- Saffron joins the purple as a second brand color, kept for small accents. The logo is a purple binder with a saffron label, also used as the favicon.
+- Sign out, in red, sits on the right of the header next to the email address. The account page keeps signing out on all devices, also in red.
+- Language and color scheme sit at the bottom of the side menu, each as a switch that shows all its options, and the color scheme can also follow the device. On a phone a saffron menu button on the right opens the side menu, which then also holds the email and sign out.
+- The documents list groups documents by month and shows each type with its own icon and color, with a paperclip on those that have a file.
+- Dialogs, such as the one confirming a delete, have their normal, smaller padding.
+- A large faint folder sits in the corner behind the pages.
+
 ## 0.9.3 - feat: prepare the file in the browser and show it beside the fields
 
 Released 2026-11-16.

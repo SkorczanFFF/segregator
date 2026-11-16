@@ -1,6 +1,26 @@
-import { ActionIcon, Button, FileButton, Flex, Text, ThemeIcon, Title, Tooltip, useMatches } from '@mantine/core'
+import {
+  ActionIcon,
+  Button,
+  FileButton,
+  Flex,
+  Indicator,
+  Text,
+  ThemeIcon,
+  Title,
+  Tooltip,
+  useMatches,
+} from '@mantine/core'
 import { Dropzone } from '@mantine/dropzone'
-import { IconCamera, IconPhoto, IconReceipt, IconRotate, IconRotateClockwise, IconUpload, IconX } from '@tabler/icons-react'
+import {
+  IconCamera,
+  IconPhoto,
+  IconPlus,
+  IconReceipt,
+  IconRotate,
+  IconRotateClockwise,
+  IconUpload,
+  IconX,
+} from '@tabler/icons-react'
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { FILE_MAX_SIZE, FILE_TYPES } from 'shared'
@@ -139,9 +159,11 @@ export default function FileField({ onChange, onPreparing, disabled }: FileField
       classNames={{ root: classes.dropzone, inner: classes.dropzoneInner }}
     >
       <IconReceipt size={260} stroke={0.75} className={classes.watermark} aria-hidden />
-      <ThemeIcon size={88} radius="xl" variant="light">
-        <IconPhoto size={44} stroke={1.5} />
-      </ThemeIcon>
+      <Indicator color="saffron" size={28} offset={6} withBorder label={<IconPlus size={16} stroke={3} />}>
+        <ThemeIcon size={88} radius="xl" variant="light">
+          <IconPhoto size={44} stroke={1.5} />
+        </ThemeIcon>
+      </Indicator>
       <div>
         <Title order={2} size="h3" visibleFrom="sm" mb={6}>
           {t('documents.dropTitle')}

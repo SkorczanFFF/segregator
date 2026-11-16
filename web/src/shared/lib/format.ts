@@ -8,6 +8,12 @@ export const formatMoney = (grosze: number, notation: Intl.NumberFormatOptions['
 export const formatDate = (isoDate: string) =>
   new Intl.DateTimeFormat(i18n.language, { dateStyle: 'medium', timeZone: 'UTC' }).format(new Date(isoDate))
 
+// A month from a document's date, e.g. listopad 2026, in UTC like formatDate.
+export const formatMonth = (isoMonth: string) =>
+  new Intl.DateTimeFormat(i18n.language, { month: 'long', year: 'numeric', timeZone: 'UTC' }).format(
+    new Date(`${isoMonth}-01`),
+  )
+
 const MEGABYTE = 1024 * 1024
 
 // Below 1 MB in kB, so a small file doesn't show as 0 MB.
