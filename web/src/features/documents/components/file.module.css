@@ -1,0 +1,97 @@
+/* A dotted ground under the document, in the drop zone and behind the preview. */
+.ground {
+  position: relative;
+  overflow: hidden;
+  min-height: 360px;
+  background-color: var(--app-page-bg);
+  background-image: radial-gradient(
+    color-mix(in srgb, var(--mantine-primary-color-filled) 25%, transparent) 1px,
+    transparent 1px
+  );
+  background-size: 20px 20px;
+}
+
+.dropzone {
+  display: flex;
+  border-width: 2px;
+  border-color: var(--mantine-primary-color-filled);
+}
+
+.dropzoneInner {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--mantine-spacing-lg);
+  text-align: center;
+}
+
+.watermark {
+  position: absolute;
+  right: -50px;
+  bottom: -40px;
+  rotate: -14deg;
+  opacity: 0.08;
+  color: var(--mantine-primary-color-filled);
+  pointer-events: none;
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.stage {
+  flex: 1;
+}
+
+/* Inset from the stage, so the image keeps a margin and fits whole. */
+.fit {
+  position: absolute;
+  inset: var(--mantine-spacing-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.image {
+  display: block;
+  max-width: 100%;
+  max-height: 100%;
+  border-radius: var(--mantine-radius-sm);
+  box-shadow: 0 16px 36px rgb(0 0 0 / 0.35);
+}
+
+/* With a mouse the loupe marks the spot, so the cursor would only cover it. */
+@media (pointer: fine) {
+  .image {
+    cursor: none;
+  }
+}
+
+.bar {
+  border-top: 1px solid var(--mantine-color-default-border);
+}
+
+/* Sits on the cursor; the image inside is moved so the point under the cursor is in its middle.
+   Wide, so a whole line of a receipt fits. */
+.loupe {
+  position: fixed;
+  z-index: 10;
+  width: 360px;
+  height: 220px;
+  translate: -50% -50%;
+  overflow: hidden;
+  border: 3px solid var(--mantine-primary-color-filled);
+  border-radius: var(--mantine-radius-md);
+  box-shadow: 0 12px 32px rgb(0 0 0 / 0.45);
+  background-color: var(--app-page-bg);
+  pointer-events: none;
+}
+
+.loupe img {
+  position: absolute;
+  max-width: none;
+}

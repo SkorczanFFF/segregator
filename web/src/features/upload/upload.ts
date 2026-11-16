@@ -2,7 +2,7 @@ import type { Upload } from 'shared'
 import { api, ApiError } from '~/shared/lib/api.ts'
 
 // Sends the file straight to S3 through a form the API signs, and returns the file's id.
-export async function uploadFile(file: File, onProgress: (percent: number) => void) {
+export async function uploadFile(file: Blob, onProgress: (percent: number) => void) {
   const { id, url, fields } = await api.post<Upload>('/documents/upload', { type: file.type })
   const body = new FormData()
   for (const [name, value] of Object.entries(fields)) body.append(name, value)

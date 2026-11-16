@@ -2,7 +2,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router'
 import type { NewDocumentInput } from 'shared'
-import DocumentForm from '~/features/documents/components/DocumentForm.tsx'
+import DocumentForm, { PAGE_WIDTH_WITH_FILE } from '~/features/documents/components/DocumentForm.tsx'
 import { refreshDocuments } from '~/features/documents/useDocuments.ts'
 import Page from '~/shared/components/Page.tsx'
 import { api } from '~/shared/lib/api.ts'
@@ -19,7 +19,7 @@ export default function NewDocumentPage() {
   }
 
   return (
-    <Page title={t('documents.new')} width={560}>
+    <Page title={t('documents.new')} width={PAGE_WIDTH_WITH_FILE}>
       <DocumentForm onSave={create} />
     </Page>
   )

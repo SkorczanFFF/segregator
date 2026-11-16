@@ -4,8 +4,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { useNavigate, useParams } from 'react-router'
 import type { Document, DocumentInput } from 'shared'
-import DocumentForm from '~/features/documents/components/DocumentForm.tsx'
-import FilePreview from '~/features/documents/components/FilePreview.tsx'
+import DocumentForm, { PAGE_WIDTH_WITH_FILE } from '~/features/documents/components/DocumentForm.tsx'
 import { documentKey, refreshDocuments } from '~/features/documents/useDocuments.ts'
 import Page from '~/shared/components/Page.tsx'
 import StatusAlert from '~/shared/components/StatusAlert.tsx'
@@ -36,14 +35,16 @@ export default function DocumentPage() {
   })
 
   return (
-    <Page title={doc ? (doc.title ?? doc.issuer) : t('documents.document')} width={560}>
+    <Page
+      title={doc ? (doc.title ?? doc.issuer) : t('documents.document')}
+      width={doc && !doc.file ? 560 : PAGE_WIDTH_WITH_FILE}
+    >
       {error && <StatusAlert status="error">{t(`errors.${errorCode(error)}`)}</StatusAlert>}
       {!doc && !error && (
         <Paper aria-busy>
           <Skeleton h={320} />
         </Paper>
       )}
-      {doc?.file && <FilePreview id={doc.id} file={doc.file} />}
       {doc && (
         <DocumentForm
           key={doc.id}

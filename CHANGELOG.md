@@ -2,6 +2,16 @@
 
 The minor version marks a stage of the build plan and the patch version each step or fix within it, as [Semantic Versioning](https://semver.org/spec/v2.0.0.html) allows before 1.0.0. Each entry starts with the version and its commit message, followed by a description of what changed.
 
+## 0.9.3 - feat: prepare the file in the browser and show it beside the fields
+
+Released 2026-11-16.
+
+- A new document starts with its file: drop a photo or a PDF on the page, choose one, or on a phone take a photo right away. The fields sit beside the file, on a saved document too.
+- The browser turns a photo upright by its EXIF data, shrinks it to 2560 px on the longer side and saves it again as JPEG, which also drops the location a phone may have saved in it. Buttons turn it by 90°.
+- A PDF shows its first page through pdf.js, which loads only once a PDF is picked, with a note when it has more pages.
+- A file that can't be opened, such as a PDF with a password, or a PDF over 10 MB is refused before anything is sent.
+- With a mouse, a loupe enlarges the part of the image under the cursor.
+
 ## 0.9.2 - feat: show the document's file
 
 Released 2026-11-16.

@@ -94,7 +94,8 @@ export class SegregatorStack extends Stack {
     const headers = new cloudfront.ResponseHeadersPolicy(this, 'WebHeaders', {
       securityHeadersBehavior: {
         contentSecurityPolicy: {
-          contentSecurityPolicy: [...CSP, `connect-src 'self' ${filesOrigin}`, `img-src 'self' ${filesOrigin}`].join('; '),
+          // blob: shows a file picked in the browser before it is sent.
+          contentSecurityPolicy: [...CSP, `connect-src 'self' ${filesOrigin}`, `img-src 'self' blob: ${filesOrigin}`].join('; '),
           override: true,
         },
         strictTransportSecurity: {
