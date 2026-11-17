@@ -3,7 +3,7 @@ import { randomUUID } from 'node:crypto'
 import { test } from 'node:test'
 import type { DocumentInput } from 'shared'
 import type { CheckResult } from './document-table.ts'
-import { setUpLocalTable } from './local-table.ts'
+import { randomHash, setUpLocalTable } from './local-table.ts'
 
 setUpLocalTable('documents-test')
 
@@ -13,6 +13,8 @@ const {
   createDocument,
   createDraft,
   deleteDocument,
+  DuplicateFile,
+  findByHash,
   getDocument,
   listDocuments,
   markSent,
@@ -95,8 +97,8 @@ test('does not bring back a deleted document', async () => {
 type CheckedFile = Extract<CheckResult, { status: 'done' }>['file']
 
 // A draft whose file the worker checked, as one message would leave it.
-async function checkedDraft(sub: string, file: CheckedFile = { type: 'image/jpeg', size: 99, pages: 1 }) {
-  const { id } = await createDraft(sub)
+async function checkedDraft(sub: string, file: CheckedFile = { type: 'image/jpeg', size: 99, pages: 1 }, hash = randomHash()) {
+  const { id } = await createDraft(sub, hash)
   await claimDocument(sub, id, 'message')
   await settleDocument(sub, id, 'message', { status: 'done', file })
   return id
@@ -104,7 +106,7 @@ async function checkedDraft(sub: string, file: CheckedFile = { type: 'image/jpeg
 
 test('keeps a draft off the list until its checked file gets fields', async (t) => {
   const sub = randomUUID()
-  const { id, draft, status } = await createDraft(sub)
+  const { id, draft, status } = await createDraft(sub, randomHash())
   assert.equal(draft, true)
   assert.equal(status, 'uploading')
   assert.equal((await getDocument(sub, id))?.draft, true)
@@ -132,7 +134,7 @@ test('forgets a draft nobody saved after a day', async (t) => {
 
 test('lets one message at a time check a file, and the same message again on a retry', async () => {
   const sub = randomUUID()
-  const { id } = await createDraft(sub)
+  const { id } = await createDraft(sub, randomHash())
   await markSent(sub, id)
   assert.equal((await getDocument(sub, id))?.status, 'processing', 'sent, before any message')
 
@@ -176,9 +178,32 @@ test('keeps the chosen version of a photo that preprocessing changed', async () 
   assert.equal((await updateDocument(sub, id, doc('2026-11-17')))?.draft, undefined)
 })
 
+test('keeps one document per file, until it is deleted', async () => {
+  const [sub, other] = [randomUUID(), randomUUID()]
+  const hash = randomHash()
+  const first = await checkedDraft(sub, undefined, hash)
+  const second = await checkedDraft(sub, undefined, hash)
+  assert.equal(await findByHash(sub, hash), undefined, 'a draft holds no hash')
+
+  await updateDocument(sub, first, doc('2026-11-17'))
+  assert.equal(await findByHash(sub, hash), first)
+  assert.equal(await findByHash(other, hash), undefined, "another account's file")
+  await updateDocument(sub, first, doc('2026-11-18'))
+  assert.equal(await findByHash(sub, hash), first, 'kept through an edit')
+  await assert.rejects(updateDocument(sub, second, doc('2026-11-17')), new DuplicateFile(first))
+  assert.equal((await getDocument(sub, second))?.draft, true, 'the second stays a draft')
+
+  await deleteDocument(sub, second)
+  assert.equal(await findByHash(sub, hash), first, "a draft's delete leaves the hash to its holder")
+  await deleteDocument(sub, first)
+  assert.equal(await findByHash(sub, hash), undefined)
+  const third = await checkedDraft(sub, undefined, hash)
+  assert.equal((await updateDocument(sub, third, doc('2026-11-17')))?.id, third)
+})
+
 test('leaves a document deleted while its file was being checked', async () => {
   const sub = randomUUID()
-  const { id } = await createDraft(sub)
+  const { id } = await createDraft(sub, randomHash())
   await claimDocument(sub, id, 'message')
   await deleteDocument(sub, id)
 

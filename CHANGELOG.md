@@ -2,6 +2,14 @@
 
 The minor version marks a stage of the build plan and the patch version each step or fix within it, as [Semantic Versioning](https://semver.org/spec/v2.0.0.html) allows before 1.0.0. Each entry starts with the version and its commit message, followed by a description of what changed.
 
+## 0.11.0 - feat: turn away a file the account already has
+
+Released 2026-11-17.
+
+- A file already among the account's documents is turned away before it is sent, with a link to the document that has it. The check compares the SHA-256 of the file as picked, so the same photo or PDF is recognised from any device, whatever the browser does to it before sending. Documents saved before this version have no hash and are not compared.
+- Only saved documents hold their file, so a draft left behind or cancelled never stands in the way, and deleting a document frees its file.
+- Behind the scenes, saving the fields writes the hash as an item of its own in the same transaction, on condition that no other document holds it. Two tabs saving the same file at once keep only one document.
+
 ## 0.10.3 - fix: close the gaps found in a review of the whole code
 
 Released 2026-11-17.

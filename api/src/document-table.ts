@@ -4,6 +4,8 @@ import {
   GetItemCommand,
   PutItemCommand,
   QueryCommand,
+  TransactionCanceledException,
+  TransactWriteItemsCommand,
   UpdateItemCommand,
   type AttributeValue,
 } from '@aws-sdk/client-dynamodb'
@@ -41,6 +43,20 @@ const live = () => ({ names: { '#ttl': TTL_ATTRIBUTE }, values: { ':now': { N: S
 const listKey = (sub: string) => `USER#${sub}#DOCS`
 
 const docKey = (sub: string, id: string): Item => ({ PK: { S: `USER#${sub}` }, SK: { S: DOC_PREFIX + id } })
+
+// Which document of an account holds a file, by the file's hash. Only a saved document takes its hash, so
+// a draft left behind never stands in the way of the same file.
+const hashKey = (sub: string, hash: string): Item => ({ PK: { S: `USER#${sub}` }, SK: { S: `HASH#${hash}` } })
+
+// Another document of the account already holds the same file.
+export class DuplicateFile extends Error {
+  readonly id: string
+
+  constructor(id: string) {
+    super('duplicate')
+    this.id = id
+  }
+}
 
 // The account and document of a document's keys, as a table stream sends them.
 export function parseDocKey(keys: Item) {
@@ -115,7 +131,7 @@ export async function createDocument(sub: string, input: DocumentInput) {
 }
 
 // A document whose file comes first. It waits for the file, and expires unless its fields are saved.
-export async function createDraft(sub: string) {
+export async function createDraft(sub: string, fileHash: string) {
   const draft: Draft = { id: ulid(), createdAt: new Date().toISOString(), status: 'uploading', draft: true }
   await db.send(
     new PutItemCommand({
@@ -125,6 +141,7 @@ export async function createDraft(sub: string) {
         id: { S: draft.id },
         createdAt: { S: draft.createdAt },
         status: status(draft.status),
+        fileHash: { S: fileHash },
         [TTL_ATTRIBUTE]: { N: String(now() + DRAFT_KEEP) },
       },
     }),
@@ -132,46 +149,100 @@ export async function createDraft(sub: string) {
   return draft
 }
 
+// Read consistently, so it shows a write made just before.
 export async function getDocument(sub: string, id: string) {
-  const { Item } = await db.send(new GetItemCommand({ TableName: TABLE, Key: docKey(sub, id) }))
+  const { Item } = await db.send(new GetItemCommand({ TableName: TABLE, Key: docKey(sub, id), ConsistentRead: true }))
   return Item && !expired(Item) ? fromItem(Item) : undefined
+}
+
+// The document that holds this file, if any.
+export async function findByHash(sub: string, hash: string) {
+  const { Item } = await db.send(new GetItemCommand({ TableName: TABLE, Key: hashKey(sub, hash), ConsistentRead: true }))
+  return Item?.id?.S
+}
+
+// The hash of a document's file, and whether the document is saved and so holds it.
+async function fileHashOf(sub: string, id: string) {
+  const { Item } = await db.send(
+    new GetItemCommand({ TableName: TABLE, Key: docKey(sub, id), ProjectionExpression: 'fileHash, GSI1PK', ConsistentRead: true }),
+  )
+  return { hash: Item?.fileHash?.S, saved: Item?.GSI1PK !== undefined }
 }
 
 // Saves what a person entered and leaves the status and the file to the worker. A draft becomes a document
 // on the list and stops expiring, but only once its file is checked and, for a photo preprocessing changed,
 // a version is chosen. Undefined means no such document, or a draft not ready to save, so an edit never
-// brings back a deleted one.
+// brings back a deleted one. A document with a file takes its hash in the same write, which throws
+// DuplicateFile when another document of the account holds the file.
 export async function updateDocument(sub: string, id: string, input: DocumentInput) {
   const attributes = Object.entries(fieldAttributes(sub, id, input))
   const set = attributes.filter(([, value]) => value !== undefined)
   const remove = attributes.filter(([, value]) => value === undefined).map(([name]) => `#${name}`)
   const { names, values } = live()
-  const updated = await ifConditionMet(
-    db.send(
-      new UpdateItemCommand({
-        TableName: TABLE,
-        Key: docKey(sub, id),
-        UpdateExpression: `SET ${set.map(([name]) => `#${name} = :${name}`).join(', ')} REMOVE ${[...remove, '#ttl'].join(', ')}`,
-        ConditionExpression: `${LIVE} AND (attribute_exists(GSI1PK) OR (#status = :done AND (attribute_not_exists(fileChange) OR attribute_exists(fileUse))))`,
-        // Names like type are reserved words, so every one goes through a placeholder.
-        ExpressionAttributeNames: {
-          ...Object.fromEntries([...attributes.map(([name]) => name), 'status'].map((name) => [`#${name}`, name])),
-          ...names,
-        },
-        ExpressionAttributeValues: {
-          ...(Object.fromEntries(set.map(([name, value]) => [`:${name}`, value])) as Item),
-          ':done': status('done'),
-          ...values,
-        },
-        ReturnValues: 'ALL_NEW',
+  const update = {
+    TableName: TABLE,
+    Key: docKey(sub, id),
+    UpdateExpression: `SET ${set.map(([name]) => `#${name} = :${name}`).join(', ')} REMOVE ${[...remove, '#ttl'].join(', ')}`,
+    ConditionExpression: `${LIVE} AND (attribute_exists(GSI1PK) OR (#status = :done AND (attribute_not_exists(fileChange) OR attribute_exists(fileUse))))`,
+    // Names like type are reserved words, so every one goes through a placeholder.
+    ExpressionAttributeNames: {
+      ...Object.fromEntries([...attributes.map(([name]) => name), 'status'].map((name) => [`#${name}`, name])),
+      ...names,
+    },
+    ExpressionAttributeValues: {
+      ...(Object.fromEntries(set.map(([name, value]) => [`:${name}`, value])) as Item),
+      ':done': status('done'),
+      ...values,
+    },
+  }
+  const { hash } = await fileHashOf(sub, id)
+  if (!hash) {
+    const updated = await ifConditionMet(db.send(new UpdateItemCommand({ ...update, ReturnValues: 'ALL_NEW' })))
+    return updated?.Attributes && fromItem(updated.Attributes)
+  }
+
+  const holder = { ...hashKey(sub, hash), id: { S: id } }
+  try {
+    await db.send(
+      new TransactWriteItemsCommand({
+        TransactItems: [
+          { Update: update },
+          {
+            Put: {
+              TableName: TABLE,
+              Item: holder,
+              // A document saved again keeps the hash it holds.
+              ConditionExpression: 'attribute_not_exists(PK) OR id = :id',
+              ExpressionAttributeValues: { ':id': holder.id },
+              ReturnValuesOnConditionCheckFailure: 'ALL_OLD',
+            },
+          },
+        ],
       }),
-    ),
-  )
-  return updated?.Attributes && fromItem(updated.Attributes)
+    )
+  } catch (err) {
+    if (!(err instanceof TransactionCanceledException)) throw err
+    const [fields, hold] = err.CancellationReasons ?? []
+    if (fields?.Code === 'ConditionalCheckFailed') return undefined
+    if (hold?.Code === 'ConditionalCheckFailed') throw new DuplicateFile(hold.Item?.id?.S ?? '')
+    throw err
+  }
+  return getDocument(sub, id)
 }
 
+// Deletes the document, and frees its file's hash in the same write.
 export async function deleteDocument(sub: string, id: string) {
-  await db.send(new DeleteItemCommand({ TableName: TABLE, Key: docKey(sub, id) }))
+  const { hash, saved } = await fileHashOf(sub, id)
+  const document = { TableName: TABLE, Key: docKey(sub, id) }
+  if (!hash || !saved) {
+    await db.send(new DeleteItemCommand(document))
+    return
+  }
+  await db.send(
+    new TransactWriteItemsCommand({
+      TransactItems: [{ Delete: document }, { Delete: { TableName: TABLE, Key: hashKey(sub, hash) } }],
+    }),
+  )
 }
 
 // The browser has sent the file, so the document shows as processing before the worker takes it.

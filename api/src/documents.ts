@@ -6,12 +6,14 @@ import {
   createDocument,
   createDraft,
   deleteDocument,
+  DuplicateFile,
+  findByHash,
   getDocument,
   listDocuments,
   markSent,
   updateDocument,
 } from './document-table.ts'
-import { apiError } from './errors.ts'
+import { apiError, duplicateError } from './errors.ts'
 import type { Env } from './session.ts'
 import { jsonBody } from './validate.ts'
 
@@ -31,11 +33,15 @@ documents.post('/', jsonBody(DocumentInput), async (c) =>
 )
 
 // A document from a file starts as a draft, so the file is processed while the person still looks at it.
-// The file goes straight to S3, and the worker takes it from there.
+// The file goes straight to S3, and the worker takes it from there. A file the account already has is
+// turned away before it is sent.
 documents.post('/upload', jsonBody(UploadInput), async (c) => {
   const sub = c.get('session').sub
-  const draft = await createDraft(sub)
-  return c.json(await signUpload(sub, draft.id, c.req.valid('json').fileType), 201)
+  const { fileType, fileHash } = c.req.valid('json')
+  const existing = await findByHash(sub, fileHash)
+  if (existing) return duplicateError(c, existing)
+  const draft = await createDraft(sub, fileHash)
+  return c.json(await signUpload(sub, draft.id, fileType), 201)
 })
 
 // The browser has sent the file to S3.
@@ -66,8 +72,14 @@ documents.put(`${BY_ID}/file`, jsonBody(FileChoice), async (c) => {
 })
 
 documents.put(BY_ID, jsonBody(DocumentInput), async (c) => {
-  const doc = await updateDocument(c.get('session').sub, c.req.param('id'), c.req.valid('json'))
-  return doc ? c.json(doc) : apiError(c, 'not_found', 404)
+  try {
+    const doc = await updateDocument(c.get('session').sub, c.req.param('id'), c.req.valid('json'))
+    return doc ? c.json(doc) : apiError(c, 'not_found', 404)
+  } catch (err) {
+    // Another draft of the same file was saved first, e.g. in another tab.
+    if (err instanceof DuplicateFile) return duplicateError(c, err.id)
+    throw err
+  }
 })
 
 documents.delete(BY_ID, async (c) => {

@@ -1,5 +1,9 @@
 import { CreateTableCommand, DeleteTableCommand, DynamoDBClient } from '@aws-sdk/client-dynamodb'
+import { createHash, randomUUID } from 'node:crypto'
 import { after, before } from 'node:test'
+
+// A made-up hash of a file, different every time.
+export const randomHash = () => createHash('sha256').update(randomUUID()).digest('hex')
 
 // Points the data layer at a fresh table in DynamoDB Local for one test file.
 // Call it before importing the modules under test, because they read these variables when they load.

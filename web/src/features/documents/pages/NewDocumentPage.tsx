@@ -1,9 +1,9 @@
-import { Button, Paper, Skeleton, Stack, Text } from '@mantine/core'
+import { Anchor, Button, Paper, Skeleton, Stack, Text } from '@mantine/core'
 import { IconScan } from '@tabler/icons-react'
 import { useQueryClient } from '@tanstack/react-query'
 import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Navigate, useNavigate, useSearchParams } from 'react-router'
+import { Link, Navigate, useNavigate, useSearchParams } from 'react-router'
 import { isPdf, needsChoice, type Document, type DocumentInput } from 'shared'
 import DocumentForm from '~/features/documents/components/DocumentForm.tsx'
 import DocumentSteps from '~/features/documents/components/DocumentSteps.tsx'
@@ -12,12 +12,13 @@ import FileField from '~/features/documents/components/FileField.tsx'
 import FileStages from '~/features/documents/components/FileStages.tsx'
 import { PAGE_WIDTH } from '~/features/documents/look.ts'
 import { documentKey, refreshDocuments, useDocument } from '~/features/documents/useDocuments.ts'
+import type { FileToSend } from '~/features/upload/prepare.ts'
 import { uploadDraft } from '~/features/upload/upload.ts'
 import ApiErrorAlert from '~/shared/components/ApiErrorAlert.tsx'
 import Page from '~/shared/components/Page.tsx'
 import StatusAlert from '~/shared/components/StatusAlert.tsx'
 import { useApiSubmit } from '~/shared/hooks/useApiSubmit.ts'
-import { api, errorCode } from '~/shared/lib/api.ts'
+import { api, ApiError, errorCode } from '~/shared/lib/api.ts'
 
 // Processing takes a few seconds. After this long the page says it is taking longer.
 const SLOW_AFTER = 20_000
@@ -31,7 +32,9 @@ export default function NewDocumentPage() {
   const [params, setParams] = useSearchParams()
   const draftId = params.get('draft') ?? undefined
   // The prepared file, kept on screen until it is processed. A new round empties the file field.
-  const [file, setFile] = useState<Blob | null>(null)
+  const [picked, setPicked] = useState<FileToSend | null>(null)
+  // The document that already has the picked file, by the file's hash.
+  const [duplicate, setDuplicate] = useState<{ hash: string; id: string }>()
   const [round, setRound] = useState(0)
   const [preparing, setPreparing] = useState(false)
   // Percent sent, while sending.
@@ -46,8 +49,10 @@ export default function NewDocumentPage() {
   const sending = progress !== undefined
   const processing = !sending && draft?.status === 'processing'
   const ready = draft?.status === 'done' && !needsChoice(draft.file)
+  const file = picked?.file
   const kind = file ? (isPdf(file.type) ? 'pdf' : 'photo') : undefined
-  const locked = (file !== null || tracked) && !ready
+  const locked = (picked !== null || tracked) && !ready
+  const duplicateOf = duplicate?.hash === picked?.hash ? duplicate?.id : undefined
 
   // Leaving the page stops the upload, which then deletes its draft.
   useEffect(() => () => upload.current?.abort(), [])
@@ -62,12 +67,12 @@ export default function NewDocumentPage() {
   }, [processing])
 
   const send = useApiSubmit(async () => {
-    if (!file) return
+    if (!picked) return
     const controller = new AbortController()
     upload.current = controller
     setProgress(0)
     try {
-      const id = await uploadDraft(file, {
+      const id = await uploadDraft(picked, {
         onCreated: (created) => setParams({ draft: created }, { replace: true }),
         onProgress: setProgress,
         signal: controller.signal,
@@ -79,6 +84,7 @@ export default function NewDocumentPage() {
       if (controller.signal.aborted) return
       // The upload deleted its draft, so the picked file can be sent again.
       setParams({}, { replace: true })
+      if (err instanceof ApiError && err.code === 'duplicate' && err.id) setDuplicate({ hash: picked.hash, id: err.id })
       throw err
     } finally {
       setProgress(undefined)
@@ -92,7 +98,7 @@ export default function NewDocumentPage() {
 
   async function otherPhoto() {
     await discard()
-    setFile(null)
+    setPicked(null)
     setRound((count) => count + 1)
     setParams({}, { replace: true })
   }
@@ -118,11 +124,20 @@ export default function NewDocumentPage() {
     <Stack gap="md">
       {/* Kept while the file is on its way, so the photo stays in view. */}
       {(!tracked || ((sending || processing || !draft) && file)) && (
-        <FileField key={round} onChange={setFile} onPreparing={setPreparing} disabled={send.pending || processing} />
+        <FileField key={round} onChange={setPicked} onPreparing={setPreparing} disabled={send.pending || processing} />
       )}
       {file && !draft && !sending && (
         <>
-          <ApiErrorAlert code={send.error} />
+          {duplicateOf ? (
+            <StatusAlert status="warning">
+              {t('errors.duplicate')}{' '}
+              <Anchor component={Link} to={`/documents/${duplicateOf}`} inherit fw={600}>
+                {t('documents.openDuplicate')}
+              </Anchor>
+            </StatusAlert>
+          ) : (
+            send.error !== 'duplicate' && <ApiErrorAlert code={send.error} />
+          )}
           <Button
             leftSection={<IconScan size={20} aria-hidden />}
             loading={preparing}

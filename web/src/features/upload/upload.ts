@@ -1,4 +1,5 @@
-import type { Upload } from 'shared'
+import type { Upload, UploadInput } from 'shared'
+import type { FileToSend } from '~/features/upload/prepare.ts'
 import { api, ApiError } from '~/shared/lib/api.ts'
 
 type UploadHandlers = {
@@ -10,9 +11,11 @@ type UploadHandlers = {
 }
 
 // Creates a draft for the file, sends the file straight to S3 through a form the API signs, and reports
-// the file sent, so the draft shows as processing. Answers the draft's id.
-export async function uploadDraft(file: Blob, { onCreated, onProgress, signal }: UploadHandlers) {
-  const { id, url, fields } = await api.post<Upload>('/documents/upload', { fileType: file.type })
+// the file sent, so the draft shows as processing. Answers the draft's id. A file the account already has
+// throws a duplicate error before anything is sent.
+export async function uploadDraft({ file, hash }: FileToSend, { onCreated, onProgress, signal }: UploadHandlers) {
+  const body = { fileType: file.type as UploadInput['fileType'], fileHash: hash } satisfies UploadInput
+  const { id, url, fields } = await api.post<Upload>('/documents/upload', body)
   try {
     // Cancelled while the draft was being made.
     signal.throwIfAborted()

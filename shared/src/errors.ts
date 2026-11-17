@@ -12,6 +12,7 @@ export const ERROR_CODES = [
   'unauthorized',
   'forbidden',
   'not_found',
+  'duplicate',
   'internal_error',
 ] as const
 

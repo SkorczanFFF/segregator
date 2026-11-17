@@ -5,7 +5,7 @@ import { CognitoIdentityProviderClient } from '@aws-sdk/client-cognito-identity-
 import { Hono } from 'hono'
 import { FILE_MAX_SIZE, type Draft, type Upload } from 'shared'
 import { fakeS3 } from './fake-s3.ts'
-import { setUpLocalTable } from './local-table.ts'
+import { randomHash, setUpLocalTable } from './local-table.ts'
 
 setUpLocalTable('api-test')
 process.env.COGNITO_DOMAIN = 'https://auth.example.com'
@@ -120,14 +120,15 @@ test("answers 404 for another account's document", async () => {
 test("signs an upload only into the account's own folder, with the type and size limits", async () => {
   const sub = randomUUID()
   const cookie = await signIn(sub)
-  const upload = (fileType: string) =>
+  const upload = (fileType: string, fileHash = randomHash()) =>
     app.request('/api/documents/upload', {
       method: 'POST',
       headers: json(cookie),
-      body: JSON.stringify({ fileType }),
+      body: JSON.stringify({ fileType, fileHash }),
     })
 
   assert.equal((await upload('image/svg+xml')).status, 400)
+  assert.equal((await upload('image/png', 'not-a-hash')).status, 400)
   const response = await upload('image/png')
   assert.equal(response.status, 201)
   const { id, fields } = (await response.json()) as Upload
@@ -142,10 +143,33 @@ test("signs an upload only into the account's own folder, with the type and size
   assert.equal((await draft()).status, 'processing')
 })
 
+test('turns away a file the account already has, pointing at its document', async () => {
+  const sub = randomUUID()
+  const cookie = await signIn(sub)
+  const fileHash = randomHash()
+  const upload = () =>
+    app.request('/api/documents/upload', {
+      method: 'POST',
+      headers: json(cookie),
+      body: JSON.stringify({ fileType: 'image/jpeg', fileHash }),
+    })
+  const { id } = (await (await upload()).json()) as Upload
+  assert.equal((await upload()).status, 201, 'a draft holds no hash')
+
+  await claimDocument(sub, id, 'message')
+  await settleDocument(sub, id, 'message', { status: 'done', file: { type: 'image/jpeg', size: 2048, pages: 1 } })
+  const fields = { type: 'receipt', issuer: 'Sklep', docDate: '2026-11-17' }
+  const saved = await app.request(`/api/documents/${id}`, { method: 'PUT', headers: json(cookie), body: JSON.stringify(fields) })
+  assert.equal(saved.status, 200)
+  const again = await upload()
+  assert.equal(again.status, 409)
+  assert.deepEqual(await again.json(), { error: 'duplicate', id })
+})
+
 test('shows both versions of a changed photo, keeps the chosen one and deletes both', async (t) => {
   const sub = randomUUID()
   const owner = await signIn(sub)
-  const { id } = await createDraft(sub)
+  const { id } = await createDraft(sub, randomHash())
   const file = (cookie: string, query = '') => app.request(`/api/documents/${id}/file${query}`, { headers: json(cookie) })
   const choose = (cookie: string, use: string) =>
     app.request(`/api/documents/${id}/file`, { method: 'PUT', headers: json(cookie), body: JSON.stringify({ use }) })

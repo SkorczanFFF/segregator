@@ -5,10 +5,13 @@ export type ApiErrorCode = ErrorCode | 'network_error'
 
 export class ApiError extends Error {
   readonly code: ApiErrorCode
+  // The document the error is about, e.g. the one that already has a duplicate file.
+  readonly id?: string
 
-  constructor(code: ApiErrorCode) {
+  constructor(code: ApiErrorCode, id?: string) {
     super(code)
     this.code = code
+    this.id = id
   }
 }
 
@@ -43,9 +46,9 @@ async function request<T>(method: 'GET' | 'POST' | 'PUT' | 'DELETE', path: strin
   const data: unknown = await response.json().catch(() => undefined)
   if (response.ok && data !== undefined) return data as T
 
-  const code = (data as { error?: unknown } | undefined)?.error
+  const { error: code, id } = (data ?? {}) as { error?: unknown; id?: unknown }
   if (code === 'unauthorized') sessionEnded()
-  throw new ApiError(isErrorCode(code) ? code : 'internal_error')
+  throw new ApiError(isErrorCode(code) ? code : 'internal_error', typeof id === 'string' ? id : undefined)
 }
 
 export const api = {

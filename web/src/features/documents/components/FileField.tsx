@@ -26,14 +26,14 @@ import { useTranslation } from 'react-i18next'
 import { FILE_MAX_SIZE, FILE_TYPES, isPdf } from 'shared'
 import classes from '~/features/documents/components/documents.module.css'
 import FilePreview from '~/features/documents/components/FilePreview.tsx'
-import { prepareFile, type PreparedFile } from '~/features/upload/prepare.ts'
+import { prepareFile, type FileToSend, type PreparedFile } from '~/features/upload/prepare.ts'
 import { formatFileSize } from '~/shared/lib/format.ts'
 
 const ACCEPT = FILE_TYPES.join(',')
 
 type FileFieldProps = {
   // Gets what to send, or null when there is nothing to send.
-  onChange: (file: Blob | null) => void
+  onChange: (file: FileToSend | null) => void
   // True while a picked file is being prepared, so the page waits with sending.
   onPreparing: (preparing: boolean) => void
   disabled: boolean
@@ -73,7 +73,7 @@ export default function FileField({ onChange, onPreparing, disabled }: FileField
       if (result.file.size > FILE_MAX_SIZE) return reset('fileSize')
       setTurns(quarterTurns)
       setPrepared({ ...result, image: URL.createObjectURL(result.preview) })
-      onChange(result.file)
+      onChange({ file: result.file, hash: result.hash })
     } catch {
       reset('fileUnreadable')
     } finally {

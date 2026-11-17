@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import { randomUUID } from 'node:crypto'
 import { test } from 'node:test'
 import { fakeS3 } from './fake-s3.ts'
-import { setUpLocalTable } from './local-table.ts'
+import { randomHash, setUpLocalTable } from './local-table.ts'
 
 setUpLocalTable('worker-test')
 process.env.MAX_RECEIVES = '3'
@@ -42,7 +42,7 @@ const created = (key: string) => ({
 // A draft waiting for its file, and the keys of the file and its processed copy.
 async function upload() {
   const sub = randomUUID()
-  const { id } = await createDraft(sub)
+  const { id } = await createDraft(sub, randomHash())
   return { sub, id, key: `raw/${sub}/${id}`, processed: `processed/${sub}/${id}` }
 }
 

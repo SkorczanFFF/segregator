@@ -25,8 +25,11 @@ export const DocumentInput = z
 
 export type DocumentInput = z.infer<typeof DocumentInput>
 
-// A document from a file starts with the file alone; its fields come once its photo is approved.
-export const UploadInput = z.object({ fileType: z.enum(FILE_TYPES) })
+// A document from a file starts with the file alone; its fields come once its photo is approved. The hash is
+// the SHA-256 of the file as picked, in hex, so the same file is found again however the browser prepared it.
+export const UploadInput = z.object({ fileType: z.enum(FILE_TYPES), fileHash: z.string().regex(/^[0-9a-f]{64}$/) })
+
+export type UploadInput = z.infer<typeof UploadInput>
 
 // The version of a changed photo the person keeps.
 export const FileChoice = z.object({ use: z.enum(FILE_VERSIONS) })

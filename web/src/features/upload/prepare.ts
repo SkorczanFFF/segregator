@@ -9,18 +9,34 @@ const PREVIEW_WIDTH = 1200
 export type PreparedFile = {
   // What goes to S3: a photo as a new JPEG, a PDF as it came.
   file: Blob
+  // SHA-256 of the file as picked, in hex. Taken before preparing, so the same file is found again whatever
+  // a browser makes of it. The API can't check it, and needn't: it compares only the account's own files.
+  hash: string
   // The first page as an image. A photo is its own preview.
   preview: Blob
   pages: number
 }
 
+// What a document is sent with.
+export type FileToSend = Pick<PreparedFile, 'file' | 'hash'>
+
 // A photo the browser can't open throws.
-export const prepareFile = (file: File, quarterTurns: number) =>
-  isPdf(file.type) ? preparePdf(file) : preparePhoto(file, quarterTurns)
+export async function prepareFile(file: File, quarterTurns: number): Promise<PreparedFile> {
+  const [prepared, hash] = await Promise.all([
+    isPdf(file.type) ? preparePdf(file) : preparePhoto(file, quarterTurns),
+    sha256(file),
+  ])
+  return { ...prepared, hash }
+}
+
+async function sha256(file: Blob) {
+  const digest = await crypto.subtle.digest('SHA-256', await file.arrayBuffer())
+  return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, '0')).join('')
+}
 
 // Draws the photo upright by its EXIF, turned clockwise by quarterTurns × 90° and no larger than PHOTO_MAX_SIDE.
 // The new JPEG has no EXIF, so the location a phone may have saved in it is gone.
-async function preparePhoto(photo: File, quarterTurns: number): Promise<PreparedFile> {
+async function preparePhoto(photo: File, quarterTurns: number): Promise<Omit<PreparedFile, 'hash'>> {
   const bitmap = await createImageBitmap(photo, { imageOrientation: 'from-image' })
   const scale = Math.min(1, PHOTO_MAX_SIDE / Math.max(bitmap.width, bitmap.height))
   const width = Math.round(bitmap.width * scale)
@@ -45,7 +61,7 @@ async function preparePhoto(photo: File, quarterTurns: number): Promise<Prepared
 }
 
 // Draws the first page and counts the pages. A PDF with a password throws.
-async function preparePdf(pdf: File): Promise<PreparedFile> {
+async function preparePdf(pdf: File): Promise<Omit<PreparedFile, 'hash'>> {
   // pdf.js is large, so it loads only once someone picks a PDF.
   const { getDocument, GlobalWorkerOptions } = await import('pdfjs-dist')
   GlobalWorkerOptions.workerSrc = pdfWorker
