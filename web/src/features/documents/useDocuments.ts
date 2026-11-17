@@ -46,8 +46,13 @@ export function useDocument(id: string | undefined) {
   })
 }
 
-// The account's readings this month against its limit.
-export const useReadUse = () => useQuery({ queryKey: readsKey, queryFn: () => api.get<ReadUse>('/documents/reads') })
+// The account's readings this month against its limit, with how many are left.
+export const useReadUse = () =>
+  useQuery({
+    queryKey: readsKey,
+    queryFn: () => api.get<ReadUse>('/documents/reads'),
+    select: (use) => ({ ...use, left: Math.max(0, use.limit - use.used) }),
+  })
 
 // How a reading watched from this page ended: one started here, or under way when the page opened. A reading
 // that ended before is left alone, so its result never overwrites fields saved since.

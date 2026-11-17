@@ -25,20 +25,19 @@ export default function ReadPanel({ doc, outcome }: ReadPanelProps) {
   const use = useReadUse()
   const read = useApiSubmit(() => readDocument(queryClient, doc.id))
   const reading = isReading(doc)
-  const left = use.data && Math.max(0, use.data.limit - use.data.used)
   // Why no reading can start, which takes the place of the hint. The API keeps the limits anyway, so the button
   // needn't wait for the counter.
   const blocked =
     doc.file?.pages !== 1
       ? t('documents.read.pages')
-      : left === 0
-        ? t('documents.read.limit', { limit: use.data?.limit })
+      : use.data?.left === 0
+        ? t('documents.read.limit', { limit: use.data.limit })
         : use.data && !use.data.open
           ? t('documents.read.closed')
           : undefined
   const counter = use.data && !blocked && (
     <Text size="sm" c="dimmed">
-      {t('documents.read.left', { left, limit: use.data.limit })}
+      {t('documents.read.left', use.data)}
     </Text>
   )
   const start = (label: string, variant: 'filled' | 'subtle') => (

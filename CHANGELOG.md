@@ -2,6 +2,12 @@
 
 The minor version marks a stage of the build plan and the patch version each step or fix within it, as [Semantic Versioning](https://semver.org/spec/v2.0.0.html) allows before 1.0.0. Each entry starts with the version and its commit message, followed by a description of what changed.
 
+## 0.13.1 - feat: show the AI readings left on the account page
+
+Released 2026-11-17.
+
+- The account page shows how many readings with AI are left this month, out of the limit, with a bar and what counts as a reading. When reading is closed for the whole app until the month ends, it says so.
+
 ## 0.13.0 - feat: move the phone menu to the bottom and stamp the main actions
 
 Released 2026-11-17.
