@@ -22,18 +22,16 @@ export const pl = {
     signUpEmail: 'Załóż konto e-mailem',
   },
   brand: {
-    headline: 'Każdy paragon na miejscu, każdy termin <accent>na czas.</accent>',
-    lead: 'Zrób zdjęcie albo wgraj PDF. Segregator odczyta dane i przypomni o końcu gwarancji, odnowieniu polisy albo terminie płatności.',
+    headline: 'Każdy paragon na miejscu, każdy termin <accent>pod ręką.</accent>',
+    lead: 'Zrób zdjęcie albo wgraj PDF. Segregator znajdzie dokument na zdjęciu i go wyprostuje, a AI odczyta wystawcę, kwotę i daty. Ty tylko sprawdzasz i zapisujesz.',
     sample: {
       read: 'Odczytane z paragonu',
       issuer: 'Sklep AGD',
-      warrantyUntil: 'Gwarancja do',
-      reminder: 'Przypomnienie {{date}}',
     },
     steps: {
-      add: 'Dodaj zdjęcie albo PDF',
-      check: 'Sprawdź dane odczytane przez AI',
-      remind: 'Dostań przypomnienie przed terminem',
+      add: 'Zrób zdjęcie albo wgraj PDF',
+      straighten: 'Segregator wytnie dokument z tła i go wyprostuje',
+      check: 'Sprawdź dane odczytane przez AI i zapisz',
     },
   },
   auth: {

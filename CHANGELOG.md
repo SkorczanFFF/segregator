@@ -2,6 +2,14 @@
 
 The minor version marks a stage of the build plan and the patch version each step or fix within it, as [Semantic Versioning](https://semver.org/spec/v2.0.0.html) allows before 1.0.0. Each entry starts with the version and its commit message, followed by a description of what changed.
 
+## 0.13.4 - fix: describe what the app does today on the entry pages
+
+Released 2026-11-17.
+
+- The panel beside sign-in and sign-up says what Segregator does now: it finds the document in the photo, cuts it out of the background and straightens it, and AI reads the issuer, the amount and the dates for you to check and save. Reminders, which come later, are no longer promised.
+- The sample read from a receipt shows the issuer, the amount, the document's date and its type, without a warranty date, since a receipt has none.
+- The headline keeps every deadline at hand rather than on time.
+
 ## 0.13.3 - feat: redesign the logo as a binder's spine
 
 Released 2026-11-17.

@@ -8,7 +8,7 @@ import Logo from '~/shared/components/Logo.tsx'
 import SpineMark from '~/shared/components/SpineMark.tsx'
 import { formatDate, formatMoney } from '~/shared/lib/format.ts'
 
-const STEPS = ['add', 'check', 'remind'] as const
+const STEPS = ['add', 'straighten', 'check'] as const
 
 function ReadRow({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
   return (
@@ -39,9 +39,9 @@ function SampleRead() {
           </Group>
           <ReadRow label={t('documents.fields.issuer')} value={t('brand.sample.issuer')} />
           <ReadRow label={t('documents.fields.amount')} value={formatMoney(189900)} mono />
-          <ReadRow label={t('brand.sample.warrantyUntil')} value={formatDate('2028-11-12')} mono />
+          <ReadRow label={t('documents.fields.docDate')} value={formatDate('2026-11-12')} mono />
           <Badge color="saffron" variant="light" radius="sm" tt="none" fw={500} size="lg">
-            {t('brand.sample.reminder', { date: formatDate('2028-10-12') })}
+            {t('categories.types.receipt')} · {t('categories.subtypes.appliances')}
           </Badge>
         </Stack>
       </Paper>

@@ -1,6 +1,6 @@
 # Segregator
 
-Segregator takes a photo or PDF of a document, straightens the image, reads the data with AI and lets you check it. Then it files the document into categories and reminds you of deadlines by email. Work in progress.
+Segregator takes a photo or PDF of a document, finds the document in the photo, cuts it out and straightens it. On request AI reads its type, issuer, amount and dates, which you check before saving. Documents are kept by type and month, with their due dates. Reminders of deadlines by email come next. Work in progress.
 
 Live at [segregator.skoftware.pl](https://segregator.skoftware.pl).
 

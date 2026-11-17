@@ -21,18 +21,16 @@ export const en: Translation = {
     signUpEmail: 'Sign up with email',
   },
   brand: {
-    headline: 'Every receipt in its place, every deadline <accent>on time.</accent>',
-    lead: 'Take a photo or upload a PDF. Segregator reads the details and reminds you before a warranty ends, a policy renews or a bill is due.',
+    headline: 'Every receipt in its place, every deadline <accent>at hand.</accent>',
+    lead: 'Take a photo or upload a PDF. Segregator finds the document in the photo and straightens it, and AI reads the issuer, the amount and the dates. You only check them and save.',
     sample: {
       read: 'Read from the receipt',
       issuer: 'Appliance store',
-      warrantyUntil: 'Warranty until',
-      reminder: 'Reminder {{date}}',
     },
     steps: {
-      add: 'Add a photo or a PDF',
-      check: 'Check what AI read',
-      remind: 'Get a reminder before the deadline',
+      add: 'Take a photo or upload a PDF',
+      straighten: 'Segregator cuts the document out of the background and straightens it',
+      check: 'Check what AI read and save',
     },
   },
   auth: {
