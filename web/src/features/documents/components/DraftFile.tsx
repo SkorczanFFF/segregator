@@ -124,7 +124,15 @@ function Chosen({ id, file, onChange }: { id: string; file: DocumentFile; onChan
         <Group gap="sm" wrap="nowrap">
           {image ? (
             <UnstyledButton aria-label={t('documents.zoom')} onClick={viewer.open} flex="none">
-              <Image src={image} alt={t('documents.preview')} w={54} h={72} radius="sm" fit="cover" />
+              <Image
+                src={image}
+                alt={t('documents.preview')}
+                w={54}
+                h={72}
+                radius="sm"
+                fit="cover"
+                bg="var(--mantine-color-default-border)"
+              />
             </UnstyledButton>
           ) : (
             <ThemeIcon size={54} radius="md" variant="light">

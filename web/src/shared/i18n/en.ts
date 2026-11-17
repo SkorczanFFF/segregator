@@ -137,6 +137,11 @@ export const en: Translation = {
     sendPdf: 'Send the file',
     sendPdfHint: 'A PDF is only checked, not processed.',
     fieldsLater: 'You fill in the details once the photo is approved.',
+    busy: {
+      sending: 'Sending · {{progress}}%',
+      photo: 'Finding the sheet and straightening it…',
+      pdf: 'Checking the file…',
+    },
     stages: {
       title: 'Steps',
       sendingPhoto: 'Sending the photo',

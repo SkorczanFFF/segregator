@@ -1,4 +1,4 @@
-import { Box, Group, Paper, Stack, Text, ThemeIcon, UnstyledButton } from '@mantine/core'
+import { Box, Center, Group, Paper, Skeleton, Stack, Text, ThemeIcon, UnstyledButton } from '@mantine/core'
 import { useDisclosure } from '@mantine/hooks'
 import { IconFileText } from '@tabler/icons-react'
 import { useState, type PointerEvent, type ReactNode } from 'react'
@@ -21,19 +21,25 @@ type FilePreviewProps = {
   caption?: ReactNode
   // Placed in the bar under the image, e.g. buttons or a link to the file.
   children?: ReactNode
+  // While the file is worked on: the image dims under a label of what happens, and with scan a band of light
+  // sweeps down it.
+  busy?: { label: string; scan?: boolean }
 }
 
 type Pointer = { x: number; y: number; box: DOMRect }
 
 // The document's file, before sending and after it. With a mouse, a loupe follows the cursor over the image,
 // and a click or a tap opens it in a viewer.
-export default function FilePreview({ file, image, pages = 1, header, caption, children }: FilePreviewProps) {
+export default function FilePreview({ file, image, pages = 1, header, caption, children, busy }: FilePreviewProps) {
   const { t } = useTranslation()
   const [pointer, setPointer] = useState<Pointer>()
   const [viewing, viewer] = useDisclosure()
+  // The image shown last, so a placeholder stands in until a new one has loaded, e.g. another version.
+  const [loaded, setLoaded] = useState<string>()
+  const waiting = image !== undefined && loaded !== image
 
   function follow(event: PointerEvent<HTMLImageElement>) {
-    if (event.pointerType !== 'mouse') return
+    if (event.pointerType !== 'mouse' || busy) return
     setPointer({ x: event.clientX, y: event.clientY, box: event.currentTarget.getBoundingClientRect() })
   }
 
@@ -48,11 +54,18 @@ export default function FilePreview({ file, image, pages = 1, header, caption, c
       <Box className={classes.ground} flex={1}>
         <div className={classes.fit}>
           {image ? (
-            <UnstyledButton className={classes.zoom} aria-label={t('documents.zoom')} onClick={viewer.open}>
+            <UnstyledButton className={classes.zoom} aria-label={t('documents.zoom')} onClick={viewer.open} disabled={Boolean(busy)}>
               <img
                 className={classes.image}
+                style={{ opacity: waiting ? 0 : busy ? 0.7 : undefined }}
                 src={image}
                 alt={t('documents.preview')}
+                // A cached image may be complete before React listens for its load.
+                ref={(node) => {
+                  if (node?.complete && waiting) setLoaded(image)
+                }}
+                onLoad={() => setLoaded(image)}
+                onError={() => setLoaded(image)}
                 onPointerMove={follow}
                 onPointerLeave={() => setPointer(undefined)}
               />
@@ -62,7 +75,18 @@ export default function FilePreview({ file, image, pages = 1, header, caption, c
               <IconFileText size={44} stroke={1.5} aria-hidden />
             </ThemeIcon>
           )}
+          {waiting && (
+            <Center pos="absolute" inset={0} aria-hidden>
+              <Skeleton h="100%" w="auto" maw="100%" radius="sm" style={{ aspectRatio: '3 / 4' }} />
+            </Center>
+          )}
         </div>
+        {busy?.scan && <div className={classes.scan} aria-hidden />}
+        {busy && (
+          <Text size="sm" fw={600} className={classes.busy} aria-hidden>
+            {busy.label}
+          </Text>
+        )}
       </Box>
       <Group justify="space-between" gap="xs" px="md" py="xs" className={classes.bar}>
         <Stack gap={0}>

@@ -2,6 +2,16 @@
 
 The minor version marks a stage of the build plan and the patch version each step or fix within it, as [Semantic Versioning](https://semver.org/spec/v2.0.0.html) allows before 1.0.0. Each entry starts with the version and its commit message, followed by a description of what changed.
 
+## 0.12.0 - feat: animate the photo while it is processed
+
+Released 2026-11-17.
+
+- While a photo is processed, it dims and a band of light sweeps down it, with "Finding the sheet and straightening it…" in a corner. A PDF shows "Checking the file…", and while a file is sent its preview shows the percent sent.
+- With reduced motion set in the system, the band stands still.
+- The loupe and the full-size viewer wait until the processing ends.
+- Each new stage of a new document, from sending to the fields, starts at the top of the page, so on a phone the photo and the next step come into view.
+- Until a document's image has loaded, its preview shows a placeholder in its place.
+
 ## 0.11.2 - feat: keep older files cheaply and recoverable for 35 days
 
 Released 2026-11-17.

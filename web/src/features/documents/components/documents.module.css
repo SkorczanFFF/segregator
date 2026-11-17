@@ -68,6 +68,51 @@
   box-shadow: var(--mantine-shadow-xl);
 }
 
+/* A band of light sweeps down the stage while the file is worked on, still for those who prefer less motion. */
+.scan {
+  position: absolute;
+  inset-inline: 0;
+  top: -72px;
+  height: 72px;
+  pointer-events: none;
+  background: linear-gradient(
+    180deg,
+    transparent,
+    color-mix(in srgb, var(--mantine-color-saffron-filled) 22%, transparent) 85%,
+    var(--mantine-color-saffron-filled)
+  );
+  animation: scan 2.4s ease-in-out infinite;
+}
+
+@keyframes scan {
+  to {
+    top: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scan {
+    animation: none;
+    top: 44%;
+  }
+}
+
+/* What happens to the file, in a corner of the stage. Saffron text needs a darker shade on a light ground. */
+.busy {
+  position: absolute;
+  left: var(--mantine-spacing-md);
+  bottom: var(--mantine-spacing-md);
+  padding: 6px 10px;
+  border-radius: var(--mantine-radius-sm);
+  background: color-mix(in srgb, var(--mantine-color-body) 92%, transparent);
+  box-shadow: var(--mantine-shadow-sm);
+  color: var(--mantine-color-saffron-8);
+}
+
+:global([data-mantine-color-scheme='dark']) .busy {
+  color: var(--mantine-color-saffron-5);
+}
+
 /* With a mouse the loupe marks the spot, so the cursor would only cover it. */
 @media (pointer: fine) {
   .image {

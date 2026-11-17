@@ -1,4 +1,5 @@
 import { Anchor, Button, Paper, Skeleton, Stack, Text } from '@mantine/core'
+import { useReducedMotion } from '@mantine/hooks'
 import { IconScan } from '@tabler/icons-react'
 import { useQueryClient } from '@tanstack/react-query'
 import { useEffect, useRef, useState } from 'react'
@@ -53,6 +54,21 @@ export default function NewDocumentPage() {
   const kind = file ? (isPdf(file.type) ? 'pdf' : 'photo') : undefined
   const locked = (picked !== null || tracked) && !ready
   const duplicateOf = duplicate?.hash === picked?.hash ? duplicate?.id : undefined
+  const busy = sending
+    ? { label: t('documents.busy.sending', { progress }) }
+    : processing && kind
+      ? { label: t(`documents.busy.${kind}`), scan: true }
+      : undefined
+  // The stage the file is at, a failed check included. Each new one starts at the top of the page, since on a
+  // phone the one before leaves it scrolled down to its buttons.
+  const stage = sending ? 'sending' : draft?.status === 'done' ? (ready ? 'fields' : 'choice') : draft?.status
+  const shownStage = useRef(stage)
+  const reduceMotion = useReducedMotion()
+
+  useEffect(() => {
+    if (stage && stage !== shownStage.current) window.scrollTo({ top: 0, behavior: reduceMotion ? 'instant' : 'smooth' })
+    shownStage.current = stage
+  }, [stage, reduceMotion])
 
   // Leaving the page stops the upload, which then deletes its draft.
   useEffect(() => () => upload.current?.abort(), [])
@@ -124,7 +140,13 @@ export default function NewDocumentPage() {
     <Stack gap="md">
       {/* Kept while the file is on its way, so the photo stays in view. */}
       {(!tracked || ((sending || processing || !draft) && file)) && (
-        <FileField key={round} onChange={setPicked} onPreparing={setPreparing} disabled={send.pending || processing} />
+        <FileField
+          key={round}
+          onChange={setPicked}
+          onPreparing={setPreparing}
+          disabled={send.pending || processing}
+          busy={busy}
+        />
       )}
       {file && !draft && !sending && (
         <>

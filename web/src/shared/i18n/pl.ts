@@ -138,6 +138,11 @@ export const pl = {
     sendPdf: 'Wyślij plik',
     sendPdfHint: 'PDF zostanie tylko sprawdzony, bez obróbki.',
     fieldsLater: 'Dane wpiszesz po zatwierdzeniu zdjęcia.',
+    busy: {
+      sending: 'Wysyłanie · {{progress}}%',
+      photo: 'Szukam kartki i prostuję…',
+      pdf: 'Sprawdzam plik…',
+    },
     stages: {
       title: 'Etapy',
       sendingPhoto: 'Wysyłanie zdjęcia',

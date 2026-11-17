@@ -21,7 +21,7 @@ import {
   IconUpload,
   IconX,
 } from '@tabler/icons-react'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type ComponentProps } from 'react'
 import { useTranslation } from 'react-i18next'
 import { FILE_MAX_SIZE, FILE_TYPES, isPdf } from 'shared'
 import classes from '~/features/documents/components/documents.module.css'
@@ -37,12 +37,14 @@ type FileFieldProps = {
   // True while a picked file is being prepared, so the page waits with sending.
   onPreparing: (preparing: boolean) => void
   disabled: boolean
+  // What happens to the file once it is sent, shown over its preview.
+  busy?: ComponentProps<typeof FilePreview>['busy']
 }
 
 type FileError = 'fileSize' | 'fileUnreadable'
 
 // Picks the document's file and shows it before sending. A photo can be turned by 90°, so its text is upright.
-export default function FileField({ onChange, onPreparing, disabled }: FileFieldProps) {
+export default function FileField({ onChange, onPreparing, disabled, busy }: FileFieldProps) {
   const { t } = useTranslation()
   const maxSize = formatFileSize(FILE_MAX_SIZE)
   // On a phone the camera comes first, so picking a file steps back. Read at once, so a computer
@@ -54,7 +56,7 @@ export default function FileField({ onChange, onPreparing, disabled }: FileField
   const [error, setError] = useState<FileError>()
   // Turns and changes wait for the file being prepared, so none of them is lost or applied out of order.
   const [preparing, setPreparing] = useState(false)
-  const busy = disabled || preparing
+  const inactive = disabled || preparing
   useEffect(
     () => () => {
       if (prepared) URL.revokeObjectURL(prepared.image)
@@ -103,14 +105,14 @@ export default function FileField({ onChange, onPreparing, disabled }: FileField
 
   if (prepared) {
     return (
-      <FilePreview file={prepared.file} image={prepared.image} pages={prepared.pages}>
+      <FilePreview file={prepared.file} image={prepared.image} pages={prepared.pages} busy={busy}>
         {!isPdf(prepared.file.type) && (
           <ActionIcon.Group>
             <Tooltip label={t('documents.rotateLeft')}>
               <ActionIcon
                 variant="default"
                 aria-label={t('documents.rotateLeft')}
-                disabled={busy}
+                disabled={inactive}
                 onClick={() => rotate(3)}
               >
                 <IconRotate size={18} aria-hidden />
@@ -120,7 +122,7 @@ export default function FileField({ onChange, onPreparing, disabled }: FileField
               <ActionIcon
                 variant="default"
                 aria-label={t('documents.rotateRight')}
-                disabled={busy}
+                disabled={inactive}
                 onClick={() => rotate(1)}
               >
                 <IconRotateClockwise size={18} aria-hidden />
@@ -128,9 +130,9 @@ export default function FileField({ onChange, onPreparing, disabled }: FileField
             </Tooltip>
           </ActionIcon.Group>
         )}
-        <FileButton onChange={pick} accept={ACCEPT} disabled={busy}>
+        <FileButton onChange={pick} accept={ACCEPT} disabled={inactive}>
           {(props) => (
-            <Button variant="subtle" size="compact-md" disabled={busy} {...props}>
+            <Button variant="subtle" size="compact-md" disabled={inactive} {...props}>
               {t('documents.changeFile')}
             </Button>
           )}
@@ -140,7 +142,7 @@ export default function FileField({ onChange, onPreparing, disabled }: FileField
             variant="subtle"
             color="gray"
             aria-label={t('documents.removeFile')}
-            disabled={busy}
+            disabled={inactive}
             onClick={() => pick(null)}
           >
             <IconX size={18} aria-hidden />
