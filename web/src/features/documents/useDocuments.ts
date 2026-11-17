@@ -1,13 +1,19 @@
 import { useInfiniteQuery, useQuery, type QueryClient } from '@tanstack/react-query'
-import type { Document, DocumentList, Draft, FileChoice, FileVersion, StorageUse } from 'shared'
+import { useState } from 'react'
+import type { Document, DocumentList, Draft, FileChoice, FileVersion, ReadUse, StorageUse } from 'shared'
 import { api, API_BASE, errorCode } from '~/shared/lib/api.ts'
 
 const documentsKey = ['documents']
 
 export const documentKey = (id: string) => [...documentsKey, id]
 
-// How often a draft whose file is in processing is asked for again.
-const PROCESSING_REFRESH = 1000
+const readsKey = ['reads']
+
+// How often a document whose file is processed or read is asked for again.
+const PENDING_REFRESH = 1000
+
+// The model is reading the document's file.
+export const isReading = (doc?: Document | Draft) => doc?.read?.status === 'reading'
 
 // The API answers this address with a short-lived link to one version of the document's file.
 export const fileUrl = (id: string, version: FileVersion) =>
@@ -23,14 +29,37 @@ export async function chooseVersion(queryClient: QueryClient, id: string, use: F
   queryClient.setQueryData(documentKey(id), doc)
 }
 
-// One document or draft. While its file is in processing, it is asked for again until the processing ends.
+// Starts a reading of the document's file by the model, and keeps the document as it shows the reading.
+export async function readDocument(queryClient: QueryClient, id: string) {
+  queryClient.setQueryData(documentKey(id), await api.post<Document | Draft>(`/documents/${id}/read`))
+  await queryClient.invalidateQueries({ queryKey: readsKey })
+}
+
+// One document or draft. While its file is processed or read, it is asked for again until that ends.
 export function useDocument(id: string | undefined) {
   return useQuery({
     queryKey: documentKey(id ?? ''),
     queryFn: () => api.get<Document | Draft>(`/documents/${id}`),
     enabled: id !== undefined,
-    refetchInterval: (query) => (query.state.data?.status === 'processing' ? PROCESSING_REFRESH : false),
+    refetchInterval: ({ state: { data } }) =>
+      data?.status === 'processing' || isReading(data) ? PENDING_REFRESH : false,
   })
+}
+
+// The account's readings this month against its limit.
+export const useReadUse = () => useQuery({ queryKey: readsKey, queryFn: () => api.get<ReadUse>('/documents/reads') })
+
+// How a reading watched from this page ended: one started here, or under way when the page opened. A reading
+// that ended before is left alone, so its result never overwrites fields saved since.
+export function useReadOutcome(doc?: Document | Draft) {
+  const read = doc?.read
+  const [watched, setWatched] = useState<string>()
+  if (read && isReading(doc) && read.id !== watched) setWatched(read.id)
+  if (!read || read.id !== watched || read.status === 'reading') return {}
+  return {
+    outcome: read.status,
+    suggestion: read.status === 'done' && read.result ? { id: read.id, result: read.result } : undefined,
+  }
 }
 
 // How much of the account's storage its files take.

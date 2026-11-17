@@ -11,8 +11,9 @@ import DocumentSteps from '~/features/documents/components/DocumentSteps.tsx'
 import DraftFile from '~/features/documents/components/DraftFile.tsx'
 import FileField from '~/features/documents/components/FileField.tsx'
 import FileStages from '~/features/documents/components/FileStages.tsx'
+import ReadPanel from '~/features/documents/components/ReadPanel.tsx'
 import { PAGE_WIDTH } from '~/features/documents/look.ts'
-import { documentKey, refreshDocuments, useDocument } from '~/features/documents/useDocuments.ts'
+import { documentKey, isReading, refreshDocuments, useDocument, useReadOutcome } from '~/features/documents/useDocuments.ts'
 import type { FileToSend } from '~/features/upload/prepare.ts'
 import { uploadDraft } from '~/features/upload/upload.ts'
 import ApiErrorAlert from '~/shared/components/ApiErrorAlert.tsx'
@@ -53,6 +54,8 @@ export default function NewDocumentPage() {
   const file = picked?.file
   const kind = file ? (isPdf(file.type) ? 'pdf' : 'photo') : undefined
   const locked = (picked !== null || tracked) && !ready
+  const reading = isReading(draft)
+  const { outcome, suggestion } = useReadOutcome(draft)
   const duplicateOf = duplicate?.hash === picked?.hash ? duplicate?.id : undefined
   const busy = sending
     ? { label: t('documents.busy.sending', { progress }) }
@@ -200,7 +203,14 @@ export default function NewDocumentPage() {
     <Page title={t('documents.new')} back={{ to: '/documents', label: t('documents.title') }} width={PAGE_WIDTH.withFile}>
       <ApiErrorAlert code={apiError} />
       <DocumentSteps active={ready ? 2 : tracked || sending ? 1 : 0} />
-      <DocumentForm aside={aside} locked={locked} onSave={save} onCancel={() => void cancel()} />
+      <DocumentForm
+        aside={aside}
+        top={ready && draft && <ReadPanel doc={draft} outcome={outcome} />}
+        lock={locked ? 'photo' : reading ? 'reading' : undefined}
+        suggestion={suggestion}
+        onSave={save}
+        onCancel={() => void cancel()}
+      />
     </Page>
   )
 }

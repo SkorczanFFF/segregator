@@ -39,9 +39,9 @@ export async function signUpload(sub: string, id: string, type: FileType, size: 
   return { id, url, fields }
 }
 
-// The whole file as sent, with the type the upload was signed for. Files are at most FILE_MAX_SIZE.
-export async function readFile(sub: string, id: string) {
-  const { Body, ContentType } = await s3.send(new GetObjectCommand({ Bucket: BUCKET, Key: fileKey(sub, id) }))
+// The whole file, as sent unless another version is asked for, with its type. Files are at most FILE_MAX_SIZE.
+export async function readFile(sub: string, id: string, version: FileVersion = 'raw') {
+  const { Body, ContentType } = await s3.send(new GetObjectCommand({ Bucket: BUCKET, Key: fileKey(sub, id, version) }))
   return { type: ContentType ?? '', bytes: (await Body?.transformToByteArray()) ?? new Uint8Array() }
 }
 

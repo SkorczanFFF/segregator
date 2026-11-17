@@ -7,7 +7,7 @@ Live at [segregator.skoftware.pl](https://segregator.skoftware.pl).
 ## Repository
 
 - `web/`: React front end (Vite, Mantine)
-- `api/`: Hono API, the worker that checks uploaded files, the cleanup of abandoned drafts and the Cognito trigger that guards sign-up, each deployed as an AWS Lambda function
+- `api/`: Hono API, the worker that checks uploaded files, the reader that fills a document's fields with a model on Amazon Bedrock, the cleanup of abandoned drafts and the Cognito trigger that guards sign-up, each deployed as an AWS Lambda function
 - `preprocess/`: Python function that straightens photos of documents with OpenCV, managed with uv
 - `shared/`: Zod schemas, the category list and the file, auth and table constants used by the API, the web app and the stack
 - `infra/`: AWS CDK app stack and the CodePipeline that deploys it to `dev` and `prod`
@@ -35,7 +35,7 @@ You need Node.js 24, pnpm (the version in `packageManager`), uv (the version `pr
    cp api/.env.example api/.env
    ```
 
-3. Read the dev stack outputs and paste `TableName`, `UserPoolId`, `UserPoolClientId`, `CognitoDomain` and `DocumentsBucketName` into `api/.env` as `TABLE_NAME`, `USER_POOL_ID`, `USER_POOL_CLIENT_ID`, `COGNITO_DOMAIN` and `DOCUMENTS_BUCKET`:
+3. Read the dev stack outputs and paste `TableName`, `UserPoolId`, `UserPoolClientId`, `CognitoDomain`, `DocumentsBucketName`, `ReadQueueUrl` and `ReadLimitsParameter` into `api/.env` as `TABLE_NAME`, `USER_POOL_ID`, `USER_POOL_CLIENT_ID`, `COGNITO_DOMAIN`, `DOCUMENTS_BUCKET`, `READ_QUEUE_URL` and `READ_LIMITS_PARAMETER`:
 
    ```sh
    aws cloudformation describe-stacks --stack-name dev-Segregator --query "Stacks[0].Outputs" --output table

@@ -20,7 +20,7 @@ import { schemaResolver, useForm } from '@mantine/form'
 import { IconBuildingStore, IconCalendar, IconCalendarDue, IconLock, IconTag, IconTrash } from '@tabler/icons-react'
 import dayjs from 'dayjs'
 import 'dayjs/locale/pl'
-import type { ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router'
 import {
@@ -32,15 +32,17 @@ import {
   TEXT_MAX_LENGTH,
   type Document,
   type DocumentType,
+  type ReadResult,
   type Subtype,
 } from 'shared'
+import AiMark from '~/features/documents/components/AiMark.tsx'
 import classes from '~/features/documents/components/documents.module.css'
 import { CARD_INSET, describeDocument, documentName, dueDateLabel, TYPE_LOOKS } from '~/features/documents/look.ts'
 import ApiErrorAlert from '~/shared/components/ApiErrorAlert.tsx'
 import { useApiSubmit } from '~/shared/hooks/useApiSubmit.ts'
 import { useFormError } from '~/shared/hooks/useFormError.ts'
 import { focusFirstError, validateFilledOnBlur } from '~/shared/lib/form.ts'
-import { currencySymbol, decimalSeparator, formatMoney } from '~/shared/lib/format.ts'
+import { currencySymbol, decimalSeparator, formatDate, formatMoney } from '~/shared/lib/format.ts'
 
 type DocumentValues = {
   type: DocumentType
@@ -76,6 +78,21 @@ const toInput = (values: DocumentValues): DocumentInput => ({
 
 const checkInput = schemaResolver(DocumentInput, { sync: true })
 
+type ReadField = keyof ReadResult
+
+// A reading's result as form values, only the fields it has.
+const readValues = (result: ReadResult): Partial<DocumentValues> =>
+  Object.fromEntries(
+    Object.entries({
+      type: result.type,
+      subtype: result.subtype,
+      issuer: result.issuer,
+      amount: result.amount === undefined ? undefined : result.amount / 100,
+      docDate: result.docDate,
+      dueDate: result.dueDate,
+    }).filter(([, value]) => value !== undefined),
+  )
+
 // A button that stays pressed while chosen, tinted in the given color.
 const toggle = (chosen: boolean, color: MantineColor) =>
   ({
@@ -88,7 +105,7 @@ const toggle = (chosen: boolean, color: MantineColor) =>
 // The buttons of the bottom bar fill its height and reach the card's edges.
 const BAR_BUTTON = { radius: 0, h: '100%', px: CARD_INSET } as const
 
-function Section({ title, children }: { title: string; children: ReactNode }) {
+function Section({ title, children }: { title: ReactNode; children: ReactNode }) {
   return (
     <Stack gap="xs">
       <Text size="xs" fw={700} tt="uppercase" lts="0.08em" c="dimmed">
@@ -104,8 +121,14 @@ type DocumentFormProps = {
   doc?: Document
   // A column beside the fields, such as the document's file.
   aside?: ReactNode
-  // The fields wait for the photo to be approved: hidden on a phone, shown but closed on a wider screen.
-  locked?: boolean
+  // Above the fields, such as the reading by the model, and out of reach of the lock.
+  top?: ReactNode
+  // Closes the fields while they wait: for the photo to be approved, hidden on a phone and shown but closed on a
+  // wider screen, or for a reading, shown everywhere.
+  lock?: 'photo' | 'reading'
+  // A reading's result to fill the fields with, once per reading. Each field it fills is marked until changed;
+  // on a saved document only the fields it changes, with the value they had.
+  suggestion?: { id: string; result: ReadResult }
   onSave: (input: DocumentInput) => Promise<void>
   // With it the bar gets a delete button, which only a saved document has.
   onDelete?: () => void
@@ -115,7 +138,8 @@ type DocumentFormProps = {
 
 // The document's fields as a card whose top shows the document as it is being filled in,
 // with its file in a column beside it.
-export default function DocumentForm({ doc, aside, locked = false, onSave, onDelete, onCancel }: DocumentFormProps) {
+export default function DocumentForm({ doc, aside, top, lock, suggestion, onSave, onDelete, onCancel }: DocumentFormProps) {
+  const locked = lock !== undefined
   const { t, i18n } = useTranslation()
   const formError = useFormError({ maxLength: TEXT_MAX_LENGTH, maxAmount: formatMoney(AMOUNT_MAX, 'compact') })
   // Controlled, so the card's top and the subcategories follow what is entered.
@@ -132,6 +156,51 @@ export default function DocumentForm({ doc, aside, locked = false, onSave, onDel
   const { icon: TypeIcon, color, strong } = TYPE_LOOKS[input.type]
   const subtypes: readonly Subtype[] = CATEGORIES[input.type]
   const dueLabel = dueDateLabel(t, input.type)
+  // What a reading filled, with the value each field had before on a saved document.
+  const [marks, setMarks] = useState<Partial<Record<ReadField, { value: unknown; previous?: string }>>>({})
+  const applied = useRef<string>(undefined)
+
+  useEffect(() => {
+    if (!suggestion || applied.current === suggestion.id) return
+    applied.current = suggestion.id
+    const current = form.getValues()
+    const next = readValues(suggestion.result)
+    // A subcategory of another type doesn't fit the new one.
+    if (next.type !== undefined && next.type !== current.type && next.subtype === undefined) next.subtype = null
+    const was = toInput(current)
+    const shown: Record<ReadField, string | undefined> = {
+      type: t(`categories.types.${was.type}`),
+      subtype: was.subtype && t(`categories.subtypes.${was.subtype as Subtype}`),
+      issuer: was.issuer || undefined,
+      amount: was.amount === undefined ? undefined : formatMoney(was.amount),
+      docDate: was.docDate ? formatDate(was.docDate) : undefined,
+      dueDate: was.dueDate && formatDate(was.dueDate),
+    }
+    form.setValues(next)
+    setMarks(
+      Object.fromEntries(
+        Object.entries(readValues(suggestion.result))
+          .filter(([field, value]) => !doc || value !== current[field as ReadField])
+          .map(([field, value]) => [field, { value, previous: doc ? (shown[field as ReadField] ?? '—') : undefined }]),
+      ),
+    )
+  }, [suggestion, form, doc, t])
+
+  // A mark lasts while the field holds what the reading put there.
+  const marked = (field: ReadField) => {
+    const mark = marks[field]
+    return mark && mark.value === form.values[field] ? mark : undefined
+  }
+  const labelOf = (field: ReadField, label: ReactNode) => (
+    <>
+      {label}
+      {marked(field) && <AiMark />}
+    </>
+  )
+  const wasOf = (field: ReadField) => {
+    const previous = marked(field)?.previous
+    return previous && t('documents.read.was', { value: previous })
+  }
 
   function chooseType(type: DocumentType) {
     if (type === input.type) return
@@ -146,18 +215,23 @@ export default function DocumentForm({ doc, aside, locked = false, onSave, onDel
         component="form"
         className={classes.card}
         pos="relative"
-        visibleFrom={locked ? 'md' : undefined}
+        visibleFrom={lock === 'photo' ? 'md' : undefined}
         aria-label={t('documents.fieldsTitle')}
         onSubmit={form.onSubmit(submit, focusFirstError(form))}
         noValidate
       >
-        {locked && (
+        {lock && (
           <Stack align="center" justify="center" gap="xs" p="xl" className={classes.lock}>
             <IconLock size={28} aria-hidden color="var(--mantine-color-saffron-filled)" />
             <Text ta="center" maw={260}>
-              {t('documents.fieldsLater')}
+              {t(lock === 'photo' ? 'documents.fieldsLater' : 'documents.read.locked')}
             </Text>
           </Stack>
+        )}
+        {top && (
+          <Box pos="relative" className={classes.overLock}>
+            {top}
+          </Box>
         )}
         <Group
           wrap="nowrap"
@@ -198,7 +272,7 @@ export default function DocumentForm({ doc, aside, locked = false, onSave, onDel
         <Fieldset variant="unstyled" disabled={pending || locked} m={0}>
           <Stack gap="lg" p={CARD_INSET}>
             <ApiErrorAlert code={error} />
-            <Section title={t('documents.fields.type')}>
+            <Section title={labelOf('type', t('documents.fields.type'))}>
               <Group gap="xs" role="group" aria-label={t('documents.fields.type')}>
                 {DOCUMENT_TYPES.map((type) => {
                   const look = TYPE_LOOKS[type]
@@ -218,7 +292,7 @@ export default function DocumentForm({ doc, aside, locked = false, onSave, onDel
               </Group>
             </Section>
             {subtypes.length > 0 && (
-              <Section title={t('documents.fields.subtype')}>
+              <Section title={labelOf('subtype', t('documents.fields.subtype'))}>
                 <Group gap={6} role="group" aria-label={t('documents.fields.subtype')}>
                   {subtypes.map((subtype) => {
                     const chosen = subtype === input.subtype
@@ -238,7 +312,8 @@ export default function DocumentForm({ doc, aside, locked = false, onSave, onDel
             )}
             <Section title={t('documents.sections.who')}>
               <TextInput
-                label={t('documents.fields.issuer')}
+                label={labelOf('issuer', t('documents.fields.issuer'))}
+                description={wasOf('issuer')}
                 placeholder={t('documents.placeholders.issuer')}
                 leftSection={<IconBuildingStore size={18} aria-hidden />}
                 maxLength={TEXT_MAX_LENGTH}
@@ -256,14 +331,16 @@ export default function DocumentForm({ doc, aside, locked = false, onSave, onDel
               />
             </Section>
             <Section title={t(dueLabel ? 'documents.sections.amountDates' : 'documents.sections.amountDate')}>
-              <SimpleGrid cols={{ base: 1, sm: dueLabel ? 3 : 2 }} spacing="md">
+              <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="md">
                 <NumberInput
-                  label={
+                  label={labelOf(
+                    'amount',
                     <>
                       {t('documents.fields.amount')}
                       <VisuallyHidden> ({currencySymbol()})</VisuallyHidden>
-                    </>
-                  }
+                    </>,
+                  )}
+                  description={wasOf('amount')}
                   decimalScale={2}
                   decimalSeparator={decimalSeparator()}
                   allowNegative={false}
@@ -280,7 +357,8 @@ export default function DocumentForm({ doc, aside, locked = false, onSave, onDel
                   error={formError(form.errors.amount)}
                 />
                 <DatePickerInput
-                  label={t('documents.fields.docDate')}
+                  label={labelOf('docDate', t('documents.fields.docDate'))}
+                  description={wasOf('docDate')}
                   leftSection={<IconCalendar size={18} aria-hidden />}
                   locale={i18n.language}
                   valueFormat="D MMM YYYY"
@@ -290,7 +368,8 @@ export default function DocumentForm({ doc, aside, locked = false, onSave, onDel
                 />
                 {dueLabel && (
                   <DatePickerInput
-                    label={dueLabel}
+                    label={labelOf('dueDate', dueLabel)}
+                    description={wasOf('dueDate')}
                     leftSection={<IconCalendarDue size={18} aria-hidden />}
                     locale={i18n.language}
                     valueFormat="D MMM YYYY"

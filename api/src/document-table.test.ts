@@ -15,10 +15,13 @@ const {
   deleteDocument,
   DuplicateFile,
   findByHash,
+  finishRead,
   getDocument,
   listDocuments,
   markSent,
+  readUse,
   settleDocument,
+  startRead,
   storageUsed,
   updateDocument,
 } = await import('./document-table.ts')
@@ -222,6 +225,46 @@ test("counts the bytes of the account's files, drafts too, until a draft expires
 
   t.mock.timers.enable({ apis: ['Date'], now: Date.now() + 25 * 60 * 60 * 1000 })
   assert.equal(await storageUsed(sub), 3000)
+})
+
+test('starts a reading only of a checked, chosen, one-page file, one at a time', async () => {
+  const sub = randomUUID()
+  const limits = { account: 100, app: 1_000_000 }
+  const { id: waiting } = await createDraft(sub, randomHash(), 99)
+  assert.equal(await startRead(sub, waiting, limits), 'not_ready', 'a file not checked yet')
+  const pdf = await checkedDraft(sub, { type: 'application/pdf', size: 99, pages: 3 })
+  assert.equal(await startRead(sub, pdf, limits), 'not_ready', 'a PDF of three pages')
+  const changed = await checkedDraft(sub, { type: 'image/jpeg', size: 99, pages: 1, change: 'cut' })
+  assert.equal(await startRead(sub, changed, limits), 'not_ready', 'a version not chosen yet')
+
+  await chooseVersion(sub, changed, 'processed')
+  const started = await startRead(sub, changed, limits)
+  assert.ok(typeof started === 'object')
+  assert.deepEqual((await getDocument(sub, changed))?.read, { id: started.readId, status: 'reading' })
+  assert.equal(await startRead(sub, changed, limits), 'not_ready', 'one reading at a time')
+
+  const result = { type: 'receipt', issuer: 'Sklep', amount: 4785 } as const
+  await finishRead(sub, changed, 'an older reading', { type: 'other' })
+  await finishRead(sub, changed, started.readId, result)
+  assert.deepEqual((await getDocument(sub, changed))?.read, { id: started.readId, status: 'done', result })
+  assert.deepEqual(await readUse(sub, limits), { used: 1, limit: 100, open: true })
+})
+
+test("stops readings at the account's and the app's limits", async () => {
+  const sub = randomUUID()
+  const photo = await checkedDraft(sub)
+  const read = async (limits: { account: number; app: number }) => {
+    const started = await startRead(sub, photo, limits)
+    if (typeof started === 'object') await finishRead(sub, photo, started.readId)
+    return typeof started === 'object' ? 'started' : started
+  }
+  assert.equal(await read({ account: 2, app: 1_000_000 }), 'started')
+  assert.equal(await read({ account: 2, app: 1_000_000 }), 'started')
+  assert.equal(await read({ account: 2, app: 1_000_000 }), 'read_limit')
+  assert.equal(await read({ account: 0, app: 1_000_000 }), 'read_limit')
+  assert.equal(await read({ account: 100, app: 0 }), 'read_unavailable')
+  const { used, open } = await readUse(sub, { account: 2, app: 1 })
+  assert.deepEqual({ used, open }, { used: 2, open: false })
 })
 
 test('leaves a document deleted while its file was being checked', async () => {

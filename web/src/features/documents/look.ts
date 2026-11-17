@@ -35,6 +35,9 @@ export const PAGE_WIDTH = { fields: 560, withFile: 1100 } as const
 // A document's own name, or its issuer when it has none.
 export const documentName = (doc: Pick<DocumentInput, 'title' | 'issuer'>) => doc.title ?? doc.issuer
 
+// The file's preview while the model reads it.
+export const readingBusy = (t: TFunction) => ({ label: t('documents.busy.reading'), scan: true })
+
 // The label of a document's due date, which depends on its type, e.g. pay by for an invoice.
 export const dueDateLabel = (t: TFunction, type: DocumentType) =>
   hasDueDate(type) ? t(`documents.due.${type as Exclude<DocumentType, 'receipt'>}`) : undefined

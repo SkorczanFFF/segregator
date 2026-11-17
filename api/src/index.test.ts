@@ -2,8 +2,10 @@ import assert from 'node:assert/strict'
 import { randomUUID } from 'node:crypto'
 import { test } from 'node:test'
 import { CognitoIdentityProviderClient } from '@aws-sdk/client-cognito-identity-provider'
+import { SQSClient } from '@aws-sdk/client-sqs'
+import { SSMClient } from '@aws-sdk/client-ssm'
 import { Hono } from 'hono'
-import { STORAGE_LIMIT, type Draft, type StorageUse, type Upload } from 'shared'
+import { STORAGE_LIMIT, type Draft, type ReadUse, type StorageUse, type Upload } from 'shared'
 import { fakeS3 } from './fake-s3.ts'
 import { randomHash, setUpLocalTable } from './local-table.ts'
 
@@ -13,7 +15,7 @@ process.env.APP_URL = 'https://app.example.com'
 
 const { app } = await import('./index.ts')
 const { createSession } = await import('./session.ts')
-const { claimDocument, createDraft, settleDocument } = await import('./document-table.ts')
+const { claimDocument, createDraft, finishRead, settleDocument } = await import('./document-table.ts')
 
 // Starts a session through the real session code and returns the cookie a browser would send back.
 async function signIn(sub = randomUUID()) {
@@ -231,4 +233,33 @@ test('shows both versions of a changed photo, keeps the chosen one and deletes b
   const sent = fakeS3(t)
   assert.equal((await app.request(`/api/documents/${id}`, { method: 'DELETE', headers: json(owner) })).status, 204)
   assert.deepEqual(sent.toSorted(), [`DeleteObjectCommand processed/${sub}/${id}`, `DeleteObjectCommand raw/${sub}/${id}`])
+})
+
+test('starts a reading of a checked photo within the limits, and shows how many are left', async (t) => {
+  t.mock.method(SSMClient.prototype, 'send', async () => ({ Parameter: { Value: '{"account":1,"app":1000000}' } }))
+  const queued: string[] = []
+  t.mock.method(SQSClient.prototype, 'send', async (command: { input: { MessageBody: string } }) => {
+    queued.push(command.input.MessageBody)
+    return {}
+  })
+  const sub = randomUUID()
+  const cookie = await signIn(sub)
+  const { id } = await createDraft(sub, randomHash(), 2048)
+  const read = () => app.request(`/api/documents/${id}/read`, { method: 'POST', headers: json(cookie) })
+  const reads = async () => (await (await app.request('/api/documents/reads', { headers: json(cookie) })).json()) as ReadUse
+  assert.equal((await read()).status, 400, 'a file not checked yet')
+
+  await claimDocument(sub, id, 'message')
+  await settleDocument(sub, id, 'message', { status: 'done', file: { type: 'image/jpeg', size: 2048, pages: 1 } })
+  const started = await read()
+  assert.equal(started.status, 202)
+  const { read: reading } = (await started.json()) as Draft
+  assert.equal(reading?.status, 'reading')
+  assert.deepEqual(queued.map((body) => JSON.parse(body)), [{ sub, id, readId: reading?.id }])
+  assert.deepEqual(await reads(), { used: 1, limit: 1, open: true })
+
+  await finishRead(sub, id, reading?.id ?? '')
+  const over = await read()
+  assert.equal(over.status, 403)
+  assert.deepEqual(await over.json(), { error: 'read_limit' })
 })

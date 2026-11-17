@@ -5,9 +5,10 @@ import { useTranslation } from 'react-i18next'
 import { Navigate, useNavigate, useParams } from 'react-router'
 import type { Document, DocumentInput } from 'shared'
 import DocumentForm from '~/features/documents/components/DocumentForm.tsx'
+import ReadPanel from '~/features/documents/components/ReadPanel.tsx'
 import SavedFile from '~/features/documents/components/SavedFile.tsx'
 import { documentName, PAGE_WIDTH } from '~/features/documents/look.ts'
-import { documentKey, refreshDocuments, useDocument } from '~/features/documents/useDocuments.ts'
+import { documentKey, isReading, refreshDocuments, useDocument, useReadOutcome } from '~/features/documents/useDocuments.ts'
 import ApiErrorAlert from '~/shared/components/ApiErrorAlert.tsx'
 import Page from '~/shared/components/Page.tsx'
 import { useApiSubmit } from '~/shared/hooks/useApiSubmit.ts'
@@ -21,6 +22,10 @@ export default function DocumentPage() {
   const queryClient = useQueryClient()
   const [confirming, { open, close }] = useDisclosure()
   const { data: doc, error } = useDocument(id)
+  const reading = isReading(doc)
+  // Files saved before pages were counted can't be read.
+  const readable = doc?.file?.pages !== undefined
+  const { outcome, suggestion } = useReadOutcome(doc)
 
   async function save(input: DocumentInput) {
     queryClient.setQueryData(documentKey(id), await api.put<Document>(`/documents/${id}`, input))
@@ -61,7 +66,10 @@ export default function DocumentPage() {
         <DocumentForm
           key={doc.id}
           doc={doc}
-          aside={doc.file && <SavedFile id={doc.id} file={doc.file} />}
+          aside={doc.file && <SavedFile id={doc.id} file={doc.file} reading={reading} />}
+          top={readable && <ReadPanel doc={doc} outcome={outcome} />}
+          lock={reading ? 'reading' : undefined}
+          suggestion={suggestion}
           onSave={save}
           onDelete={open}
         />

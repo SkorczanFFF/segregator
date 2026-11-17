@@ -8,7 +8,8 @@ import { isPdf, needsChoice, usedVersion, type DocumentFile, type Draft, type Fi
 import FilePreview from '~/features/documents/components/FilePreview.tsx'
 import ImageViewer from '~/features/documents/components/ImageViewer.tsx'
 import VersionSwitch from '~/features/documents/components/VersionSwitch.tsx'
-import { chooseVersion, fileUrl } from '~/features/documents/useDocuments.ts'
+import { readingBusy } from '~/features/documents/look.ts'
+import { chooseVersion, fileUrl, isReading } from '~/features/documents/useDocuments.ts'
 import ApiErrorAlert from '~/shared/components/ApiErrorAlert.tsx'
 import StatusAlert from '~/shared/components/StatusAlert.tsx'
 import { useApiSubmit } from '~/shared/hooks/useApiSubmit.ts'
@@ -36,7 +37,8 @@ export default function DraftFile({ draft, onOtherPhoto }: DraftFileProps) {
       <Comparison id={draft.id} file={file} change={file.change} onChosen={() => setChoosing(false)} onOtherPhoto={onOtherPhoto} />
     )
   }
-  return <Chosen id={draft.id} file={file} onChange={file.change && (() => setChoosing(true))} />
+  const reading = isReading(draft)
+  return <Chosen id={draft.id} file={file} reading={reading} onChange={file.change && !reading ? () => setChoosing(true) : undefined} />
 }
 
 function Problem({ status, text, action, onAction }: { status: 'warning' | 'error'; text: string; action: string; onAction: () => void }) {
@@ -98,7 +100,9 @@ function Comparison({ id, file, change, onChosen, onOtherPhoto }: ComparisonProp
 
 // The version the fields go with. A wide screen shows it whole beside the fields; a phone, a small row
 // above them, whose image opens in the viewer.
-function Chosen({ id, file, onChange }: { id: string; file: DocumentFile; onChange?: () => void }) {
+type ChosenProps = { id: string; file: DocumentFile; reading: boolean; onChange?: () => void }
+
+function Chosen({ id, file, reading, onChange }: ChosenProps) {
   const { t } = useTranslation()
   const [viewing, viewer] = useDisclosure()
   const pdf = isPdf(file.type)
@@ -116,7 +120,13 @@ function Chosen({ id, file, onChange }: { id: string; file: DocumentFile; onChan
   return (
     <>
       <Stack visibleFrom="md" flex={1}>
-        <FilePreview file={file} image={image} pages={file.pages} caption={`${title} · ${status}`}>
+        <FilePreview
+          file={file}
+          image={image}
+          pages={file.pages}
+          caption={`${title} · ${status}`}
+          busy={reading ? readingBusy(t) : undefined}
+        >
           {change}
         </FilePreview>
       </Stack>

@@ -5,13 +5,14 @@ import { useTranslation } from 'react-i18next'
 import { isPdf, usedVersion, type DocumentFile, type FileVersion } from 'shared'
 import FilePreview from '~/features/documents/components/FilePreview.tsx'
 import VersionSwitch from '~/features/documents/components/VersionSwitch.tsx'
+import { readingBusy } from '~/features/documents/look.ts'
 import { chooseVersion, fileUrl } from '~/features/documents/useDocuments.ts'
 import ApiErrorAlert from '~/shared/components/ApiErrorAlert.tsx'
 import { useApiSubmit } from '~/shared/hooks/useApiSubmit.ts'
 
 // A saved document's file. A photo shows on the page, a PDF opens in a new tab. A photo that processing
-// changed shows either version, and the one in use can be swapped.
-export default function SavedFile({ id, file }: { id: string; file: DocumentFile }) {
+// changed shows either version, and the one in use can be swapped. While the model reads it, it says so.
+export default function SavedFile({ id, file, reading }: { id: string; file: DocumentFile; reading: boolean }) {
   const { t } = useTranslation()
   const queryClient = useQueryClient()
   const used = usedVersion(file)
@@ -22,6 +23,7 @@ export default function SavedFile({ id, file }: { id: string; file: DocumentFile
   return (
     <Stack gap="md">
       <FilePreview
+        busy={reading ? readingBusy(t) : undefined}
         file={file}
         image={isPdf(file.type) ? undefined : url}
         pages={file.pages}

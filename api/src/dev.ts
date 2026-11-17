@@ -1,7 +1,17 @@
 import { serve } from '@hono/node-server'
 import { app } from './index.ts'
 
-for (const name of ['TABLE_NAME', 'USER_POOL_ID', 'USER_POOL_CLIENT_ID', 'COGNITO_DOMAIN', 'APP_URL', 'DOCUMENTS_BUCKET']) {
+const NAMES = [
+  'TABLE_NAME',
+  'USER_POOL_ID',
+  'USER_POOL_CLIENT_ID',
+  'COGNITO_DOMAIN',
+  'APP_URL',
+  'DOCUMENTS_BUCKET',
+  'READ_QUEUE_URL',
+  'READ_LIMITS_PARAMETER',
+]
+for (const name of NAMES) {
   if (!process.env[name]) throw new Error(`${name} is missing in api/.env, see README.md`)
 }
 

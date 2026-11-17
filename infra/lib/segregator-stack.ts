@@ -38,6 +38,7 @@ const API_ENTRY = fileURLToPath(new URL('../../api/src/index.ts', import.meta.ur
 const PRE_SIGN_UP_ENTRY = fileURLToPath(new URL('../../api/src/pre-sign-up.ts', import.meta.url))
 const WORKER_ENTRY = fileURLToPath(new URL('../../api/src/worker.ts', import.meta.url))
 const DRAFT_CLEANUP_ENTRY = fileURLToPath(new URL('../../api/src/draft-cleanup.ts', import.meta.url))
+const READER_ENTRY = fileURLToPath(new URL('../../api/src/reader.ts', import.meta.url))
 const PREPROCESS_DIR = fileURLToPath(new URL('../../preprocess', import.meta.url))
 // clientId and clientSecret of the OAuth client in Google Cloud, stored once by hand.
 const GOOGLE_SECRET = 'segregator/google-oauth'
@@ -96,6 +97,13 @@ const MAX_RECEIVES = 5
 const ONE_BY_ONE = { batchSize: 1, reportBatchItemFailures: true, maxConcurrency: 2 } satisfies SqsEventSourceProps
 const PREPROCESS_TIMEOUT = Duration.seconds(30)
 const WORKER_TIMEOUT = Duration.seconds(15)
+// The model takes up to half a minute on a PDF.
+const READER_TIMEOUT = Duration.seconds(60)
+// The model that reads documents, through its EU inference profile. The reader may call this one and no other.
+const READ_MODEL = 'eu.amazon.nova-2-lite-v1:0'
+// Readings a month, as set on the first deploy. Like the sign-up list, a change in Parameter Store stays until
+// this value changes in the template.
+const READ_LIMITS = { account: 100, app: 2000 }
 // How far back the table can be restored, its longest. Older versions of files stay as long, so a restored
 // document still has its file.
 const RESTORE_DAYS = 35
@@ -341,15 +349,18 @@ export class SegregatorStack extends Stack {
       return queue
     }
 
-    // A step of the background work: the files that land under one version's prefix wait in a queue for the
-    // step's function. AWS advises a visibility timeout of six times the function's, so a retry after
+    // Work waiting for a function. AWS advises a visibility timeout of six times the function's, so a retry after
     // throttling still fits.
-    const stepQueue = (id: string, version: FileVersion, timeout: Duration) => {
-      const queue = new sqs.Queue(this, id, {
+    const workQueue = (id: string, timeout: Duration) =>
+      new sqs.Queue(this, id, {
         enforceSSL: true,
         visibilityTimeout: Duration.seconds(timeout.toSeconds() * 6),
         deadLetterQueue: { queue: deadLetterQueue(id), maxReceiveCount: MAX_RECEIVES },
       })
+
+    // A step of the background work: the files that land under one version's prefix wait for the step's function.
+    const stepQueue = (id: string, version: FileVersion, timeout: Duration) => {
+      const queue = workQueue(id, timeout)
       documentsBucket.addEventNotification(s3.EventType.OBJECT_CREATED, new s3n.SqsDestination(queue), {
         prefix: `${version}/`,
       })
@@ -402,6 +413,48 @@ export class SegregatorStack extends Stack {
     )
     documentsKey.grantDecrypt(workerFunction)
     workerFunction.addEventSource(new SqsEventSource(stepQueue('Processed', 'processed', WORKER_TIMEOUT), ONE_BY_ONE))
+
+    // A reading the API starts waits in a queue of its own for the reader, which asks the model for the fields.
+    const readQueue = workQueue('Reads', READER_TIMEOUT)
+    // Change without a deploy:
+    // aws ssm put-parameter --name /segregator/<stage>/read-limits --value '{"account":100,"app":2000}' --overwrite
+    const readLimits = new ssm.StringParameter(this, 'ReadLimits', {
+      parameterName: `/segregator/${stageName}/read-limits`,
+      stringValue: JSON.stringify(READ_LIMITS),
+    })
+    const readerFunction = new nodejs.NodejsFunction(this, 'ReaderFunction', {
+      ...NODE_FUNCTION,
+      entry: READER_ENTRY,
+      timeout: READER_TIMEOUT,
+      // A PDF goes to the model whole, up to FILE_MAX_SIZE in shared/src/file.ts.
+      memorySize: 256,
+      environment: {
+        TABLE_NAME: table.tableName,
+        DOCUMENTS_BUCKET: documentsBucket.bucketName,
+        MAX_RECEIVES: String(MAX_RECEIVES),
+        READ_MODEL,
+      },
+      logGroup: monthOfLogs('ReaderLogs'),
+    })
+    // Only what a reading needs: the chosen version of the file, the document, and the one model.
+    table.grant(readerFunction, 'dynamodb:GetItem', 'dynamodb:UpdateItem')
+    readerFunction.addToRolePolicy(new iam.PolicyStatement({ actions: ['s3:GetObject'], resources: allFiles }))
+    documentsKey.grantDecrypt(readerFunction)
+    const readProfile = this.formatArn({ service: 'bedrock', resource: 'inference-profile', resourceName: READ_MODEL })
+    readerFunction.addToRolePolicy(new iam.PolicyStatement({ actions: ['bedrock:InvokeModel'], resources: [readProfile] }))
+    // The EU profile passes a request on to the model in any EU region, and the model takes it only that way.
+    readerFunction.addToRolePolicy(
+      new iam.PolicyStatement({
+        actions: ['bedrock:InvokeModel'],
+        resources: [`arn:${this.partition}:bedrock:*::foundation-model/${READ_MODEL.replace(/^eu\./, '')}`],
+        conditions: { StringEquals: { 'bedrock:InferenceProfileArn': readProfile } },
+      }),
+    )
+    readerFunction.addEventSource(new SqsEventSource(readQueue, ONE_BY_ONE))
+    apiFunction.addEnvironment('READ_QUEUE_URL', readQueue.queueUrl)
+    apiFunction.addEnvironment('READ_LIMITS_PARAMETER', readLimits.parameterName)
+    readQueue.grantSendMessages(apiFunction)
+    readLimits.grantRead(apiFunction)
 
     // When TTL removes a draft nobody saved, its files go too. Only expiry removes items as the service
     // itself, and sessions expire in the same table, so the filter passes only documents.
@@ -526,5 +579,7 @@ export class SegregatorStack extends Stack {
     new CfnOutput(this, 'UserPoolClientId', { value: userPoolClient.userPoolClientId })
     new CfnOutput(this, 'CognitoDomain', { value: cognitoDomain.baseUrl() })
     new CfnOutput(this, 'DocumentsBucketName', { value: documentsBucket.bucketName })
+    new CfnOutput(this, 'ReadQueueUrl', { value: readQueue.queueUrl })
+    new CfnOutput(this, 'ReadLimitsParameter', { value: readLimits.parameterName })
   }
 }

@@ -2,6 +2,16 @@
 
 The minor version marks a stage of the build plan and the patch version each step or fix within it, as [Semantic Versioning](https://semver.org/spec/v2.0.0.html) allows before 1.0.0. Each entry starts with the version and its commit message, followed by a description of what changed.
 
+## 0.12.2 - feat: read a document's fields with AI
+
+Released 2026-11-17.
+
+- Once the file is approved, "Read with AI" fills in the type, subcategory, issuer, amount, date and due date from the version chosen. Each field it fills is marked AI until changed, and nothing is saved before Save.
+- A saved document can be read again. Only the fields that change are marked, each with the value it had.
+- While the model reads, the fields wait and the file shows "AI is reading the document…" under the sweeping band. A reading takes a few seconds.
+- Each account has 100 readings a month and the app 2000 in all, and the panel shows how many are left. A failed reading counts too. A PDF of more than one page, or a month's limit used up, leaves the fields to be entered by hand.
+- Behind the scenes, the API counts the reading against both limits in one transaction and queues it for a reader function. The reader sends the file to Amazon Nova 2 Lite on Bedrock through Converse, with one tool the model must call. Each field of the answer is checked by the document's own rules: a subcategory outside the list or a due date on a receipt is dropped, and an answer with only the type fails. The model has no other tool, a PDF goes under a fixed name, and only token counts reach the logs. IAM lets the reader call this one model, and only through its EU inference profile. The limits live in Parameter Store.
+
 ## 0.12.1 - feat: add a due date to documents
 
 Released 2026-11-17.

@@ -14,6 +14,8 @@ export const ERROR_CODES = [
   'not_found',
   'duplicate',
   'storage_full',
+  'read_limit',
+  'read_unavailable',
   'internal_error',
 ] as const
 

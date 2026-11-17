@@ -46,7 +46,17 @@ export type FileChoice = z.infer<typeof FileChoice>
 // A document with a file waits for it, then the worker checks it. One without a file is done at once.
 export type DocumentStatus = 'uploading' | 'processing' | 'done' | 'failed'
 
-type Stored = { id: string; createdAt: string; status: DocumentStatus; file?: DocumentFile }
+// The fields a reading of the file by the model can fill. The person checks them before saving.
+export type ReadResult = Partial<Pick<DocumentInput, 'type' | 'subtype' | 'issuer' | 'amount' | 'docDate' | 'dueDate'>>
+
+// The latest reading of a document's file: under way, done with its result, or failed when the model's answer
+// didn't hold up.
+export type DocumentRead = { id: string; status: 'reading' | 'done' | 'failed'; result?: ReadResult }
+
+// The account's readings this month against its limit. Closed once the whole app has used up its own.
+export type ReadUse = { used: number; limit: number; open: boolean }
+
+type Stored = { id: string; createdAt: string; status: DocumentStatus; file?: DocumentFile; read?: DocumentRead }
 
 export type Document = DocumentInput & Stored & { draft?: never }
 

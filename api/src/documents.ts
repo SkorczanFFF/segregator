@@ -1,5 +1,5 @@
 import { Hono } from 'hono'
-import { DocumentInput, FileChoice, STORAGE_LIMIT, UploadInput, type StorageUse } from 'shared'
+import { DocumentInput, FileChoice, STORAGE_LIMIT, UploadInput, type ReadUse, type StorageUse } from 'shared'
 import { deleteFiles, FILE_URL_SECONDS, fileUrl, ID_PATTERN, signUpload } from './document-files.ts'
 import {
   chooseVersion,
@@ -8,13 +8,18 @@ import {
   deleteDocument,
   DuplicateFile,
   findByHash,
+  finishRead,
   getDocument,
   listDocuments,
   markSent,
+  readUse,
+  startRead,
   storageUsed,
   updateDocument,
 } from './document-table.ts'
 import { apiError, duplicateError } from './errors.ts'
+import { queueRead } from './read-jobs.ts'
+import { readLimits } from './read-limits.ts'
 import type { Env } from './session.ts'
 import { jsonBody } from './validate.ts'
 
@@ -47,6 +52,26 @@ documents.post('/upload', jsonBody(UploadInput), async (c) => {
 })
 
 documents.get('/storage', async (c) => c.json({ used: await storageUsed(c.get('session').sub) } satisfies StorageUse))
+
+documents.get('/reads', async (c) => c.json((await readUse(c.get('session').sub, await readLimits())) satisfies ReadUse))
+
+// Reads the document's file with the model in the background. The reading counts against the limits at once,
+// and the document shows it under way until the reader is done.
+documents.post(`${BY_ID}/read`, async (c) => {
+  const sub = c.get('session').sub
+  const id = c.req.param('id')
+  const started = await startRead(sub, id, await readLimits())
+  if (started === 'not_ready') return apiError(c, 'invalid_input', 400)
+  if (started === 'read_limit' || started === 'read_unavailable') return apiError(c, started, 403)
+  try {
+    await queueRead({ sub, id, readId: started.readId })
+  } catch (err) {
+    // Without its message the reading would wait for nothing.
+    await finishRead(sub, id, started.readId)
+    throw err
+  }
+  return c.json(await getDocument(sub, id), 202)
+})
 
 // The browser has sent the file to S3.
 documents.post(`${BY_ID}/sent`, async (c) => {
