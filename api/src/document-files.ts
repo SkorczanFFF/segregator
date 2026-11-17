@@ -55,7 +55,8 @@ export async function readChange(sub: string, id: string): Promise<FileChange | 
 export const fileUrl = (sub: string, id: string, version: FileVersion) =>
   getSignedUrl(s3, new GetObjectCommand({ Bucket: BUCKET, Key: fileKey(sub, id, version) }), { expiresIn: FILE_URL_SECONDS })
 
-// Every version of a document's file. S3 deletes a missing key without error.
+// Both copies of a document's file, as sent and processed. The bucket keeps each as an older version for a
+// while, as the stack sets. S3 deletes a missing key without error.
 export async function deleteFiles(sub: string, id: string) {
   await Promise.all(
     FILE_VERSIONS.map((version) =>

@@ -96,6 +96,13 @@ const MAX_RECEIVES = 5
 const ONE_BY_ONE = { batchSize: 1, reportBatchItemFailures: true, maxConcurrency: 2 } satisfies SqsEventSourceProps
 const PREPROCESS_TIMEOUT = Duration.seconds(30)
 const WORKER_TIMEOUT = Duration.seconds(15)
+// How far back the table can be restored, its longest. Older versions of files stay as long, so a restored
+// document still has its file.
+const RESTORE_DAYS = 35
+// After this long a file is opened rarely, so it moves to a class about a fifth of the price that still opens
+// at once. S3 leaves files under 128 kB where they are, since the class bills each file as at least that.
+const ARCHIVE_AFTER = Duration.days(90)
+
 // Well above a photo the browser prepares (PHOTO_MAX_SIDE in web/src/features/upload/prepare.ts). The cap
 // stops a small file that unpacks into a huge image.
 const MAX_PIXELS = 25_000_000
@@ -151,6 +158,16 @@ export class SegregatorStack extends Stack {
       bucketKeyEnabled: true,
       // The browser posts files here directly, past the API.
       cors: [{ allowedOrigins: appUrls, allowedMethods: [s3.HttpMethods.POST] }],
+      // A deleted or replaced file stays as an older version for RESTORE_DAYS.
+      versioned: true,
+      lifecycleRules: [
+        {
+          transitions: [{ storageClass: s3.StorageClass.GLACIER_INSTANT_RETRIEVAL, transitionAfter: ARCHIVE_AFTER }],
+          noncurrentVersionExpiration: Duration.days(RESTORE_DAYS),
+          // A delete marker left with no versions behind it goes too.
+          expiredObjectDeleteMarker: true,
+        },
+      ],
     })
     // The browser sends files to the bucket and shows them from it.
     const filesOrigin = `https://${documentsBucket.bucketRegionalDomainName}`
@@ -275,8 +292,8 @@ export class SegregatorStack extends Stack {
       timeToLiveAttribute: TTL_ATTRIBUTE,
       // The keys of removed items, so the files of an expired draft can go too.
       dynamoStream: dynamodb.StreamViewType.KEYS_ONLY,
-      // The data can be restored to any second of the last 35 days. Files can't, as the bucket keeps no versions.
-      pointInTimeRecoverySpecification: { pointInTimeRecoveryEnabled: true },
+      // The data can be restored to any second of the last RESTORE_DAYS.
+      pointInTimeRecoverySpecification: { pointInTimeRecoveryEnabled: true, recoveryPeriodInDays: RESTORE_DAYS },
       deletionProtection: true,
       // One index for per-user lists: an account's sessions and documents.
       globalSecondaryIndexes: [

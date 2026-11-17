@@ -2,6 +2,13 @@
 
 The minor version marks a stage of the build plan and the patch version each step or fix within it, as [Semantic Versioning](https://semver.org/spec/v2.0.0.html) allows before 1.0.0. Each entry starts with the version and its commit message, followed by a description of what changed.
 
+## 0.11.2 - feat: keep older files cheaply and recoverable for 35 days
+
+Released 2026-11-17.
+
+- After 90 days a file moves to S3 Glacier Instant Retrieval, about a fifth of the price, and still opens at once. Files under 128 kB stay where they are, since that class bills each file as at least 128 kB.
+- The documents bucket keeps versions. A deleted file stays recoverable for 35 days, as long as the table can be restored, so a restored document still has its file. After that its older version is deleted for good.
+
 ## 0.11.1 - feat: give each account 500 MB for files
 
 Released 2026-11-17.
