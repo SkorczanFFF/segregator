@@ -1,9 +1,10 @@
 import { useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router'
-import type { NewDocumentInput } from 'shared'
+import type { DocumentInput } from 'shared'
 import DocumentForm, { PAGE_WIDTH_WITH_FILE } from '~/features/documents/components/DocumentForm.tsx'
 import { refreshDocuments } from '~/features/documents/useDocuments.ts'
+import { uploadDocument, type OnProgress } from '~/features/upload/upload.ts'
 import Page from '~/shared/components/Page.tsx'
 import { api } from '~/shared/lib/api.ts'
 
@@ -12,8 +13,9 @@ export default function NewDocumentPage() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
 
-  async function create(input: NewDocumentInput) {
-    await api.post('/documents', input)
+  async function create(input: DocumentInput, file: Blob | null, onProgress: OnProgress) {
+    if (file) await uploadDocument(input, file, onProgress)
+    else await api.post('/documents', input)
     await refreshDocuments(queryClient)
     navigate('/documents')
   }

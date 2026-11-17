@@ -21,6 +21,7 @@
     "@aws-sdk/s3-request-presigner": "^3.1164.0",
     "@hono/aws-lambda": "^1.0.1",
     "hono": "^4.13.16",
+    "pdfjs-dist": "catalog:",
     "shared": "workspace:*",
     "ulid": "^3.0.2",
     "zod": "catalog:"

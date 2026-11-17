@@ -127,6 +127,13 @@ export const pl = {
     rotateRight: 'Obróć w prawo',
     openFile: 'Otwórz plik',
     hasFile: 'Ma plik',
+    fileChecking: 'Plik jest sprawdzany. Za chwilę pojawi się obok danych.',
+    fileFailed: 'Nie udało się sprawdzić pliku: jest uszkodzony albo jego treść nie pasuje do typu. Usuń dokument i dodaj plik jeszcze raz.',
+    status: {
+      uploading: 'Wysyłanie',
+      processing: 'Sprawdzanie',
+      failed: 'Błąd pliku',
+    },
     dropTitle: 'Przeciągnij tu zdjęcie albo PDF',
     dropText: 'Zdjęcie zostanie zmniejszone, a lokalizacja z aparatu usunięta, jeszcze przed wysłaniem.',
     dropHint: 'JPEG, PNG albo PDF do {{maxSize}}',

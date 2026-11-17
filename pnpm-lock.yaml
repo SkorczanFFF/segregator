@@ -9,6 +9,9 @@ catalogs:
     '@types/node':
       specifier: ^24.19.2
       version: 24.19.2
+    pdfjs-dist:
+      specifier: ^6.5.438
+      version: 6.5.438
     typescript:
       specifier: ~7.0.2
       version: 7.0.2
@@ -53,6 +56,9 @@ importers:
       hono:
         specifier: ^4.13.16
         version: 4.13.16
+      pdfjs-dist:
+        specifier: 'catalog:'
+        version: 6.5.438
       shared:
         specifier: workspace:*
         version: link:../shared
@@ -147,7 +153,7 @@ importers:
         specifier: ^26.7.2
         version: 26.7.2(typescript@7.0.2)
       pdfjs-dist:
-        specifier: ^6.5.438
+        specifier: 'catalog:'
         version: 6.5.438
       react:
         specifier: ^19.3.1

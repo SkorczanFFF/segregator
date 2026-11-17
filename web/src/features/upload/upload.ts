@@ -1,9 +1,11 @@
-import type { Upload } from 'shared'
+import type { DocumentInput, Upload } from 'shared'
 import { api, ApiError } from '~/shared/lib/api.ts'
 
-// Sends the file straight to S3 through a form the API signs, and returns the file's id.
-export async function uploadFile(file: Blob, onProgress: (percent: number) => void) {
-  const { id, url, fields } = await api.post<Upload>('/documents/upload', { type: file.type })
+export type OnProgress = (percent: number) => void
+
+// Creates the document, then sends its file straight to S3 through a form the API signs.
+export async function uploadDocument(input: DocumentInput, file: Blob, onProgress: OnProgress) {
+  const { id, url, fields } = await api.post<Upload>('/documents/upload', { ...input, fileType: file.type })
   const body = new FormData()
   for (const [name, value] of Object.entries(fields)) body.append(name, value)
   // S3 ignores fields that come after the file.
@@ -19,6 +21,9 @@ export async function uploadFile(file: Blob, onProgress: (percent: number) => vo
     request.onerror = () => reject(new ApiError('network_error'))
     request.open('POST', url)
     request.send(body)
+  }).catch(async (err: unknown) => {
+    // Without its file the document would only wait to expire, so a retry starts clean.
+    await api.delete(`/documents/${id}`).catch(() => undefined)
+    throw err
   })
-  return id
 }

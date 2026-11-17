@@ -10,10 +10,13 @@ import * as dynamodb from 'aws-cdk-lib/aws-dynamodb'
 import * as iam from 'aws-cdk-lib/aws-iam'
 import * as kms from 'aws-cdk-lib/aws-kms'
 import * as lambda from 'aws-cdk-lib/aws-lambda'
+import { SqsEventSource } from 'aws-cdk-lib/aws-lambda-event-sources'
 import * as nodejs from 'aws-cdk-lib/aws-lambda-nodejs'
 import * as logs from 'aws-cdk-lib/aws-logs'
 import * as s3 from 'aws-cdk-lib/aws-s3'
 import * as s3deploy from 'aws-cdk-lib/aws-s3-deployment'
+import * as s3n from 'aws-cdk-lib/aws-s3-notifications'
+import * as sqs from 'aws-cdk-lib/aws-sqs'
 import * as ssm from 'aws-cdk-lib/aws-ssm'
 import type { Construct } from 'constructs'
 import { PASSWORD_MIN_LENGTH } from 'shared'
@@ -21,6 +24,7 @@ import { PASSWORD_MIN_LENGTH } from 'shared'
 const WEB_DIST = fileURLToPath(new URL('../../web/dist', import.meta.url))
 const API_ENTRY = fileURLToPath(new URL('../../api/src/index.ts', import.meta.url))
 const PRE_SIGN_UP_ENTRY = fileURLToPath(new URL('../../api/src/pre-sign-up.ts', import.meta.url))
+const WORKER_ENTRY = fileURLToPath(new URL('../../api/src/worker.ts', import.meta.url))
 // clientId and clientSecret of the OAuth client in Google Cloud, stored once by hand.
 const GOOGLE_SECRET = 'segregator/google-oauth'
 // Served by api/src/google.ts.
@@ -38,6 +42,11 @@ const NODE_FUNCTION = {
     mainFields: ['module', 'main'],
   },
 } satisfies nodejs.NodejsFunctionProps
+
+// A file the worker can't check this many times goes to the dead-letter queue. AWS advises at least 5,
+// because a throttled call counts as a try too.
+const MAX_RECEIVES = 5
+const WORKER_TIMEOUT = Duration.seconds(15)
 
 // Paths without a file extension belong to the client-side router.
 const SPA_REWRITE = `function handler(event) {
@@ -249,6 +258,53 @@ export class SegregatorStack extends Stack {
     // Signing an upload needs the right to put the file itself, and with it the KMS key.
     documentsBucket.grantReadWrite(apiFunction, 'raw/*')
 
+    // Every new file under raw/ becomes a message, and the worker checks it in the background.
+    const deadLetters = new sqs.Queue(this, 'UploadsDeadLetters', {
+      enforceSSL: true,
+      // Time to look into a failed file and send it back.
+      retentionPeriod: Duration.days(14),
+    })
+    const uploads = new sqs.Queue(this, 'Uploads', {
+      enforceSSL: true,
+      // AWS advises six times the function's timeout, so a retry after throttling still fits.
+      visibilityTimeout: Duration.seconds(WORKER_TIMEOUT.toSeconds() * 6),
+      deadLetterQueue: { queue: deadLetters, maxReceiveCount: MAX_RECEIVES },
+    })
+    documentsBucket.addEventNotification(s3.EventType.OBJECT_CREATED, new s3n.SqsDestination(uploads), {
+      prefix: 'raw/',
+    })
+
+    const workerFunction = new nodejs.NodejsFunction(this, 'WorkerFunction', {
+      ...NODE_FUNCTION,
+      entry: WORKER_ENTRY,
+      timeout: WORKER_TIMEOUT,
+      // A PDF of up to 10 MB is read whole by pdf.js.
+      memorySize: 256,
+      environment: {
+        TABLE_NAME: table.tableName,
+        DOCUMENTS_BUCKET: documentsBucket.bucketName,
+        MAX_RECEIVES: String(MAX_RECEIVES),
+      },
+      logGroup: new logs.LogGroup(this, 'WorkerLogs', {
+        retention: logs.RetentionDays.ONE_MONTH,
+        removalPolicy: RemovalPolicy.DESTROY,
+      }),
+    })
+    // Only what the check needs: read a file and update its document.
+    table.grant(workerFunction, 'dynamodb:UpdateItem')
+    workerFunction.addToRolePolicy(
+      new iam.PolicyStatement({ actions: ['s3:GetObject'], resources: [documentsBucket.arnForObjects('raw/*')] }),
+    )
+    documentsKey.grantDecrypt(workerFunction)
+    workerFunction.addEventSource(
+      new SqsEventSource(uploads, {
+        batchSize: 1,
+        reportBatchItemFailures: true,
+        // The account runs at most 10 functions at once, so a burst of uploads must not take them from the API.
+        maxConcurrency: 2,
+      }),
+    )
+
     const integration = new HttpLambdaIntegration('ApiIntegration', apiFunction)
     const api = new HttpApi(this, 'Api', { defaultIntegration: integration, createDefaultStage: false })
     // Sign-in, sign-up and code requests get a stricter limit of their own against password guessing
@@ -340,5 +396,7 @@ export class SegregatorStack extends Stack {
     new CfnOutput(this, 'UserPoolClientId', { value: userPoolClient.userPoolClientId })
     new CfnOutput(this, 'CognitoDomain', { value: cognitoDomain.baseUrl() })
     new CfnOutput(this, 'DocumentsBucketName', { value: documentsBucket.bucketName })
+    // Where failed files wait, to look into and send back.
+    new CfnOutput(this, 'UploadsDeadLettersUrl', { value: deadLetters.queueUrl })
   }
 }

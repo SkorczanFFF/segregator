@@ -1,7 +1,6 @@
-import { ConditionalCheckFailedException } from '@aws-sdk/client-dynamodb'
 import { Hono } from 'hono'
-import { DocumentInput, NewDocumentInput, UploadInput } from 'shared'
-import { deleteFile, fileInfo, fileUrl, signUpload } from './document-files.ts'
+import { DocumentInput, UploadInput } from 'shared'
+import { deleteFile, fileUrl, ID_PATTERN, signUpload } from './document-files.ts'
 import { createDocument, deleteDocument, getDocument, listDocuments, updateDocument } from './document-table.ts'
 import { apiError } from './errors.ts'
 import type { Env } from './session.ts'
@@ -9,8 +8,8 @@ import { jsonBody } from './validate.ts'
 
 export const documents = new Hono<Env>()
 
-// Matches ULIDs only; any other id falls through to the app's 404.
-const BY_ID = '/:id{[0-9A-HJKMNP-TV-Z]{26}}'
+// Any other id falls through to the app's 404.
+const BY_ID = `/:id{${ID_PATTERN}}`
 
 documents.get('/', async (c) => {
   const page = await listDocuments(c.get('session').sub, c.req.query('cursor'))
@@ -18,25 +17,17 @@ documents.get('/', async (c) => {
   return c.json(page)
 })
 
-documents.post('/upload', jsonBody(UploadInput), async (c) =>
-  c.json(await signUpload(c.get('session').sub, c.req.valid('json').type), 201),
+documents.post('/', jsonBody(DocumentInput), async (c) =>
+  c.json(await createDocument(c.get('session').sub, c.req.valid('json')), 201),
 )
 
-documents.post('/', jsonBody(NewDocumentInput), async (c) => {
-  const { fileId, ...fields } = c.req.valid('json')
+// The document comes first, so it stays even when the tab closes right after the file is sent.
+// Its file goes straight to S3, and the worker takes it from there.
+documents.post('/upload', jsonBody(UploadInput), async (c) => {
+  const { fileType, ...fields } = c.req.valid('json')
   const sub = c.get('session').sub
-  if (!fileId) return c.json(await createDocument(sub, fields), 201)
-
-  // The browser has already sent the file, so S3 confirms it before the document points at it.
-  const file = await fileInfo(sub, fileId)
-  if (!file) return apiError(c, 'invalid_input', 400)
-  try {
-    return c.json(await createDocument(sub, fields, { id: fileId, ...file }), 201)
-  } catch (err) {
-    // The file already belongs to a document.
-    if (err instanceof ConditionalCheckFailedException) return apiError(c, 'invalid_input', 400)
-    throw err
-  }
+  const doc = await createDocument(sub, fields, true)
+  return c.json(await signUpload(sub, doc.id, fileType), 201)
 })
 
 documents.get(BY_ID, async (c) => {
@@ -64,7 +55,8 @@ documents.delete(BY_ID, async (c) => {
   const doc = await getDocument(sub, c.req.param('id'))
   if (!doc) return apiError(c, 'not_found', 404)
   // The file goes first, so a failed delete can be repeated and never leaves a file without its document.
-  if (doc.file) await deleteFile(sub, doc.id)
+  // A document still in the worker's hands may have a file already, and S3 deletes a missing key without error.
+  await deleteFile(sub, doc.id)
   await deleteDocument(sub, doc.id)
   return c.body(null, 204)
 })

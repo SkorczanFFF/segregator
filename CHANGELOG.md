@@ -2,6 +2,15 @@
 
 The minor version marks a stage of the build plan and the patch version each step or fix within it, as [Semantic Versioning](https://semver.org/spec/v2.0.0.html) allows before 1.0.0. Each entry starts with the version and its commit message, followed by a description of what changed.
 
+## 0.10.0 - feat: check uploaded files in the background
+
+Released 2026-11-17.
+
+- A new document with a file is saved before its file is sent, so closing the tab right after the upload loses nothing. A document whose file never arrives leaves the list after 15 minutes.
+- Each uploaded file is checked in the background: its content has to match its type, and a PDF's pages are counted on the server. Until then the list and the document show "Checking", and they refresh by themselves.
+- A file that is damaged or of another type than declared is marked with a file error, and its document says how to add it again.
+- Behind the scenes, S3 puts every new file on an SQS queue that a separate Lambda reads one message at a time. A file that fails five checks moves to a dead-letter queue, and a duplicate event never checks the same file twice. An edit no longer replaces what the check found.
+
 ## 0.9.6 - fix: keep an edit from bringing back a deleted document
 
 Released 2026-11-16.

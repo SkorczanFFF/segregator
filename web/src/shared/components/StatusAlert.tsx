@@ -1,10 +1,11 @@
 import { Alert, type AlertProps } from '@mantine/core'
-import { IconAlertCircle, IconAlertTriangle, IconCircleCheck } from '@tabler/icons-react'
+import { IconAlertCircle, IconAlertTriangle, IconCircleCheck, IconInfoCircle } from '@tabler/icons-react'
 
 const STATUS = {
   error: { color: 'red', Icon: IconAlertCircle },
   warning: { color: 'orange', Icon: IconAlertTriangle },
   success: { color: 'green', Icon: IconCircleCheck },
+  info: { color: 'brand', Icon: IconInfoCircle },
 } as const
 
 type StatusAlertProps = Omit<AlertProps, 'color' | 'icon'> & { status: keyof typeof STATUS }

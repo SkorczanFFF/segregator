@@ -1,14 +1,13 @@
 import assert from 'node:assert/strict'
 import { randomUUID } from 'node:crypto'
 import { test } from 'node:test'
-import { DynamoDBClient, GetItemCommand } from '@aws-sdk/client-dynamodb'
 import type { DocumentInput } from 'shared'
-import { ulid } from 'ulid'
 import { setUpLocalTable } from './local-table.ts'
 
 setUpLocalTable('documents-test')
 
-const { createDocument, deleteDocument, getDocument, listDocuments, updateDocument } = await import('./document-table.ts')
+const { claimDocument, createDocument, deleteDocument, getDocument, listDocuments, settleDocument, updateDocument } =
+  await import('./document-table.ts')
 
 const doc = (docDate: string, extra: Partial<DocumentInput> = {}): DocumentInput => ({
   type: 'receipt',
@@ -67,31 +66,65 @@ test('updates what a person entered and keeps the id and creation time', async (
   assert.equal((await listDocuments(sub))?.items.at(-1)?.id, created.id)
 })
 
-test('does not bring back a document deleted while it was being updated', async (t) => {
+test('does not bring back a deleted document', async () => {
   const sub = randomUUID()
-  const created = await createDocument(sub, doc('2026-11-10'))
-  // The delete lands right after the update has read the document.
-  const send = DynamoDBClient.prototype.send as (this: DynamoDBClient, command: object) => Promise<unknown>
-  t.mock.method(DynamoDBClient.prototype, 'send', async function (this: DynamoDBClient, command: object) {
-    const result = await send.call(this, command)
-    if (command instanceof GetItemCommand) await deleteDocument(sub, created.id)
-    return result
-  })
+  const { id } = await createDocument(sub, doc('2026-11-10'))
+  await deleteDocument(sub, id)
 
-  assert.equal(await updateDocument(sub, created.id, doc('2026-11-11')), undefined)
-  t.mock.restoreAll()
-  assert.equal(await getDocument(sub, created.id), undefined)
+  assert.equal(await updateDocument(sub, id, doc('2026-11-11')), undefined)
+  assert.equal(await getDocument(sub, id), undefined)
 })
 
-test('keeps the file through updates and gives it to one document only', async () => {
+test('hides a document whose file never came', async (t) => {
   const sub = randomUUID()
-  const file = { id: ulid(), type: 'image/jpeg', size: 1234 } as const
-  assert.equal((await createDocument(sub, doc('2026-11-10'), file)).id, file.id)
+  const { id, status } = await createDocument(sub, doc('2026-11-10'), true)
+  assert.equal(status, 'uploading')
+  assert.equal((await listDocuments(sub))?.items[0]?.id, id)
 
-  await updateDocument(sub, file.id, doc('2026-11-11'))
-  assert.deepEqual((await getDocument(sub, file.id))?.file, { type: 'image/jpeg', size: 1234 })
-  await assert.rejects(createDocument(sub, doc('2026-11-12'), file), { name: 'ConditionalCheckFailedException' })
+  t.mock.timers.enable({ apis: ['Date'], now: Date.now() + 16 * 60 * 1000 })
+  assert.equal((await listDocuments(sub))?.items.length, 0)
+  assert.equal(await getDocument(sub, id), undefined)
+})
 
-  await deleteDocument(sub, file.id)
-  assert.equal(await getDocument(sub, file.id), undefined)
+test('lets one message at a time check a file, and the same message again on a retry', async () => {
+  const sub = randomUUID()
+  const { id } = await createDocument(sub, doc('2026-11-10'), true)
+
+  assert.equal(await claimDocument(sub, id, 'first'), true)
+  assert.equal(await claimDocument(sub, id, 'duplicate'), false)
+  assert.equal(await claimDocument(sub, id, 'first'), true, 'a retry of the same message')
+  assert.equal((await getDocument(sub, id))?.status, 'processing')
+
+  await settleDocument(sub, id, 'first', { status: 'failed' })
+  assert.equal(await claimDocument(sub, id, 'sent again'), true, 'a failed file sent back from the dead-letter queue')
+  const file = { type: 'application/pdf', size: 1234, pages: 2 } as const
+  await settleDocument(sub, id, 'sent again', { status: 'done', file })
+  assert.equal(await claimDocument(sub, id, 'late duplicate'), false)
+
+  const done = await getDocument(sub, id)
+  assert.equal(done?.status, 'done')
+  assert.deepEqual(done?.file, file)
+})
+
+test('keeps the status and the file through an edit', async () => {
+  const sub = randomUUID()
+  const { id } = await createDocument(sub, doc('2026-11-10'), true)
+  await claimDocument(sub, id, 'message')
+  await updateDocument(sub, id, doc('2026-11-11', { title: 'Zmieniony' }))
+  await settleDocument(sub, id, 'message', { status: 'done', file: { type: 'image/jpeg', size: 99, pages: 1 } })
+
+  const stored = await getDocument(sub, id)
+  assert.equal(stored?.title, 'Zmieniony')
+  assert.equal(stored?.status, 'done')
+  assert.equal(stored?.file?.size, 99)
+})
+
+test('leaves a document deleted while its file was being checked', async () => {
+  const sub = randomUUID()
+  const { id } = await createDocument(sub, doc('2026-11-10'), true)
+  await claimDocument(sub, id, 'message')
+  await deleteDocument(sub, id)
+
+  await settleDocument(sub, id, 'message', { status: 'failed' })
+  assert.equal(await getDocument(sub, id), undefined)
 })

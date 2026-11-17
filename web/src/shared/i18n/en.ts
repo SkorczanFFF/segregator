@@ -126,6 +126,13 @@ export const en: Translation = {
     rotateRight: 'Rotate right',
     openFile: 'Open file',
     hasFile: 'Has a file',
+    fileChecking: 'The file is being checked. It will show beside the fields in a moment.',
+    fileFailed: "The file couldn't be checked: it is damaged or its content doesn't match its type. Delete the document and add the file again.",
+    status: {
+      uploading: 'Uploading',
+      processing: 'Checking',
+      failed: 'File error',
+    },
     dropTitle: 'Drop a photo or a PDF here',
     dropText: 'The photo is made smaller, and the location saved by the camera is removed, before it is sent.',
     dropHint: 'JPEG, PNG or PDF, up to {{maxSize}}',

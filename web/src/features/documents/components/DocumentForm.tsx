@@ -23,7 +23,7 @@ import { schemaResolver, useForm } from '@mantine/form'
 import { IconBuildingStore, IconCalendar, IconTag, IconTrash } from '@tabler/icons-react'
 import dayjs from 'dayjs'
 import 'dayjs/locale/pl'
-import { useRef, useState, type ReactNode } from 'react'
+import { useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router'
 import {
@@ -36,14 +36,13 @@ import {
   type Document,
   type DocumentFile,
   type DocumentType,
-  type NewDocumentInput,
   type Subtype,
 } from 'shared'
 import classes from '~/features/documents/components/documents.module.css'
 import FileField from '~/features/documents/components/FileField.tsx'
 import FilePreview from '~/features/documents/components/FilePreview.tsx'
 import { CARD_INSET, describeDocument, documentName, TYPE_LOOKS } from '~/features/documents/look.ts'
-import { uploadFile } from '~/features/upload/upload.ts'
+import type { OnProgress } from '~/features/upload/upload.ts'
 import StatusAlert from '~/shared/components/StatusAlert.tsx'
 import { useApiSubmit } from '~/shared/hooks/useApiSubmit.ts'
 import { useFormError } from '~/shared/hooks/useFormError.ts'
@@ -127,7 +126,7 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
 type DocumentFormProps = {
   // Without a document the form creates one, and only a new document can get a file.
   doc?: Document
-  onSave: (input: NewDocumentInput) => Promise<void>
+  onSave: (input: DocumentInput, file: Blob | null, onProgress: OnProgress) => Promise<void>
   // With it the bar gets a delete button, which only a saved document has.
   onDelete?: () => void
 }
@@ -147,14 +146,9 @@ export default function DocumentForm({ doc, onSave, onDelete }: DocumentFormProp
     validate: (values) =>
       Object.fromEntries(Object.keys(checkInput(toInput(values))).map((field) => [field, `documents.errors.${field}`])),
   })
-  // The id of the file once it is in S3, so a retry after a failed save doesn't send it again.
-  const uploadedId = useRef<string | undefined>(undefined)
   const { submit, pending, error } = useApiSubmit(async (values: DocumentValues) => {
-    if (values.file && !uploadedId.current) {
-      setProgress(0)
-      uploadedId.current = await uploadFile(values.file, setProgress)
-    }
-    await onSave({ ...toInput(values), fileId: uploadedId.current })
+    setProgress(0)
+    await onSave(toInput(values), values.file, setProgress)
   })
   const input = toInput(form.values)
   const name = documentName(input).trim()
@@ -165,10 +159,7 @@ export default function DocumentForm({ doc, onSave, onDelete }: DocumentFormProp
   ) : (
     <FileField
       type={input.type}
-      onChange={(file) => {
-        uploadedId.current = undefined
-        form.setFieldValue('file', file)
-      }}
+      onChange={(file) => form.setFieldValue('file', file)}
       onPreparing={setPreparing}
       disabled={pending || preparing}
     />

@@ -1,6 +1,6 @@
 import * as z from 'zod'
 import { CATEGORIES, DOCUMENT_TYPES } from './categories.ts'
-import type { DocumentFile } from './file.ts'
+import { FILE_TYPES, type DocumentFile } from './file.ts'
 
 export const TEXT_MAX_LENGTH = 120
 
@@ -26,14 +26,15 @@ export const DocumentInput = DocumentFields.refine(subtypeFits, { path: ['subtyp
 
 export type DocumentInput = z.infer<typeof DocumentInput>
 
-// A new document may come with a file that is already in S3.
-export const NewDocumentInput = DocumentFields.extend({ fileId: z.ulid().optional() }).refine(subtypeFits, {
+// A new document with a file: its fields and the type of the file the browser sends next.
+export const UploadInput = DocumentFields.extend({ fileType: z.enum(FILE_TYPES) }).refine(subtypeFits, {
   path: ['subtype'],
 })
 
-export type NewDocumentInput = z.infer<typeof NewDocumentInput>
+// A document without a file is done at once. One with a file waits for it, then the worker checks it.
+export type DocumentStatus = 'uploading' | 'processing' | 'done' | 'failed'
 
-export type Document = DocumentInput & { id: string; createdAt: string; file?: DocumentFile }
+export type Document = DocumentInput & { id: string; createdAt: string; status: DocumentStatus; file?: DocumentFile }
 
 // One page of the list, newest first. The cursor fetches the next one.
 export type DocumentList = { items: Document[]; cursor?: string }
