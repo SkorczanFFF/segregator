@@ -58,63 +58,67 @@ const created = (key: string) => ({
 async function upload() {
   const sub = randomUUID()
   const { id } = await createDocument(sub, { type: 'invoice', issuer: 'Hurtownia', docDate: '2026-11-17' }, true)
-  return { sub, id, key: `raw/${sub}/${id}` }
+  return { sub, id, key: `raw/${sub}/${id}`, processed: `processed/${sub}/${id}` }
 }
 
 test('checks a PDF and counts its pages', async (t) => {
-  const { sub, id, key } = await upload()
+  const { sub, id, key, processed } = await upload()
   const bytes = pdf(3)
   fakeS3(t, { [key]: { type: 'application/pdf', bytes } })
 
-  assert.deepEqual(await handler({ Records: [message(created(key))] }), { batchItemFailures: [] })
+  assert.deepEqual(await handler({ Records: [message(created(processed))] }), { batchItemFailures: [] })
   const doc = await getDocument(sub, id)
   assert.equal(doc?.status, 'done')
   assert.deepEqual(doc?.file, { type: 'application/pdf', size: bytes.length, pages: 3 })
 })
 
 test('checks a file once when S3 sends its event twice', async (t) => {
-  const { key } = await upload()
+  const { key, processed } = await upload()
   const reads = fakeS3(t, { [key]: { type: 'application/pdf', bytes: pdf(1) } })
 
-  await handler({ Records: [message(created(key))] })
-  await handler({ Records: [message(created(key))] })
+  await handler({ Records: [message(created(processed))] })
+  await handler({ Records: [message(created(processed))] })
   assert.deepEqual(reads, [key])
 })
 
 test('fails a file whose content is not of its type, without retrying', async (t) => {
-  const { sub, id, key } = await upload()
+  const { sub, id, key, processed } = await upload()
   fakeS3(t, { [key]: { type: 'image/png', bytes: pdf(1) } })
 
-  assert.deepEqual(await handler({ Records: [message(created(key))] }), { batchItemFailures: [] })
+  assert.deepEqual(await handler({ Records: [message(created(processed))] }), { batchItemFailures: [] })
   assert.equal((await getDocument(sub, id))?.status, 'failed')
 })
 
 test('fails a broken PDF without retrying', async (t) => {
-  const { sub, id, key } = await upload()
+  const { sub, id, key, processed } = await upload()
   fakeS3(t, { [key]: { type: 'application/pdf', bytes: new TextEncoder().encode('%PDF-1.4 broken') } })
 
-  assert.deepEqual(await handler({ Records: [message(created(key))] }), { batchItemFailures: [] })
+  assert.deepEqual(await handler({ Records: [message(created(processed))] }), { batchItemFailures: [] })
   assert.equal((await getDocument(sub, id))?.status, 'failed')
 })
 
 test('retries when S3 fails and fails the file on the last try', async (t) => {
-  const { sub, id, key } = await upload()
+  const { sub, id, key, processed } = await upload()
   fakeS3(t, { [key]: Object.assign(new Error('Please reduce your request rate'), { name: 'SlowDown' }) })
   const messageId = randomUUID()
 
   for (const receiveCount of [1, 2]) {
-    const result = await handler({ Records: [message(created(key), messageId, receiveCount)] })
+    const result = await handler({ Records: [message(created(processed), messageId, receiveCount)] })
     assert.deepEqual(result, { batchItemFailures: [{ itemIdentifier: messageId }] })
     assert.equal((await getDocument(sub, id))?.status, 'processing')
   }
-  await handler({ Records: [message(created(key), messageId, 3)] })
+  await handler({ Records: [message(created(processed), messageId, 3)] })
   assert.equal((await getDocument(sub, id))?.status, 'failed')
 })
 
-test("skips S3's test event and keys of no document", async (t) => {
+test("skips S3's test event, originals and keys of no document", async (t) => {
   const reads = fakeS3(t, {})
   const result = await handler({
-    Records: [message({ Service: 'Amazon S3', Event: 's3:TestEvent' }), message(created('processed/file.jpg'))],
+    Records: [
+      message({ Service: 'Amazon S3', Event: 's3:TestEvent' }),
+      message(created('processed/file.jpg')),
+      message(created(`raw/${randomUUID()}/01KTEST0000000000000000002`)),
+    ],
   })
   assert.deepEqual(result, { batchItemFailures: [] })
   assert.deepEqual(reads, [])

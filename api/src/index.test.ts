@@ -164,5 +164,5 @@ test('shows a checked file and deletes it with its document', async (t) => {
     return {}
   })
   assert.equal((await app.request(`/api/documents/${id}`, { method: 'DELETE', headers: json(owner) })).status, 204)
-  assert.deepEqual(sent, [`DeleteObjectCommand raw/${sub}/${id}`])
+  assert.deepEqual(sent.sort(), [`DeleteObjectCommand processed/${sub}/${id}`, `DeleteObjectCommand raw/${sub}/${id}`])
 })

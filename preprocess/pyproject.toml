@@ -1,0 +1,22 @@
+[project]
+name = "preprocess"
+version = "0.0.0"
+description = "Straightens a photo of a document before it is read."
+requires-python = "==3.14.*"
+dependencies = ["numpy", "opencv-python-headless"]
+
+[dependency-groups]
+dev = ["boto3", "pytest", "ruff"]
+
+[tool.uv]
+# The one place for the version of uv: the checks and the pipeline install this one.
+required-version = "==0.12.23"
+# The same rule as minimumReleaseAge in pnpm: nothing younger than a week.
+exclude-newer = "1 week"
+package = false
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+
+[tool.ruff]
+line-length = 120

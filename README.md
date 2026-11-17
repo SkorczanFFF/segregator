@@ -7,7 +7,8 @@ Live at [segregator.skoftware.pl](https://segregator.skoftware.pl).
 ## Repository
 
 - `web/`: React front end (Vite, Mantine)
-- `api/`: Hono API, deployed as an AWS Lambda function
+- `api/`: Hono API and the worker that checks uploaded files, each deployed as an AWS Lambda function
+- `preprocess/`: Python function that straightens photos of documents with OpenCV, managed with uv
 - `shared/`: Zod schemas and the category list used by both the API and the web app
 - `infra/`: AWS CDK app stack and the CodePipeline that deploys it to `dev` and `prod`
 
@@ -19,7 +20,7 @@ The web app runs on Vite and the API runs as a plain Node.js process. There is n
 browser → Vite (localhost:5173) ── /api ──▶ Hono on Node.js (127.0.0.1:3000) ──▶ Cognito + DynamoDB (dev stack)
 ```
 
-You need Node.js 24, pnpm (the version in `packageManager`), AWS CLI v2 and access to the AWS account with the dev stack.
+You need Node.js 24, pnpm (the version in `packageManager`), uv (the version `preprocess/pyproject.toml` requires), AWS CLI v2 and access to the AWS account with the dev stack. uv brings its own Python, and `pnpm cdk synth` uses it to bundle the Python function for Linux on arm64 without Docker.
 
 1. Install dependencies and sign in to AWS. The local API uses these credentials.
 
@@ -54,13 +55,13 @@ You need Node.js 24, pnpm (the version in `packageManager`), AWS CLI v2 and acce
 - The local API acts with your own AWS credentials, not the Lambda role. A permission missing from the stack works locally and fails only after deployment, so check new AWS calls on dev as well.
 - The Cognito client secret is read from Cognito at startup and never goes into `.env`.
 - The API listens on `127.0.0.1` only, because it holds your AWS credentials.
-- Files go straight from the browser to the dev documents bucket, which accepts uploads from `http://localhost:5173`.
+- Files go straight from the browser to the dev documents bucket, which accepts uploads from `http://localhost:5173`. The dev stack's queues and functions then straighten and check them, so a document added locally shows its status changing like on dev.
 - The session cookie is `__Host-session` with `Secure`. Chrome and Firefox accept it on `http://localhost`.
 - When the dev stack is recreated, its outputs change, so `api/.env` needs the new values.
 
 ## Tests
 
-The data layer tests run against DynamoDB Local in Docker and create and delete their own table:
+The data layer tests run against DynamoDB Local in Docker and create and delete their own table. `pnpm test` also runs the Python tests with uv, on documents drawn in code:
 
 ```sh
 docker run --rm -d -p 8000:8000 --name dynamodb-local amazon/dynamodb-local:3.3.2

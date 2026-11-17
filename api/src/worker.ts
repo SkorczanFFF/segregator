@@ -73,9 +73,10 @@ async function processMessage(message: SqsMessage) {
   const notification = JSON.parse(message.body) as S3Notification
   for (const record of notification.Records ?? []) {
     // S3 encodes the key as in a URL, with spaces as plus signs.
+    // The straightened copy under processed/ means preprocessing is done. The check reads the original.
     const file = parseFileKey(decodeURIComponent(record.s3.object.key.replaceAll('+', ' ')))
-    if (file) await processFile(file.sub, file.id, message)
-    else console.warn('Skipped a key that is not a document file')
+    if (file?.stage === 'processed') await processFile(file.sub, file.id, message)
+    else console.warn('Skipped a key that is not a processed document file')
   }
 }
 

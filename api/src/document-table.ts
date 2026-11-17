@@ -17,8 +17,11 @@ type Item = Record<string, AttributeValue>
 const db = new DynamoDBClient({})
 const TABLE = process.env.TABLE_NAME ?? ''
 const PAGE_SIZE = 50
-// A document whose file never came leaves the list this long after the upload was signed. TTL deletes it later.
+// A document whose file never came leaves the list this long after the upload was signed.
 const UPLOAD_WAIT = UPLOAD_SECONDS + 5 * 60
+// TTL deletes it later than the 14 days a message can wait in a dead-letter queue, so a document whose file
+// got stuck in preprocessing is still here when its message is sent back.
+const UPLOAD_KEEP = 30 * 24 * 60 * 60
 
 const now = () => Math.floor(Date.now() / 1000)
 
@@ -39,8 +42,10 @@ const fieldAttributes = (id: string, input: DocumentInput): Record<string, Attri
   amount: input.amount === undefined ? undefined : { N: String(input.amount) },
 })
 
-// An upload whose file never came is gone for the person, even before TTL deletes it.
-const expired = (item: Item) => Number(item.expiresAt?.N ?? Infinity) <= now()
+// Uploads signed before this, still waiting, are gone for the person.
+const uploadCutoff = () => new Date(Date.now() - UPLOAD_WAIT * 1000).toISOString()
+
+const abandoned = (item: Item) => item.status?.S === 'uploading' && (item.createdAt?.S ?? '') <= uploadCutoff()
 
 function fromItem(item: Item): Document {
   return {
@@ -81,7 +86,7 @@ export async function createDocument(sub: string, input: DocumentInput, withFile
         createdAt: { S: doc.createdAt },
         status: { S: doc.status },
         ...(Object.fromEntries(fields) as Item),
-        ...(withFile ? { expiresAt: { N: String(now() + UPLOAD_WAIT) } } : {}),
+        ...(withFile ? { expiresAt: { N: String(now() + UPLOAD_KEEP) } } : {}),
       },
     }),
   )
@@ -90,7 +95,7 @@ export async function createDocument(sub: string, input: DocumentInput, withFile
 
 export async function getDocument(sub: string, id: string) {
   const { Item } = await db.send(new GetItemCommand({ TableName: TABLE, Key: docKey(sub, id) }))
-  return Item && !expired(Item) ? fromItem(Item) : undefined
+  return Item && !abandoned(Item) ? fromItem(Item) : undefined
 }
 
 // Replaces what a person entered and leaves the status and the file to the worker. Undefined means
@@ -203,9 +208,14 @@ export async function listDocuments(sub: string, cursor?: string): Promise<Docum
       TableName: TABLE,
       IndexName: 'GSI1',
       KeyConditionExpression: 'GSI1PK = :pk',
-      // Same rule as expired(), for the uploads whose file never came.
-      FilterExpression: 'attribute_not_exists(expiresAt) OR expiresAt > :now',
-      ExpressionAttributeValues: { ':pk': { S: listKey(sub) }, ':now': { N: String(now()) } },
+      // Same rule as abandoned().
+      FilterExpression: '#status <> :uploading OR createdAt > :cutoff',
+      ExpressionAttributeNames: { '#status': 'status' },
+      ExpressionAttributeValues: {
+        ':pk': { S: listKey(sub) },
+        ':uploading': { S: 'uploading' },
+        ':cutoff': { S: uploadCutoff() },
+      },
       ScanIndexForward: false,
       Limit: PAGE_SIZE,
       ExclusiveStartKey: startKey,

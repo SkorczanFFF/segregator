@@ -1,6 +1,6 @@
 import { Hono } from 'hono'
 import { DocumentInput, UploadInput } from 'shared'
-import { deleteFile, fileUrl, ID_PATTERN, signUpload } from './document-files.ts'
+import { deleteFiles, fileUrl, ID_PATTERN, signUpload } from './document-files.ts'
 import { createDocument, deleteDocument, getDocument, listDocuments, updateDocument } from './document-table.ts'
 import { apiError } from './errors.ts'
 import type { Env } from './session.ts'
@@ -54,9 +54,9 @@ documents.delete(BY_ID, async (c) => {
   const sub = c.get('session').sub
   const doc = await getDocument(sub, c.req.param('id'))
   if (!doc) return apiError(c, 'not_found', 404)
-  // The file goes first, so a failed delete can be repeated and never leaves a file without its document.
-  // A document still in the worker's hands may have a file already, and S3 deletes a missing key without error.
-  await deleteFile(sub, doc.id)
+  // The files go first, so a failed delete can be repeated and never leaves a file without its document.
+  // A document still in the worker's hands may have its files already.
+  await deleteFiles(sub, doc.id)
   await deleteDocument(sub, doc.id)
   return c.body(null, 204)
 })

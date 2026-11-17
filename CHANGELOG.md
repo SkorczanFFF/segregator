@@ -2,6 +2,16 @@
 
 The minor version marks a stage of the build plan and the patch version each step or fix within it, as [Semantic Versioning](https://semver.org/spec/v2.0.0.html) allows before 1.0.0. Each entry starts with the version and its commit message, followed by a description of what changed.
 
+## 0.10.1 - feat: straighten photos of documents before they are read
+
+Released 2026-11-17.
+
+- Before a photo is checked, a Python function finds the document on it. When the whole sheet is on the photo, it is cut out and seen straight from above. Otherwise the lines of text are levelled and their left edge stood upright, which undoes a slight turn and a sideways lean. The straightened copy is kept beside the original, which stays as it was sent, and a PDF goes on unchanged.
+- A photo is decoded only when its first bytes match its type, and only up to 25 megapixels.
+- Deleting a document deletes its straightened copy too.
+- A document whose file gets stuck on the way leaves the list after 15 minutes, as before, but is kept for 30 days and comes back once its file goes through.
+- Behind the scenes, uv manages the Python code. Its libraries are pinned with hashes and at least a week old, and the checks run its tests and linter.
+
 ## 0.10.0 - feat: check uploaded files in the background
 
 Released 2026-11-17.

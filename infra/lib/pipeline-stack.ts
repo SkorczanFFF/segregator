@@ -39,7 +39,11 @@ export class PipelineStack extends Stack {
           connectionArn: connection.attrConnectionArn,
         }),
         env: { COREPACK_ENABLE_DOWNLOAD_PROMPT: '0' },
-        installCommands: ['corepack enable'],
+        installCommands: [
+          'corepack enable',
+          // uv bundles the Python function, at the version preprocess/pyproject.toml requires.
+          `pip3 install "uv$(sed -n 's/^required-version = "\\(.*\\)"$/\\1/p' preprocess/pyproject.toml)"`,
+        ],
         commands: ['pnpm install --frozen-lockfile', 'pnpm build', 'pnpm cdk synth'],
         primaryOutputDirectory: 'infra/cdk.out',
       }),
@@ -51,7 +55,9 @@ export class PipelineStack extends Stack {
       codeBuildDefaults: {
         buildEnvironment: { buildImage: codebuild.LinuxBuildImage.AMAZON_LINUX_2023_6 },
         partialBuildSpec: codebuild.BuildSpec.fromObject({
-          phases: { install: { 'runtime-versions': { nodejs: 24 } } },
+          // Only the runtimes named here are on the image. Python brings pip, which installs uv, and is the
+          // version of the Python function, so uv bundles it without fetching another.
+          phases: { install: { 'runtime-versions': { nodejs: 24, python: 3.14 } } },
         }),
       },
     })

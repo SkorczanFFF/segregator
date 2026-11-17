@@ -6,3 +6,7 @@ cdk.out/
 .env*
 !.env.example
 example_receipts/
+.venv/
+__pycache__/
+.pytest_cache/
+.ruff_cache/
