@@ -1,5 +1,5 @@
 import { useInfiniteQuery, useQuery, type QueryClient } from '@tanstack/react-query'
-import type { Document, DocumentList, Draft, FileChoice, FileVersion } from 'shared'
+import type { Document, DocumentList, Draft, FileChoice, FileVersion, StorageUse } from 'shared'
 import { api, API_BASE, errorCode } from '~/shared/lib/api.ts'
 
 const documentsKey = ['documents']
@@ -32,6 +32,10 @@ export function useDocument(id: string | undefined) {
     refetchInterval: (query) => (query.state.data?.status === 'processing' ? PROCESSING_REFRESH : false),
   })
 }
+
+// How much of the account's storage its files take.
+export const useStorageUse = () =>
+  useQuery({ queryKey: ['storage'], queryFn: () => api.get<StorageUse>('/documents/storage') })
 
 // The account's documents, newest first, fetched one page at a time.
 export function useDocuments() {

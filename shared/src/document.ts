@@ -1,6 +1,6 @@
 import * as z from 'zod'
 import { CATEGORIES, DOCUMENT_TYPES } from './categories.ts'
-import { FILE_TYPES, FILE_VERSIONS, type DocumentFile } from './file.ts'
+import { FILE_MAX_SIZE, FILE_TYPES, FILE_VERSIONS, type DocumentFile } from './file.ts'
 
 export const TEXT_MAX_LENGTH = 120
 
@@ -27,7 +27,12 @@ export type DocumentInput = z.infer<typeof DocumentInput>
 
 // A document from a file starts with the file alone; its fields come once its photo is approved. The hash is
 // the SHA-256 of the file as picked, in hex, so the same file is found again however the browser prepared it.
-export const UploadInput = z.object({ fileType: z.enum(FILE_TYPES), fileHash: z.string().regex(/^[0-9a-f]{64}$/) })
+// The size is that of the file to send, which the signed upload then holds S3 to.
+export const UploadInput = z.object({
+  fileType: z.enum(FILE_TYPES),
+  fileHash: z.string().regex(/^[0-9a-f]{64}$/),
+  fileSize: z.number().int().min(1).max(FILE_MAX_SIZE),
+})
 
 export type UploadInput = z.infer<typeof UploadInput>
 

@@ -11,10 +11,10 @@ type UploadHandlers = {
 }
 
 // Creates a draft for the file, sends the file straight to S3 through a form the API signs, and reports
-// the file sent, so the draft shows as processing. Answers the draft's id. A file the account already has
-// throws a duplicate error before anything is sent.
+// the file sent, so the draft shows as processing. Answers the draft's id. A file the account already has, or
+// one that doesn't fit in its storage, throws before anything is sent.
 export async function uploadDraft({ file, hash }: FileToSend, { onCreated, onProgress, signal }: UploadHandlers) {
-  const body = { fileType: file.type as UploadInput['fileType'], fileHash: hash } satisfies UploadInput
+  const body = { fileType: file.type as UploadInput['fileType'], fileHash: hash, fileSize: file.size } satisfies UploadInput
   const { id, url, fields } = await api.post<Upload>('/documents/upload', body)
   try {
     // Cancelled while the draft was being made.

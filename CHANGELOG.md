@@ -2,6 +2,14 @@
 
 The minor version marks a stage of the build plan and the patch version each step or fix within it, as [Semantic Versioning](https://semver.org/spec/v2.0.0.html) allows before 1.0.0. Each entry starts with the version and its commit message, followed by a description of what changed.
 
+## 0.11.1 - feat: give each account 500 MB for files
+
+Released 2026-11-17.
+
+- Each account keeps up to 500 MB of files, counted as they were sent. A draft counts from the moment its upload is signed, so several uploads at once can't slip past the limit. A file that would not fit is turned away before it is sent, with a message to delete documents no longer needed.
+- The account page shows how much of the space the files take.
+- Behind the scenes, the upload declares the file's size, and the signed form lets S3 take no more than that, so the limit holds to the byte. The used space is summed from the account's documents on each upload.
+
 ## 0.11.0 - feat: turn away a file the account already has
 
 Released 2026-11-17.

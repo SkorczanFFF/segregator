@@ -98,6 +98,9 @@ export const pl = {
     signedInAs: 'Zalogowano jako {{email}}',
     signOutEverywhere: 'Wyloguj ze wszystkich urządzeń',
     signOutEverywhereHint: 'Kończy sesje na wszystkich urządzeniach, także na tym. Przydaje się po zalogowaniu na cudzym komputerze.',
+    storage: 'Miejsce na pliki',
+    storageUsed: '{{used}} z {{limit}}',
+    storageHint: 'Liczą się pliki takie, jak je wysłano. Usunięcie dokumentu zwalnia jego miejsce.',
   },
   app: {
     menu: 'Menu',
@@ -253,6 +256,7 @@ export const pl = {
     forbidden: 'Brak dostępu.',
     not_found: 'Nie znaleziono.',
     duplicate: 'Ten plik już jest w Twoich dokumentach.',
+    storage_full: 'Ten plik nie zmieści się w {{storageLimit}} na pliki. Usuń niepotrzebne dokumenty i spróbuj ponownie.',
     internal_error: 'Coś poszło nie tak. Spróbuj ponownie.',
     network_error: 'Brak połączenia z serwerem.',
   } satisfies Record<ApiErrorCode, string>,

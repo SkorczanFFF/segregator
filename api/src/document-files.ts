@@ -1,7 +1,7 @@
 import { DeleteObjectCommand, GetObjectCommand, HeadObjectCommand, S3Client } from '@aws-sdk/client-s3'
 import { createPresignedPost } from '@aws-sdk/s3-presigned-post'
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
-import { FILE_CHANGES, FILE_MAX_SIZE, FILE_VERSIONS, type FileChange, type FileType, type FileVersion, type Upload } from 'shared'
+import { FILE_CHANGES, FILE_VERSIONS, type FileChange, type FileType, type FileVersion, type Upload } from 'shared'
 
 const s3 = new S3Client({})
 const BUCKET = process.env.DOCUMENTS_BUCKET ?? ''
@@ -26,12 +26,13 @@ export function parseFileKey(key: string) {
   return version && sub && id ? { version: version as FileVersion, sub, id } : undefined
 }
 
-// A form the browser posts straight to S3. Every field is signed, so S3 takes only this key and type.
-export async function signUpload(sub: string, id: string, type: FileType): Promise<Upload> {
+// A form the browser posts straight to S3. Every field is signed, so S3 takes only this key and type, and a
+// file no larger than the size the storage limit was checked against.
+export async function signUpload(sub: string, id: string, type: FileType, size: number): Promise<Upload> {
   const { url, fields } = await createPresignedPost(s3, {
     Bucket: BUCKET,
     Key: fileKey(sub, id),
-    Conditions: [['content-length-range', 1, FILE_MAX_SIZE]],
+    Conditions: [['content-length-range', 1, size]],
     Fields: { 'Content-Type': type },
     Expires: UPLOAD_SECONDS,
   })

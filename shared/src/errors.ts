@@ -13,6 +13,7 @@ export const ERROR_CODES = [
   'forbidden',
   'not_found',
   'duplicate',
+  'storage_full',
   'internal_error',
 ] as const
 

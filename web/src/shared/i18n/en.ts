@@ -97,6 +97,9 @@ export const en: Translation = {
     signedInAs: 'Signed in as {{email}}',
     signOutEverywhere: 'Sign out on all devices',
     signOutEverywhereHint: "Ends the sessions on every device, this one included. Useful after signing in on someone else's computer.",
+    storage: 'Storage for files',
+    storageUsed: '{{used}} of {{limit}}',
+    storageHint: 'Files count as they were sent. Deleting a document frees its space.',
   },
   app: {
     menu: 'Menu',
@@ -252,6 +255,7 @@ export const en: Translation = {
     forbidden: 'Access denied.',
     not_found: 'Not found.',
     duplicate: 'This file is already among your documents.',
+    storage_full: "This file won't fit in the {{storageLimit}} for files. Delete documents you no longer need and try again.",
     internal_error: 'Something went wrong. Try again.',
     network_error: "Can't reach the server.",
   },

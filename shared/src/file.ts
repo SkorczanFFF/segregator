@@ -8,6 +8,12 @@ export const isPdf = (type: string) => type === 'application/pdf'
 
 export const FILE_MAX_SIZE = 10 * 1024 * 1024
 
+// What one account may keep, counted in files as sent, drafts included. A processed copy doesn't count.
+export const STORAGE_LIMIT = 500 * 1024 * 1024
+
+// The bytes an account's files take now.
+export type StorageUse = { used: number }
+
 // The form to post with the file. S3 accepts only this key, type and size.
 export type Upload = { id: string; url: string; fields: Record<string, string> }
 

@@ -19,6 +19,7 @@ const {
   listDocuments,
   markSent,
   settleDocument,
+  storageUsed,
   updateDocument,
 } = await import('./document-table.ts')
 
@@ -98,7 +99,7 @@ type CheckedFile = Extract<CheckResult, { status: 'done' }>['file']
 
 // A draft whose file the worker checked, as one message would leave it.
 async function checkedDraft(sub: string, file: CheckedFile = { type: 'image/jpeg', size: 99, pages: 1 }, hash = randomHash()) {
-  const { id } = await createDraft(sub, hash)
+  const { id } = await createDraft(sub, hash, file.size)
   await claimDocument(sub, id, 'message')
   await settleDocument(sub, id, 'message', { status: 'done', file })
   return id
@@ -106,7 +107,7 @@ async function checkedDraft(sub: string, file: CheckedFile = { type: 'image/jpeg
 
 test('keeps a draft off the list until its checked file gets fields', async (t) => {
   const sub = randomUUID()
-  const { id, draft, status } = await createDraft(sub, randomHash())
+  const { id, draft, status } = await createDraft(sub, randomHash(), 99)
   assert.equal(draft, true)
   assert.equal(status, 'uploading')
   assert.equal((await getDocument(sub, id))?.draft, true)
@@ -134,7 +135,7 @@ test('forgets a draft nobody saved after a day', async (t) => {
 
 test('lets one message at a time check a file, and the same message again on a retry', async () => {
   const sub = randomUUID()
-  const { id } = await createDraft(sub, randomHash())
+  const { id } = await createDraft(sub, randomHash(), 1234)
   await markSent(sub, id)
   assert.equal((await getDocument(sub, id))?.status, 'processing', 'sent, before any message')
 
@@ -201,9 +202,23 @@ test('keeps one document per file, until it is deleted', async () => {
   assert.equal((await updateDocument(sub, third, doc('2026-11-17')))?.id, third)
 })
 
+test("counts the bytes of the account's files, drafts too, until a draft expires", async (t) => {
+  const [sub, other] = [randomUUID(), randomUUID()]
+  await createDocument(sub, doc('2026-11-17'))
+  const saved = await checkedDraft(sub, { type: 'application/pdf', size: 3000, pages: 2 })
+  await updateDocument(sub, saved, doc('2026-11-17'))
+  await checkedDraft(sub, { type: 'image/jpeg', size: 500, pages: 1 })
+  await createDraft(sub, randomHash(), 200)
+  await checkedDraft(other, { type: 'image/jpeg', size: 7000, pages: 1 })
+  assert.equal(await storageUsed(sub), 3700, 'a draft still on its way counts the size it declared')
+
+  t.mock.timers.enable({ apis: ['Date'], now: Date.now() + 25 * 60 * 60 * 1000 })
+  assert.equal(await storageUsed(sub), 3000)
+})
+
 test('leaves a document deleted while its file was being checked', async () => {
   const sub = randomUUID()
-  const { id } = await createDraft(sub, randomHash())
+  const { id } = await createDraft(sub, randomHash(), 99)
   await claimDocument(sub, id, 'message')
   await deleteDocument(sub, id)
 

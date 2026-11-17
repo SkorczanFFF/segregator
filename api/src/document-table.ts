@@ -40,13 +40,14 @@ const LIVE = '(attribute_not_exists(#ttl) OR #ttl > :now)'
 const live = () => ({ names: { '#ttl': TTL_ATTRIBUTE }, values: { ':now': { N: String(now()) } } })
 
 // Every key starts from the account, so a query can never reach another account's documents.
+const accountKey = (sub: string) => ({ S: `USER#${sub}` })
 const listKey = (sub: string) => `USER#${sub}#DOCS`
 
-const docKey = (sub: string, id: string): Item => ({ PK: { S: `USER#${sub}` }, SK: { S: DOC_PREFIX + id } })
+const docKey = (sub: string, id: string): Item => ({ PK: accountKey(sub), SK: { S: DOC_PREFIX + id } })
 
 // Which document of an account holds a file, by the file's hash. Only a saved document takes its hash, so
 // a draft left behind never stands in the way of the same file.
-const hashKey = (sub: string, hash: string): Item => ({ PK: { S: `USER#${sub}` }, SK: { S: `HASH#${hash}` } })
+const hashKey = (sub: string, hash: string): Item => ({ PK: accountKey(sub), SK: { S: `HASH#${hash}` } })
 
 // Another document of the account already holds the same file.
 export class DuplicateFile extends Error {
@@ -130,8 +131,9 @@ export async function createDocument(sub: string, input: DocumentInput) {
   return doc
 }
 
-// A document whose file comes first. It waits for the file, and expires unless its fields are saved.
-export async function createDraft(sub: string, fileHash: string) {
+// A document whose file comes first. It waits for the file, and expires unless its fields are saved. The size
+// the upload declared counts against the storage from now on; the worker then sets the size it found.
+export async function createDraft(sub: string, fileHash: string, fileSize: number) {
   const draft: Draft = { id: ulid(), createdAt: new Date().toISOString(), status: 'uploading', draft: true }
   await db.send(
     new PutItemCommand({
@@ -142,6 +144,7 @@ export async function createDraft(sub: string, fileHash: string) {
         createdAt: { S: draft.createdAt },
         status: status(draft.status),
         fileHash: { S: fileHash },
+        fileSize: { N: String(fileSize) },
         [TTL_ATTRIBUTE]: { N: String(now() + DRAFT_KEEP) },
       },
     }),
@@ -344,6 +347,29 @@ export async function chooseVersion(sub: string, id: string, use: FileVersion) {
     ),
   )
   return updated?.Attributes && fromItem(updated.Attributes)
+}
+
+// The bytes of every file the account keeps, drafts included from the moment their upload is signed, but not
+// an expired draft. Summed on each upload: an account's items fit in a page or two, which costs less than
+// keeping a counter right.
+export async function storageUsed(sub: string) {
+  let used = 0
+  let startKey: Item | undefined
+  do {
+    const page = await db.send(
+      new QueryCommand({
+        TableName: TABLE,
+        KeyConditionExpression: 'PK = :pk AND begins_with(SK, :doc)',
+        ProjectionExpression: 'fileSize, #ttl',
+        ExpressionAttributeNames: { '#ttl': TTL_ATTRIBUTE },
+        ExpressionAttributeValues: { ':pk': accountKey(sub), ':doc': { S: DOC_PREFIX } },
+        ExclusiveStartKey: startKey,
+      }),
+    )
+    for (const item of page.Items ?? []) if (!expired(item)) used += Number(item.fileSize?.N ?? 0)
+    startKey = page.LastEvaluatedKey
+  } while (startKey)
+  return used
 }
 
 // The cursor is the last key of a page. One that points outside the caller's list is rejected.

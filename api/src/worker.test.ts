@@ -42,7 +42,7 @@ const created = (key: string) => ({
 // A draft waiting for its file, and the keys of the file and its processed copy.
 async function upload() {
   const sub = randomUUID()
-  const { id } = await createDraft(sub, randomHash())
+  const { id } = await createDraft(sub, randomHash(), 1024)
   return { sub, id, key: `raw/${sub}/${id}`, processed: `processed/${sub}/${id}` }
 }
 

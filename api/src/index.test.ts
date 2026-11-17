@@ -3,7 +3,7 @@ import { randomUUID } from 'node:crypto'
 import { test } from 'node:test'
 import { CognitoIdentityProviderClient } from '@aws-sdk/client-cognito-identity-provider'
 import { Hono } from 'hono'
-import { FILE_MAX_SIZE, type Draft, type Upload } from 'shared'
+import { STORAGE_LIMIT, type Draft, type StorageUse, type Upload } from 'shared'
 import { fakeS3 } from './fake-s3.ts'
 import { randomHash, setUpLocalTable } from './local-table.ts'
 
@@ -120,20 +120,21 @@ test("answers 404 for another account's document", async () => {
 test("signs an upload only into the account's own folder, with the type and size limits", async () => {
   const sub = randomUUID()
   const cookie = await signIn(sub)
-  const upload = (fileType: string, fileHash = randomHash()) =>
+  const upload = (fileType: string, fileHash = randomHash(), fileSize = 2048) =>
     app.request('/api/documents/upload', {
       method: 'POST',
       headers: json(cookie),
-      body: JSON.stringify({ fileType, fileHash }),
+      body: JSON.stringify({ fileType, fileHash, fileSize }),
     })
 
   assert.equal((await upload('image/svg+xml')).status, 400)
   assert.equal((await upload('image/png', 'not-a-hash')).status, 400)
+  assert.equal((await upload('image/png', undefined, 11 * 1024 * 1024)).status, 400, 'over the file limit')
   const response = await upload('image/png')
   assert.equal(response.status, 201)
   const { id, fields } = (await response.json()) as Upload
   const conditions = Buffer.from(fields.Policy ?? '', 'base64').toString()
-  for (const condition of [{ key: `raw/${sub}/${id}` }, { 'Content-Type': 'image/png' }, ['content-length-range', 1, FILE_MAX_SIZE]]) {
+  for (const condition of [{ key: `raw/${sub}/${id}` }, { 'Content-Type': 'image/png' }, ['content-length-range', 1, 2048]]) {
     assert.ok(conditions.includes(JSON.stringify(condition)), JSON.stringify(condition))
   }
   // A draft waits for its file, and shows as processing once the browser reports the file sent.
@@ -151,7 +152,7 @@ test('turns away a file the account already has, pointing at its document', asyn
     app.request('/api/documents/upload', {
       method: 'POST',
       headers: json(cookie),
-      body: JSON.stringify({ fileType: 'image/jpeg', fileHash }),
+      body: JSON.stringify({ fileType: 'image/jpeg', fileHash, fileSize: 2048 }),
     })
   const { id } = (await (await upload()).json()) as Upload
   assert.equal((await upload()).status, 201, 'a draft holds no hash')
@@ -166,10 +167,32 @@ test('turns away a file the account already has, pointing at its document', asyn
   assert.deepEqual(await again.json(), { error: 'duplicate', id })
 })
 
+test('turns away a file that would not fit in the storage, and tells how much is used', async () => {
+  const sub = randomUUID()
+  const cookie = await signIn(sub)
+  const upload = (fileSize: number) =>
+    app.request('/api/documents/upload', {
+      method: 'POST',
+      headers: json(cookie),
+      body: JSON.stringify({ fileType: 'image/jpeg', fileHash: randomHash(), fileSize }),
+    })
+  const storage = async () =>
+    ((await (await app.request('/api/documents/storage', { headers: json(cookie) })).json()) as StorageUse).used
+  assert.equal(await storage(), 0)
+
+  await createDraft(sub, randomHash(), STORAGE_LIMIT - 1000)
+  assert.equal(await storage(), STORAGE_LIMIT - 1000, 'a draft counts before its file arrives')
+  const full = await upload(1001)
+  assert.equal(full.status, 403)
+  assert.deepEqual(await full.json(), { error: 'storage_full' })
+  assert.equal((await upload(1000)).status, 201, 'a file that fits exactly')
+  assert.equal((await upload(1)).status, 403, 'the space a signed upload takes')
+})
+
 test('shows both versions of a changed photo, keeps the chosen one and deletes both', async (t) => {
   const sub = randomUUID()
   const owner = await signIn(sub)
-  const { id } = await createDraft(sub, randomHash())
+  const { id } = await createDraft(sub, randomHash(), 2048)
   const file = (cookie: string, query = '') => app.request(`/api/documents/${id}/file${query}`, { headers: json(cookie) })
   const choose = (cookie: string, use: string) =>
     app.request(`/api/documents/${id}/file`, { method: 'PUT', headers: json(cookie), body: JSON.stringify({ use }) })

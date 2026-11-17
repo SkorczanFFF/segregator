@@ -1,5 +1,5 @@
 import { Hono } from 'hono'
-import { DocumentInput, FileChoice, UploadInput } from 'shared'
+import { DocumentInput, FileChoice, STORAGE_LIMIT, UploadInput, type StorageUse } from 'shared'
 import { deleteFiles, FILE_URL_SECONDS, fileUrl, ID_PATTERN, signUpload } from './document-files.ts'
 import {
   chooseVersion,
@@ -11,6 +11,7 @@ import {
   getDocument,
   listDocuments,
   markSent,
+  storageUsed,
   updateDocument,
 } from './document-table.ts'
 import { apiError, duplicateError } from './errors.ts'
@@ -34,15 +35,18 @@ documents.post('/', jsonBody(DocumentInput), async (c) =>
 
 // A document from a file starts as a draft, so the file is processed while the person still looks at it.
 // The file goes straight to S3, and the worker takes it from there. A file the account already has is
-// turned away before it is sent.
+// turned away before it is sent, and so is one that doesn't fit in the account's storage.
 documents.post('/upload', jsonBody(UploadInput), async (c) => {
   const sub = c.get('session').sub
-  const { fileType, fileHash } = c.req.valid('json')
+  const { fileType, fileHash, fileSize } = c.req.valid('json')
   const existing = await findByHash(sub, fileHash)
   if (existing) return duplicateError(c, existing)
-  const draft = await createDraft(sub, fileHash)
-  return c.json(await signUpload(sub, draft.id, fileType), 201)
+  if ((await storageUsed(sub)) + fileSize > STORAGE_LIMIT) return apiError(c, 'storage_full', 403)
+  const draft = await createDraft(sub, fileHash, fileSize)
+  return c.json(await signUpload(sub, draft.id, fileType, fileSize), 201)
 })
+
+documents.get('/storage', async (c) => c.json({ used: await storageUsed(c.get('session').sub) } satisfies StorageUse))
 
 // The browser has sent the file to S3.
 documents.post(`${BY_ID}/sent`, async (c) => {
