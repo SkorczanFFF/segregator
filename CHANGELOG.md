@@ -2,6 +2,12 @@
 
 The minor version marks a stage of the build plan and the patch version each step or fix within it, as [Semantic Versioning](https://semver.org/spec/v2.0.0.html) allows before 1.0.0. Each entry starts with the version and its commit message, followed by a description of what changed.
 
+## 0.13.2 - fix: refresh the logo and other fixed-name files on deploy
+
+Released 2026-11-17.
+
+- Only the files under assets/, whose names carry a hash of their content, are cached for a year. The logo and any other file with a fixed name are revalidated like index.html, and each deploy clears them from CloudFront, so a changed logo shows at once.
+
 ## 0.13.1 - feat: show the AI readings left on the account page
 
 Released 2026-11-17.

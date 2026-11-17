@@ -543,12 +543,13 @@ export class SegregatorStack extends Stack {
       },
     })
 
-    // Two deployments so index.html and hashed assets can get different Cache-Control.
+    // Two deployments so the hashed assets and the files with fixed names can get different Cache-Control.
     // Each one excludes the other's files, so pruning never deletes them.
     const assets = new s3deploy.BucketDeployment(this, 'DeployAssets', {
       sources: [s3deploy.Source.asset(WEB_DIST)],
       destinationBucket: bucket,
-      exclude: ['index.html'],
+      exclude: ['*'],
+      include: ['assets/*'],
       // File names change with content, so a cached copy is never stale.
       cacheControl: [
         s3deploy.CacheControl.setPublic(),
@@ -557,15 +558,16 @@ export class SegregatorStack extends Stack {
       ],
     })
 
+    // index.html and the files from web/public, such as the logo, keep their names on every deploy, so the browser
+    // must revalidate them each time. One wildcard path clears them all from CloudFront; the hashed assets it also
+    // clears are only fetched from the bucket again.
     const index = new s3deploy.BucketDeployment(this, 'DeployIndex', {
       sources: [s3deploy.Source.asset(WEB_DIST)],
       destinationBucket: bucket,
-      exclude: ['*'],
-      include: ['index.html'],
-      // Same name on every deploy, so the browser must revalidate it each time.
+      exclude: ['assets/*'],
       cacheControl: [s3deploy.CacheControl.noCache()],
       distribution,
-      distributionPaths: ['/index.html'],
+      distributionPaths: ['/*'],
     })
     // New index.html must never point at assets that are not uploaded yet.
     index.node.addDependency(assets)
