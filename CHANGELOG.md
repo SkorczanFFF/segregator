@@ -2,6 +2,18 @@
 
 The minor version marks a stage of the build plan and the patch version each step or fix within it, as [Semantic Versioning](https://semver.org/spec/v2.0.0.html) allows before 1.0.0. Each entry starts with the version and its commit message, followed by a description of what changed.
 
+## 0.10.2 - feat: approve the processed photo before the fields
+
+Released 2026-11-17.
+
+- A new document with a photo goes step by step: file, processing, details. The photo is sent as soon as it is accepted, and the page shows the upload with its progress, then the processing. The processed version and the original follow under a switch, to approve the processing, keep the original or pick another photo. The fields open only after that choice. A photo that needed no fixing and a PDF skip the comparison.
+- The sheet is found on more backgrounds: a cloth with a bright print, dots or a grid, and a table lit from one side. Preprocessing tries it by brightness, by whiteness and by its edge, keeps what sticks to the sheet off its outline, and takes the outline with the clearest edge.
+- A saved document shows both versions of a processed photo, and the version in use can be swapped.
+- A click or a tap on any preview opens the image full size, on a phone across the whole screen. Where a photo has two versions, the viewer has the same switch as the page.
+- Until its fields are saved, a document with a photo is a draft. A draft stays off the list, a reload during processing comes back to the same step, and Cancel deletes it at once. A draft nobody saves is deleted with its files after 24 hours.
+- The list no longer shows upload statuses, since a saved document always has a checked file.
+- Behind the scenes, preprocessing writes what it did into the processed copy's metadata, and the worker keeps it with the document. A DynamoDB stream passes expired drafts to a Lambda that deletes their files.
+
 ## 0.10.1 - feat: straighten photos of documents before they are read
 
 Released 2026-11-17.

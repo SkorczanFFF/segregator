@@ -1,7 +1,16 @@
 import { Hono } from 'hono'
-import { DocumentInput, UploadInput } from 'shared'
+import { DocumentInput, FileChoice, UploadInput } from 'shared'
 import { deleteFiles, fileUrl, ID_PATTERN, signUpload } from './document-files.ts'
-import { createDocument, deleteDocument, getDocument, listDocuments, updateDocument } from './document-table.ts'
+import {
+  chooseVersion,
+  createDocument,
+  createDraft,
+  deleteDocument,
+  getDocument,
+  listDocuments,
+  markSent,
+  updateDocument,
+} from './document-table.ts'
 import { apiError } from './errors.ts'
 import type { Env } from './session.ts'
 import { jsonBody } from './validate.ts'
@@ -21,13 +30,18 @@ documents.post('/', jsonBody(DocumentInput), async (c) =>
   c.json(await createDocument(c.get('session').sub, c.req.valid('json')), 201),
 )
 
-// The document comes first, so it stays even when the tab closes right after the file is sent.
-// Its file goes straight to S3, and the worker takes it from there.
+// A document from a file starts as a draft, so the file is processed while the person still looks at it.
+// The file goes straight to S3, and the worker takes it from there.
 documents.post('/upload', jsonBody(UploadInput), async (c) => {
-  const { fileType, ...fields } = c.req.valid('json')
   const sub = c.get('session').sub
-  const doc = await createDocument(sub, fields, true)
-  return c.json(await signUpload(sub, doc.id, fileType), 201)
+  const draft = await createDraft(sub)
+  return c.json(await signUpload(sub, draft.id, c.req.valid('json').fileType), 201)
+})
+
+// The browser has sent the file to S3.
+documents.post(`${BY_ID}/sent`, async (c) => {
+  await markSent(c.get('session').sub, c.req.param('id'))
+  return c.body(null, 204)
 })
 
 documents.get(BY_ID, async (c) => {
@@ -35,14 +49,20 @@ documents.get(BY_ID, async (c) => {
   return doc ? c.json(doc) : apiError(c, 'not_found', 404)
 })
 
-// Sends the browser on to S3 with an address that works for five minutes.
+// Sends the browser on to S3 with an address that works for five minutes: to the file as sent, or with
+// ?version=processed to the copy preprocessing made.
 documents.get(`${BY_ID}/file`, async (c) => {
   const sub = c.get('session').sub
   const doc = await getDocument(sub, c.req.param('id'))
   if (!doc?.file) return apiError(c, 'not_found', 404)
   // The browser may reuse the redirect until shortly before the address expires.
   c.header('Cache-Control', 'private, max-age=240')
-  return c.redirect(await fileUrl(sub, doc.id))
+  return c.redirect(await fileUrl(sub, doc.id, c.req.query('version') === 'processed' ? 'processed' : 'raw'))
+})
+
+documents.put(`${BY_ID}/file`, jsonBody(FileChoice), async (c) => {
+  const doc = await chooseVersion(c.get('session').sub, c.req.param('id'), c.req.valid('json').use)
+  return doc ? c.json(doc) : apiError(c, 'not_found', 404)
 })
 
 documents.put(BY_ID, jsonBody(DocumentInput), async (c) => {

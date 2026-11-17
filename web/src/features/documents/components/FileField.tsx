@@ -23,21 +23,18 @@ import {
 } from '@tabler/icons-react'
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { FILE_MAX_SIZE, FILE_TYPES, isPdf, type DocumentType } from 'shared'
+import { FILE_MAX_SIZE, FILE_TYPES, isPdf } from 'shared'
 import classes from '~/features/documents/components/documents.module.css'
 import FilePreview from '~/features/documents/components/FilePreview.tsx'
-import { TYPE_LOOKS } from '~/features/documents/look.ts'
 import { prepareFile, type PreparedFile } from '~/features/upload/prepare.ts'
 import { formatFileSize } from '~/shared/lib/format.ts'
 
 const ACCEPT = FILE_TYPES.join(',')
 
 type FileFieldProps = {
-  // The chosen type, whose color the icon and the main button take, like the card's top and Save.
-  type: DocumentType
   // Gets what to send, or null when there is nothing to send.
   onChange: (file: Blob | null) => void
-  // True while a picked file is being prepared, so the form waits with sending.
+  // True while a picked file is being prepared, so the page waits with sending.
   onPreparing: (preparing: boolean) => void
   disabled: boolean
 }
@@ -45,9 +42,8 @@ type FileFieldProps = {
 type FileError = 'fileSize' | 'fileUnreadable'
 
 // Picks the document's file and shows it before sending. A photo can be turned by 90°, so its text is upright.
-export default function FileField({ type, onChange, onPreparing, disabled }: FileFieldProps) {
+export default function FileField({ onChange, onPreparing, disabled }: FileFieldProps) {
   const { t } = useTranslation()
-  const { color, strong } = TYPE_LOOKS[type]
   const maxSize = formatFileSize(FILE_MAX_SIZE)
   // On a phone the camera comes first, so picking a file steps back. Read at once, so a computer
   // doesn't show the phone's variant first.
@@ -129,7 +125,7 @@ export default function FileField({ type, onChange, onPreparing, disabled }: Fil
         )}
         <FileButton onChange={pick} accept={ACCEPT} disabled={disabled}>
           {(props) => (
-            <Button variant="subtle" size="compact-md" {...props}>
+            <Button variant="subtle" size="compact-md" disabled={disabled} {...props}>
               {t('documents.changeFile')}
             </Button>
           )}
@@ -167,7 +163,7 @@ export default function FileField({ type, onChange, onPreparing, disabled }: Fil
     >
       <IconReceipt size={260} stroke={0.75} className={classes.watermark} aria-hidden />
       <Indicator size={28} offset={6} withBorder label={<IconPlus size={16} stroke={3} />}>
-        <ThemeIcon size={88} radius="xl" variant="light" color={color}>
+        <ThemeIcon size={88} radius="xl" variant="light">
           <IconPhoto size={44} stroke={1.5} />
         </ThemeIcon>
       </Indicator>
@@ -182,14 +178,14 @@ export default function FileField({ type, onChange, onPreparing, disabled }: Fil
       <Flex direction={{ base: 'column', sm: 'row' }} gap="sm" w={{ base: '100%', sm: 'auto' }}>
         <FileButton onChange={pick} accept="image/*" capture="environment" disabled={disabled}>
           {(props) => (
-            <Button hiddenFrom="sm" variant="filled" color={strong} leftSection={<IconCamera size={18} />} {...props}>
+            <Button hiddenFrom="sm" variant="filled" leftSection={<IconCamera size={18} />} disabled={disabled} {...props}>
               {t('documents.takePhoto')}
             </Button>
           )}
         </FileButton>
         <FileButton onChange={pick} accept={ACCEPT} disabled={disabled}>
           {(props) => (
-            <Button variant={chooseVariant} color={strong} leftSection={<IconUpload size={18} />} {...props}>
+            <Button variant={chooseVariant} leftSection={<IconUpload size={18} />} disabled={disabled} {...props}>
               {t('documents.chooseFile')}
             </Button>
           )}

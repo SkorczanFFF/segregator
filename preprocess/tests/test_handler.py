@@ -25,8 +25,8 @@ class FakeS3:
             raise file
         return {"Body": io.BytesIO(file["bytes"]), "ContentType": file["type"]}
 
-    def put_object(self, Bucket, Key, Body, ContentType):
-        self.written[Key] = {"bytes": Body, "type": ContentType}
+    def put_object(self, Bucket, Key, Body, ContentType, Metadata):
+        self.written[Key] = {"bytes": Body, "type": ContentType, "metadata": Metadata}
 
     def copy_object(self, Bucket, Key, CopySource):
         self.written[Key] = self.files[CopySource["Key"]]
@@ -59,6 +59,7 @@ def test_writes_the_straightened_photo_to_processed(s3):
     assert handler.handler({"Records": [message(KEY)]}, None) == {"batchItemFailures": []}
     written = fake.written[TARGET]
     assert written["type"] == "image/jpeg"
+    assert written["metadata"] == {"change": "cut"}
     result = cv2.imdecode(np.frombuffer(written["bytes"], np.uint8), cv2.IMREAD_COLOR)
     assert result.shape[0] < photo.shape[0]
 

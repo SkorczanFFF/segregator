@@ -14,7 +14,7 @@ import * as dynamodb from 'aws-cdk-lib/aws-dynamodb'
 import * as iam from 'aws-cdk-lib/aws-iam'
 import * as kms from 'aws-cdk-lib/aws-kms'
 import * as lambda from 'aws-cdk-lib/aws-lambda'
-import { SqsEventSource, type SqsEventSourceProps } from 'aws-cdk-lib/aws-lambda-event-sources'
+import { DynamoEventSource, SqsDlq, SqsEventSource, type SqsEventSourceProps } from 'aws-cdk-lib/aws-lambda-event-sources'
 import * as nodejs from 'aws-cdk-lib/aws-lambda-nodejs'
 import * as logs from 'aws-cdk-lib/aws-logs'
 import * as s3 from 'aws-cdk-lib/aws-s3'
@@ -23,12 +23,13 @@ import * as s3n from 'aws-cdk-lib/aws-s3-notifications'
 import * as sqs from 'aws-cdk-lib/aws-sqs'
 import * as ssm from 'aws-cdk-lib/aws-ssm'
 import type { Construct } from 'constructs'
-import { PASSWORD_MIN_LENGTH } from 'shared'
+import { FILE_VERSIONS, PASSWORD_MIN_LENGTH } from 'shared'
 
 const WEB_DIST = fileURLToPath(new URL('../../web/dist', import.meta.url))
 const API_ENTRY = fileURLToPath(new URL('../../api/src/index.ts', import.meta.url))
 const PRE_SIGN_UP_ENTRY = fileURLToPath(new URL('../../api/src/pre-sign-up.ts', import.meta.url))
 const WORKER_ENTRY = fileURLToPath(new URL('../../api/src/worker.ts', import.meta.url))
+const DRAFT_CLEANUP_ENTRY = fileURLToPath(new URL('../../api/src/draft-cleanup.ts', import.meta.url))
 const PREPROCESS_DIR = fileURLToPath(new URL('../../preprocess', import.meta.url))
 // clientId and clientSecret of the OAuth client in Google Cloud, stored once by hand.
 const GOOGLE_SECRET = 'segregator/google-oauth'
@@ -264,6 +265,8 @@ export class SegregatorStack extends Stack {
       sortKey: { name: 'SK', type: dynamodb.AttributeType.STRING },
       billing: dynamodb.Billing.onDemand(),
       timeToLiveAttribute: 'expiresAt',
+      // The keys of removed items, so the files of an expired draft can go too.
+      dynamoStream: dynamodb.StreamViewType.KEYS_ONLY,
       // Documents can be restored to any second of the last 35 days.
       pointInTimeRecoverySpecification: { pointInTimeRecoveryEnabled: true },
       // One index for per-user lists: an account's sessions and documents.
@@ -296,7 +299,13 @@ export class SegregatorStack extends Stack {
     userPool.grant(apiFunction, 'cognito-idp:DescribeUserPoolClient', 'cognito-idp:AdminGetUser')
     // Signing an upload needs the right to put the file itself, and with it the KMS key.
     documentsBucket.grantReadWrite(apiFunction, 'raw/*')
-    documentsBucket.grantDelete(apiFunction, 'processed/*')
+    // The processed copy is only shown and deleted.
+    apiFunction.addToRolePolicy(
+      new iam.PolicyStatement({
+        actions: ['s3:GetObject', 's3:DeleteObject'],
+        resources: [documentsBucket.arnForObjects('processed/*')],
+      }),
+    )
 
     // A step of the background work: the files that land under prefix wait in a queue for the step's function.
     // AWS advises a visibility timeout of six times the function's, so a retry after throttling still fits.
@@ -354,13 +363,54 @@ export class SegregatorStack extends Stack {
       },
       logGroup: monthOfLogs('WorkerLogs'),
     })
-    // Only what the check needs: read a file and update its document.
+    // Only what the check needs: read the file and what preprocessing did to it, and update its document.
     table.grant(workerFunction, 'dynamodb:UpdateItem')
     workerFunction.addToRolePolicy(
-      new iam.PolicyStatement({ actions: ['s3:GetObject'], resources: [documentsBucket.arnForObjects('raw/*')] }),
+      new iam.PolicyStatement({
+        actions: ['s3:GetObject'],
+        resources: FILE_VERSIONS.map((version) => documentsBucket.arnForObjects(`${version}/*`)),
+      }),
     )
     documentsKey.grantDecrypt(workerFunction)
     workerFunction.addEventSource(new SqsEventSource(stepQueue('Processed', 'processed/', WORKER_TIMEOUT), ONE_BY_ONE))
+
+    // When TTL removes a draft nobody saved, its files go too. Only expiry removes items as the service
+    // itself, and sessions expire in the same table, so the filter passes only documents.
+    const draftCleanupFunction = new nodejs.NodejsFunction(this, 'DraftCleanupFunction', {
+      ...NODE_FUNCTION,
+      entry: DRAFT_CLEANUP_ENTRY,
+      environment: { DOCUMENTS_BUCKET: documentsBucket.bucketName },
+      logGroup: monthOfLogs('DraftCleanupLogs'),
+    })
+    draftCleanupFunction.addToRolePolicy(
+      new iam.PolicyStatement({
+        actions: ['s3:DeleteObject'],
+        resources: FILE_VERSIONS.map((version) => documentsBucket.arnForObjects(`${version}/*`)),
+      }),
+    )
+    const cleanupDeadLetters = new sqs.Queue(this, 'DraftCleanupDeadLetters', {
+      enforceSSL: true,
+      retentionPeriod: DEAD_LETTER_RETENTION,
+    })
+    draftCleanupFunction.addEventSource(
+      new DynamoEventSource(table, {
+        startingPosition: lambda.StartingPosition.LATEST,
+        // As many tries as a queue gives a message. Without a limit a failing batch would hold up the stream.
+        retryAttempts: MAX_RECEIVES - 1,
+        onFailure: new SqsDlq(cleanupDeadLetters),
+        filters: [
+          lambda.FilterCriteria.filter({
+            eventName: lambda.FilterRule.isEqual('REMOVE'),
+            userIdentity: {
+              type: lambda.FilterRule.isEqual('Service'),
+              principalId: lambda.FilterRule.isEqual('dynamodb.amazonaws.com'),
+            },
+            dynamodb: { Keys: { SK: { S: lambda.FilterRule.beginsWith('DOC#') } } },
+          }),
+        ],
+      }),
+    )
+    new CfnOutput(this, 'DraftCleanupDeadLettersUrl', { value: cleanupDeadLetters.queueUrl })
 
     const integration = new HttpLambdaIntegration('ApiIntegration', apiFunction)
     const api = new HttpApi(this, 'Api', { defaultIntegration: integration, createDefaultStage: false })

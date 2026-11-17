@@ -1,6 +1,6 @@
 import * as z from 'zod'
 import { CATEGORIES, DOCUMENT_TYPES } from './categories.ts'
-import { FILE_TYPES, type DocumentFile } from './file.ts'
+import { FILE_TYPES, FILE_VERSIONS, type DocumentFile } from './file.ts'
 
 export const TEXT_MAX_LENGTH = 120
 
@@ -26,15 +26,21 @@ export const DocumentInput = DocumentFields.refine(subtypeFits, { path: ['subtyp
 
 export type DocumentInput = z.infer<typeof DocumentInput>
 
-// A new document with a file: its fields and the type of the file the browser sends next.
-export const UploadInput = DocumentFields.extend({ fileType: z.enum(FILE_TYPES) }).refine(subtypeFits, {
-  path: ['subtype'],
-})
+// A document from a file starts with the file alone; its fields come once its photo is approved.
+export const UploadInput = z.object({ fileType: z.enum(FILE_TYPES) })
 
-// A document without a file is done at once. One with a file waits for it, then the worker checks it.
+// The version of a changed photo the person keeps.
+export const FileChoice = z.object({ use: z.enum(FILE_VERSIONS) })
+
+// A document with a file waits for it, then the worker checks it. One without a file is done at once.
 export type DocumentStatus = 'uploading' | 'processing' | 'done' | 'failed'
 
-export type Document = DocumentInput & { id: string; createdAt: string; status: DocumentStatus; file?: DocumentFile }
+type Stored = { id: string; createdAt: string; status: DocumentStatus; file?: DocumentFile }
+
+export type Document = DocumentInput & Stored & { draft?: never }
+
+// A document whose file came first. It has no fields until they are saved, and the list doesn't show it.
+export type Draft = Stored & { draft: true }
 
 // One page of the list, newest first. The cursor fetches the next one.
 export type DocumentList = { items: Document[]; cursor?: string }

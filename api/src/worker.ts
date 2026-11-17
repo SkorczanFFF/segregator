@@ -1,5 +1,5 @@
 import { FILE_TYPES, isPdf, type FileType } from 'shared'
-import { parseFileKey, readFile } from './document-files.ts'
+import { parseFileKey, readChange, readFile } from './document-files.ts'
 import { claimDocument, settleDocument, type CheckResult } from './document-table.ts'
 
 // The parts of the SQS and S3 events the worker reads.
@@ -46,7 +46,9 @@ async function checkFile(sub: string, id: string): Promise<CheckResult> {
   // Taken before pdf.js, which empties the buffer it reads.
   const size = bytes.length
   try {
-    return { status: 'done', file: { type, size, pages: isPdf(type) ? await countPages(bytes) : 1 } }
+    // A PDF goes through preprocessing unchanged, while a photo may have been cut out or levelled.
+    const file = isPdf(type) ? { pages: await countPages(bytes) } : { pages: 1, change: await readChange(sub, id) }
+    return { status: 'done', file: { type, size, ...file } }
   } catch (err) {
     if (err instanceof Error && BROKEN_PDF.has(err.name)) return { status: 'failed' }
     throw err
@@ -75,7 +77,7 @@ async function processMessage(message: SqsMessage) {
     // S3 encodes the key as in a URL, with spaces as plus signs.
     // The straightened copy under processed/ means preprocessing is done. The check reads the original.
     const file = parseFileKey(decodeURIComponent(record.s3.object.key.replaceAll('+', ' ')))
-    if (file?.stage === 'processed') await processFile(file.sub, file.id, message)
+    if (file?.version === 'processed') await processFile(file.sub, file.id, message)
     else console.warn('Skipped a key that is not a processed document file')
   }
 }

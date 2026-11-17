@@ -1,13 +1,29 @@
 import assert from 'node:assert/strict'
 import { randomUUID } from 'node:crypto'
 import { test } from 'node:test'
-import type { DocumentInput } from 'shared'
+import type { DocumentFile, DocumentInput } from 'shared'
 import { setUpLocalTable } from './local-table.ts'
 
 setUpLocalTable('documents-test')
 
-const { claimDocument, createDocument, deleteDocument, getDocument, listDocuments, settleDocument, updateDocument } =
-  await import('./document-table.ts')
+const {
+  chooseVersion,
+  claimDocument,
+  createDocument,
+  createDraft,
+  deleteDocument,
+  getDocument,
+  listDocuments,
+  markSent,
+  settleDocument,
+  updateDocument,
+} = await import('./document-table.ts')
+
+// A saved document, or undefined for a draft or no document.
+const saved = async (sub: string, id: string) => {
+  const found = await getDocument(sub, id)
+  return found?.draft ? undefined : found
+}
 
 const doc = (docDate: string, extra: Partial<DocumentInput> = {}): DocumentInput => ({
   type: 'receipt',
@@ -36,7 +52,7 @@ test("never reaches another account's documents", async () => {
   assert.equal(await getDocument(other, id), undefined)
   assert.equal(await updateDocument(other, id, doc('2026-11-11')), undefined)
   await deleteDocument(other, id)
-  assert.equal((await getDocument(owner, id))?.docDate, '2026-11-10')
+  assert.equal((await saved(owner, id))?.docDate, '2026-11-10')
 })
 
 test('pages with a cursor that only works for its own account', async () => {
@@ -60,7 +76,7 @@ test('updates what a person entered and keeps the id and creation time', async (
 
   const updated = await updateDocument(sub, created.id, doc('2026-11-01', { amount: 5000 }))
   assert.equal(updated?.createdAt, created.createdAt)
-  const stored = await getDocument(sub, created.id)
+  const stored = await saved(sub, created.id)
   assert.equal(stored?.title, undefined)
   assert.equal(stored?.amount, 5000)
   assert.equal((await listDocuments(sub))?.items.at(-1)?.id, created.id)
@@ -75,27 +91,54 @@ test('does not bring back a deleted document', async () => {
   assert.equal(await getDocument(sub, id), undefined)
 })
 
-test('hides a document whose file never came', async (t) => {
+// A draft whose file the worker checked, as one message would leave it.
+async function checkedDraft(sub: string, file: DocumentFile = { type: 'image/jpeg', size: 99, pages: 1 }) {
+  const { id } = await createDraft(sub)
+  await claimDocument(sub, id, 'message')
+  await settleDocument(sub, id, 'message', { status: 'done', file })
+  return id
+}
+
+test('keeps a draft off the list until its checked file gets fields', async (t) => {
   const sub = randomUUID()
-  const { id, status } = await createDocument(sub, doc('2026-11-10'), true)
+  const { id, draft, status } = await createDraft(sub)
+  assert.equal(draft, true)
   assert.equal(status, 'uploading')
+  assert.equal((await getDocument(sub, id))?.draft, true)
+  assert.equal(await updateDocument(sub, id, doc('2026-11-17')), undefined, 'a file not checked yet')
+
+  await claimDocument(sub, id, 'message')
+  await settleDocument(sub, id, 'message', { status: 'done', file: { type: 'image/jpeg', size: 99, pages: 1 } })
+  assert.equal((await listDocuments(sub))?.items.length, 0)
+  const filled = await updateDocument(sub, id, doc('2026-11-17'))
+  assert.equal(filled?.draft, undefined)
   assert.equal((await listDocuments(sub))?.items[0]?.id, id)
 
-  t.mock.timers.enable({ apis: ['Date'], now: Date.now() + 16 * 60 * 1000 })
-  assert.equal((await listDocuments(sub))?.items.length, 0)
+  // Saved, it no longer expires.
+  t.mock.timers.enable({ apis: ['Date'], now: Date.now() + 25 * 60 * 60 * 1000 })
+  assert.equal((await saved(sub, id))?.issuer, 'Sklep spożywczy')
+})
+
+test('forgets a draft nobody saved after a day', async (t) => {
+  const sub = randomUUID()
+  const { id } = await createDraft(sub)
+  t.mock.timers.enable({ apis: ['Date'], now: Date.now() + 25 * 60 * 60 * 1000 })
   assert.equal(await getDocument(sub, id), undefined)
 })
 
 test('lets one message at a time check a file, and the same message again on a retry', async () => {
   const sub = randomUUID()
-  const { id } = await createDocument(sub, doc('2026-11-10'), true)
+  const { id } = await createDraft(sub)
+  await markSent(sub, id)
+  assert.equal((await getDocument(sub, id))?.status, 'processing', 'sent, before any message')
 
   assert.equal(await claimDocument(sub, id, 'first'), true)
   assert.equal(await claimDocument(sub, id, 'duplicate'), false)
   assert.equal(await claimDocument(sub, id, 'first'), true, 'a retry of the same message')
-  assert.equal((await getDocument(sub, id))?.status, 'processing')
 
   await settleDocument(sub, id, 'first', { status: 'failed' })
+  await markSent(sub, id)
+  assert.equal((await getDocument(sub, id))?.status, 'failed', 'a late report from the browser')
   assert.equal(await claimDocument(sub, id, 'sent again'), true, 'a failed file sent back from the dead-letter queue')
   const file = { type: 'application/pdf', size: 1234, pages: 2 } as const
   await settleDocument(sub, id, 'sent again', { status: 'done', file })
@@ -108,20 +151,28 @@ test('lets one message at a time check a file, and the same message again on a r
 
 test('keeps the status and the file through an edit', async () => {
   const sub = randomUUID()
-  const { id } = await createDocument(sub, doc('2026-11-10'), true)
-  await claimDocument(sub, id, 'message')
+  const id = await checkedDraft(sub)
+  await updateDocument(sub, id, doc('2026-11-11'))
   await updateDocument(sub, id, doc('2026-11-11', { title: 'Zmieniony' }))
-  await settleDocument(sub, id, 'message', { status: 'done', file: { type: 'image/jpeg', size: 99, pages: 1 } })
 
   const stored = await getDocument(sub, id)
-  assert.equal(stored?.title, 'Zmieniony')
+  assert.equal(stored?.draft, undefined)
   assert.equal(stored?.status, 'done')
-  assert.equal(stored?.file?.size, 99)
+  assert.deepEqual(stored?.file, { type: 'image/jpeg', size: 99, pages: 1 })
+})
+
+test('keeps the chosen version of a photo that preprocessing changed', async () => {
+  const sub = randomUUID()
+  assert.equal(await chooseVersion(sub, await checkedDraft(sub), 'raw'), undefined, 'a photo left as it was')
+
+  const id = await checkedDraft(sub, { type: 'image/jpeg', size: 99, pages: 1, change: 'cut' })
+  const chosen = await chooseVersion(sub, id, 'raw')
+  assert.deepEqual(chosen?.file, { type: 'image/jpeg', size: 99, pages: 1, change: 'cut', use: 'raw' })
 })
 
 test('leaves a document deleted while its file was being checked', async () => {
   const sub = randomUUID()
-  const { id } = await createDocument(sub, doc('2026-11-10'), true)
+  const { id } = await createDraft(sub)
   await claimDocument(sub, id, 'message')
   await deleteDocument(sub, id)
 

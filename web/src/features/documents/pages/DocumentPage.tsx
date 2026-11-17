@@ -2,11 +2,12 @@ import { Button, Group, Modal, Paper, Skeleton, Stack, Text } from '@mantine/cor
 import { useDisclosure } from '@mantine/hooks'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
-import { useNavigate, useParams } from 'react-router'
-import type { Document, DocumentInput } from 'shared'
+import { Navigate, useNavigate, useParams } from 'react-router'
+import type { Document, DocumentInput, Draft } from 'shared'
 import DocumentForm, { PAGE_WIDTH_WITH_FILE } from '~/features/documents/components/DocumentForm.tsx'
+import SavedFile from '~/features/documents/components/SavedFile.tsx'
 import { documentName } from '~/features/documents/look.ts'
-import { documentKey, isPending, PENDING_REFRESH, refreshDocuments } from '~/features/documents/useDocuments.ts'
+import { documentKey, refreshDocuments } from '~/features/documents/useDocuments.ts'
 import Page from '~/shared/components/Page.tsx'
 import StatusAlert from '~/shared/components/StatusAlert.tsx'
 import { useApiSubmit } from '~/shared/hooks/useApiSubmit.ts'
@@ -21,8 +22,7 @@ export default function DocumentPage() {
   const [confirming, { open, close }] = useDisclosure()
   const { data: doc, error } = useQuery({
     queryKey: documentKey(id),
-    queryFn: () => api.get<Document>(`/documents/${id}`),
-    refetchInterval: (query) => (query.state.data && isPending(query.state.data) ? PENDING_REFRESH : false),
+    queryFn: () => api.get<Document | Draft>(`/documents/${id}`),
   })
 
   async function save(input: DocumentInput) {
@@ -36,6 +36,9 @@ export default function DocumentPage() {
     await refreshDocuments(queryClient)
     navigate('/documents')
   })
+
+  // A draft goes on where new documents are made.
+  if (doc?.draft) return <Navigate to={`/documents/new?draft=${doc.id}`} replace />
 
   return (
     <Page
@@ -51,8 +54,6 @@ export default function DocumentPage() {
       width={doc && !doc.file ? 560 : PAGE_WIDTH_WITH_FILE}
     >
       {error && <StatusAlert status="error">{t(`errors.${errorCode(error)}`)}</StatusAlert>}
-      {doc?.status === 'failed' && <StatusAlert status="error">{t('documents.fileFailed')}</StatusAlert>}
-      {doc && isPending(doc) && <StatusAlert status="info">{t('documents.fileChecking')}</StatusAlert>}
       {!doc && !error && (
         <Paper p="xl" aria-busy>
           <Skeleton h={320} />
@@ -62,6 +63,7 @@ export default function DocumentPage() {
         <DocumentForm
           key={doc.id}
           doc={doc}
+          aside={doc.file && <SavedFile id={doc.id} file={doc.file} />}
           onSave={save}
           onDelete={open}
         />

@@ -1,13 +1,11 @@
 import {
   Affix,
-  Badge,
   Box,
   Button,
   Divider,
   getDefaultZIndex,
   Group,
   Indicator,
-  Loader,
   Paper,
   Skeleton,
   Stack,
@@ -25,7 +23,7 @@ import { Link } from 'react-router'
 import type { Document } from 'shared'
 import classes from '~/features/documents/components/documents.module.css'
 import { CARD_INSET, describeDocument, documentName, TYPE_LOOKS } from '~/features/documents/look.ts'
-import { isPending, useDocuments } from '~/features/documents/useDocuments.ts'
+import { useDocuments } from '~/features/documents/useDocuments.ts'
 import Page from '~/shared/components/Page.tsx'
 import StatusAlert from '~/shared/components/StatusAlert.tsx'
 import { formatDate, formatDayMonth, formatMoney, formatMonth } from '~/shared/lib/format.ts'
@@ -80,23 +78,9 @@ function DocumentRow({ doc }: { doc: Document }) {
           <Text fw={600} truncate>
             {documentName(doc)}
           </Text>
-          {/* The status goes before the category, so a phone still has room for the name. */}
-          <Group gap="xs" wrap="nowrap">
-            {doc.status !== 'done' && (
-              <Badge
-                size="sm"
-                variant="light"
-                color={doc.status === 'failed' ? 'red' : 'gray'}
-                leftSection={isPending(doc) && <Loader size={10} color="currentColor" aria-hidden />}
-                flex="none"
-              >
-                {t(`documents.status.${doc.status}`)}
-              </Badge>
-            )}
-            <Text size="sm" c="dimmed" truncate>
-              {describeDocument(t, doc).join(' · ')}
-            </Text>
-          </Group>
+          <Text size="sm" c="dimmed" truncate>
+            {describeDocument(t, doc).join(' · ')}
+          </Text>
         </Stack>
         {/* The year is in the month's heading, so the date is short. */}
         <Stack gap={2} align="flex-end" flex="none">

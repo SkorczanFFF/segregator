@@ -55,6 +55,15 @@
   justify-content: center;
 }
 
+/* The image as a button that opens the viewer, still fitting the stage. */
+.zoom {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+}
+
 .image {
   display: block;
   max-width: 100%;
@@ -70,8 +79,32 @@
   }
 }
 
+/* The whole image in the viewer, as wide as it can be. */
+.whole {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: var(--mantine-radius-sm);
+}
+
 .bar {
   border-top: 1px solid var(--mantine-color-default-border);
+}
+
+.top {
+  border-bottom: 1px solid var(--mantine-color-default-border);
+}
+
+/* Covers the fields while they wait for the photo: visible, but out of reach. */
+.lock {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background-color: color-mix(in srgb, var(--mantine-color-body) 75%, transparent);
+}
+
+.overLock {
+  z-index: 2;
 }
 
 /* Sits on the cursor; the image inside is moved so the point under the cursor is in its middle.

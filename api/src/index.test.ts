@@ -4,7 +4,7 @@ import { test } from 'node:test'
 import { CognitoIdentityProviderClient } from '@aws-sdk/client-cognito-identity-provider'
 import { S3Client } from '@aws-sdk/client-s3'
 import { Hono } from 'hono'
-import { FILE_MAX_SIZE, type Document, type Upload } from 'shared'
+import { FILE_MAX_SIZE, type Draft, type Upload } from 'shared'
 import { setUpLocalTable } from './local-table.ts'
 
 setUpLocalTable('api-test')
@@ -14,7 +14,7 @@ process.env.DOCUMENTS_BUCKET = 'documents-test'
 
 const { app } = await import('./index.ts')
 const { createSession } = await import('./session.ts')
-const { claimDocument, createDocument, settleDocument } = await import('./document-table.ts')
+const { claimDocument, createDraft, settleDocument } = await import('./document-table.ts')
 
 // Starts a session through the real session code and returns the cookie a browser would send back.
 async function signIn(sub = randomUUID()) {
@@ -125,7 +125,7 @@ test("signs an upload only into the account's own folder, with the type and size
     app.request('/api/documents/upload', {
       method: 'POST',
       headers: json(cookie),
-      body: JSON.stringify({ type: 'receipt', issuer: 'Sklep', docDate: '2026-11-16', fileType }),
+      body: JSON.stringify({ fileType }),
     })
 
   assert.equal((await upload('image/svg+xml')).status, 400)
@@ -136,26 +136,39 @@ test("signs an upload only into the account's own folder, with the type and size
   for (const condition of [{ key: `raw/${sub}/${id}` }, { 'Content-Type': 'image/png' }, ['content-length-range', 1, FILE_MAX_SIZE]]) {
     assert.ok(conditions.includes(JSON.stringify(condition)), JSON.stringify(condition))
   }
-  // The document is there before its file, so a tab closed after the upload loses nothing.
-  const created = await app.request(`/api/documents/${id}`, { headers: json(cookie) })
-  assert.equal(((await created.json()) as Document).status, 'uploading')
+  // A draft waits for its file, and shows as processing once the browser reports the file sent.
+  const draft = async () => (await (await app.request(`/api/documents/${id}`, { headers: json(cookie) })).json()) as Draft
+  assert.deepEqual(await draft(), { id, createdAt: (await draft()).createdAt, status: 'uploading', draft: true })
+  assert.equal((await app.request(`/api/documents/${id}/sent`, { method: 'POST', headers: json(cookie) })).status, 204)
+  assert.equal((await draft()).status, 'processing')
 })
 
-test('shows a checked file and deletes it with its document', async (t) => {
+test('shows both versions of a changed photo, keeps the chosen one and deletes both', async (t) => {
   const sub = randomUUID()
   const owner = await signIn(sub)
-  const { id } = await createDocument(sub, { type: 'receipt', issuer: 'Sklep', docDate: '2026-11-16' }, true)
-  const file = (cookie: string) => app.request(`/api/documents/${id}/file`, { headers: json(cookie) })
+  const { id } = await createDraft(sub)
+  const file = (cookie: string, query = '') => app.request(`/api/documents/${id}/file${query}`, { headers: json(cookie) })
+  const choose = (cookie: string, use: string) =>
+    app.request(`/api/documents/${id}/file`, { method: 'PUT', headers: json(cookie), body: JSON.stringify({ use }) })
   assert.equal((await file(owner)).status, 404, 'a file not checked yet')
+  assert.equal((await choose(owner, 'raw')).status, 404, 'nothing to choose yet')
 
   await claimDocument(sub, id, 'message')
-  await settleDocument(sub, id, 'message', { status: 'done', file: { type: 'image/jpeg', size: 2048, pages: 1 } })
-  const shown = await file(owner)
-  assert.equal(shown.status, 302)
-  const location = new URL(shown.headers.get('location') ?? '')
-  assert.equal(location.pathname, `/raw/${sub}/${id}`)
-  assert.equal(location.searchParams.get('X-Amz-Expires'), '300')
-  assert.equal((await file(await signIn())).status, 404, "another account's file")
+  const checked = { type: 'image/jpeg', size: 2048, pages: 1, change: 'cut' } as const
+  await settleDocument(sub, id, 'message', { status: 'done', file: checked })
+  for (const [query, version] of [['', 'raw'], ['?version=processed', 'processed']]) {
+    const shown = await file(owner, query)
+    assert.equal(shown.status, 302)
+    const location = new URL(shown.headers.get('location') ?? '')
+    assert.equal(location.pathname, `/${version}/${sub}/${id}`)
+    assert.equal(location.searchParams.get('X-Amz-Expires'), '300')
+  }
+  const other = await signIn()
+  assert.equal((await file(other)).status, 404, "another account's file")
+  assert.equal((await choose(other, 'raw')).status, 404, "another account's photo")
+  assert.equal((await choose(owner, 'cropped')).status, 400)
+  const chosen = await choose(owner, 'raw')
+  assert.deepEqual(((await chosen.json()) as Draft).file, { ...checked, use: 'raw' })
 
   // Stands in for S3.
   const sent: string[] = []

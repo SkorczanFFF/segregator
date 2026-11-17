@@ -9,7 +9,7 @@ process.env.DOCUMENTS_BUCKET = 'documents-test'
 process.env.MAX_RECEIVES = '3'
 
 const { handler } = await import('./worker.ts')
-const { createDocument, getDocument } = await import('./document-table.ts')
+const { createDraft, getDocument } = await import('./document-table.ts')
 
 // A PDF of empty pages. It has no cross-reference table, which pdf.js rebuilds.
 function pdf(pages: number) {
@@ -19,16 +19,22 @@ function pdf(pages: number) {
   return new TextEncoder().encode(`${body}trailer<</Root 1 0 R>>\n%%EOF`)
 }
 
+type FakeFile = { type: string; bytes: Uint8Array; metadata?: Record<string, string> }
+
 // Stands in for S3 with these files, and returns the keys the worker read. Each read gets its own copy,
 // as from S3, because pdf.js takes over the buffer it reads.
-function fakeS3(t: TestContext, files: Record<string, { type: string; bytes: Uint8Array } | Error>) {
+function fakeS3(t: TestContext, files: Record<string, FakeFile | Error>) {
   const reads: string[] = []
   t.mock.method(S3Client.prototype, 'send', async (command: { input: { Key: string } }) => {
     reads.push(command.input.Key)
     const file = files[command.input.Key]
     if (!file) throw new NoSuchKey({ message: 'No such key', $metadata: {} })
     if (file instanceof Error) throw file
-    return { ContentType: file.type, Body: { transformToByteArray: async () => file.bytes.slice() } }
+    return {
+      ContentType: file.type,
+      Metadata: file.metadata ?? {},
+      Body: { transformToByteArray: async () => file.bytes.slice() },
+    }
   })
   return reads
 }
@@ -54,10 +60,10 @@ const created = (key: string) => ({
   ],
 })
 
-// A document waiting for its file, and the key the file goes to.
+// A draft waiting for its file, and the keys of the file and its processed copy.
 async function upload() {
   const sub = randomUUID()
-  const { id } = await createDocument(sub, { type: 'invoice', issuer: 'Hurtownia', docDate: '2026-11-17' }, true)
+  const { id } = await createDraft(sub)
   return { sub, id, key: `raw/${sub}/${id}`, processed: `processed/${sub}/${id}` }
 }
 
@@ -70,6 +76,19 @@ test('checks a PDF and counts its pages', async (t) => {
   const doc = await getDocument(sub, id)
   assert.equal(doc?.status, 'done')
   assert.deepEqual(doc?.file, { type: 'application/pdf', size: bytes.length, pages: 3 })
+})
+
+test('checks a photo and keeps what preprocessing changed', async (t) => {
+  const { sub, id, key, processed } = await upload()
+  const photo = new Uint8Array([0xff, 0xd8, 0xff, 0xe0, 0, 0, 0, 0])
+  const reads = fakeS3(t, {
+    [key]: { type: 'image/jpeg', bytes: photo },
+    [processed]: { type: 'image/jpeg', bytes: photo, metadata: { change: 'levelled' } },
+  })
+
+  await handler({ Records: [message(created(processed))] })
+  assert.deepEqual((await getDocument(sub, id))?.file, { type: 'image/jpeg', size: photo.length, pages: 1, change: 'levelled' })
+  assert.deepEqual(reads, [key, processed])
 })
 
 test('checks a file once when S3 sends its event twice', async (t) => {

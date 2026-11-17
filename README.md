@@ -7,7 +7,7 @@ Live at [segregator.skoftware.pl](https://segregator.skoftware.pl).
 ## Repository
 
 - `web/`: React front end (Vite, Mantine)
-- `api/`: Hono API and the worker that checks uploaded files, each deployed as an AWS Lambda function
+- `api/`: Hono API, the worker that checks uploaded files and the cleanup of abandoned drafts, each deployed as an AWS Lambda function
 - `preprocess/`: Python function that straightens photos of documents with OpenCV, managed with uv
 - `shared/`: Zod schemas and the category list used by both the API and the web app
 - `infra/`: AWS CDK app stack and the CodePipeline that deploys it to `dev` and `prod`

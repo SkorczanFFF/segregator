@@ -54,6 +54,9 @@ def process_message(message):
 def process_file(source, target):
     """Writes the straightened photo, or a copy of the original when there is nothing to straighten.
 
+    The copy's metadata says what was done, and the worker passes it on to the document. A copy of the
+    original has none.
+
     Errors from S3 go up, so the message is tried again. Anything that goes wrong with the image itself
     ends in a copy of the original, so the document goes on to the worker either way.
     """
@@ -68,8 +71,14 @@ def process_file(source, target):
     if result is None:
         s3.copy_object(Bucket=BUCKET, Key=target, CopySource={"Bucket": BUCKET, "Key": source})
         return
-    _, jpeg = cv2.imencode(".jpg", result, [cv2.IMWRITE_JPEG_QUALITY, JPEG_QUALITY])
-    s3.put_object(Bucket=BUCKET, Key=target, Body=jpeg.tobytes(), ContentType="image/jpeg")
+    _, jpeg = cv2.imencode(".jpg", result.image, [cv2.IMWRITE_JPEG_QUALITY, JPEG_QUALITY])
+    s3.put_object(
+        Bucket=BUCKET,
+        Key=target,
+        Body=jpeg.tobytes(),
+        ContentType="image/jpeg",
+        Metadata={"change": result.change},
+    )
 
 
 def decode(data, content_type):
