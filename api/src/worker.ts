@@ -1,5 +1,5 @@
 import { FILE_TYPES, isPdf, type FileType } from 'shared'
-import { parseFileKey, readChange, readFile } from './document-files.ts'
+import { deleteFiles, parseFileKey, readChange, readFile } from './document-files.ts'
 import { claimDocument, settleDocument, type CheckResult } from './document-table.ts'
 
 // The parts of the SQS and S3 events the worker reads.
@@ -58,7 +58,10 @@ async function checkFile(sub: string, id: string): Promise<CheckResult> {
 // S3 may send the same event twice and SQS may deliver a message twice, so the claim lets one message
 // work on a document. A retry of that same message gets it back.
 async function processFile(sub: string, id: string, message: SqsMessage) {
-  if (!(await claimDocument(sub, id, message.messageId))) return
+  const claim = await claimDocument(sub, id, message.messageId)
+  // A file that arrived after its document was deleted, or was preprocessed meanwhile, belongs to nothing.
+  if (claim === 'gone') await deleteFiles(sub, id)
+  if (claim !== 'claimed') return
   try {
     await settleDocument(sub, id, message.messageId, await checkFile(sub, id))
   } catch (err) {

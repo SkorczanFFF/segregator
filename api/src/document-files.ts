@@ -7,7 +7,10 @@ const s3 = new S3Client({})
 const BUCKET = process.env.DOCUMENTS_BUCKET ?? ''
 
 // How long the browser has to start sending a file.
-export const UPLOAD_SECONDS = 600
+const UPLOAD_SECONDS = 600
+
+// How long an address of a file works.
+export const FILE_URL_SECONDS = 300
 
 // A document's id is a ULID.
 export const ID_PATTERN = '[0-9A-HJKMNP-TV-Z]{26}'
@@ -49,7 +52,7 @@ export async function readChange(sub: string, id: string): Promise<FileChange | 
 
 // A short-lived address of one version of the file, for an img tag or a new tab.
 export const fileUrl = (sub: string, id: string, version: FileVersion) =>
-  getSignedUrl(s3, new GetObjectCommand({ Bucket: BUCKET, Key: fileKey(sub, id, version) }), { expiresIn: 300 })
+  getSignedUrl(s3, new GetObjectCommand({ Bucket: BUCKET, Key: fileKey(sub, id, version) }), { expiresIn: FILE_URL_SECONDS })
 
 // Every version of a document's file. S3 deletes a missing key without error.
 export async function deleteFiles(sub: string, id: string) {

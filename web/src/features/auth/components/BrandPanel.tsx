@@ -30,7 +30,7 @@ function SampleRead() {
     <Group gap={0} wrap="nowrap" visibleFrom="sm" aria-hidden>
       <Image src={sampleReceipt} h={240} w={180} radius="md" className={classes.photo} />
       {/* The card follows the color scheme, unlike the always dark panel around it. */}
-      <Paper p="md" w={250} c="var(--mantine-color-text)" className={classes.read}>
+      <Paper p="md" w={250} ml={-36} shadow="xl" c="var(--mantine-color-text)" className={classes.read}>
         <Stack gap={10}>
           <Group gap={6} fz="xs" fw={700} tt="uppercase" lts="0.04em" className={classes.readTitle}>
             <IconSparkles size={16} />

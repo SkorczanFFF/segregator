@@ -1,6 +1,6 @@
 import { Hono } from 'hono'
 import { DocumentInput, FileChoice, UploadInput } from 'shared'
-import { deleteFiles, fileUrl, ID_PATTERN, signUpload } from './document-files.ts'
+import { deleteFiles, FILE_URL_SECONDS, fileUrl, ID_PATTERN, signUpload } from './document-files.ts'
 import {
   chooseVersion,
   createDocument,
@@ -49,14 +49,14 @@ documents.get(BY_ID, async (c) => {
   return doc ? c.json(doc) : apiError(c, 'not_found', 404)
 })
 
-// Sends the browser on to S3 with an address that works for five minutes: to the file as sent, or with
-// ?version=processed to the copy preprocessing made.
+// Sends the browser on to S3 with a short-lived address: to the file as sent, or with ?version=processed to
+// the copy preprocessing made.
 documents.get(`${BY_ID}/file`, async (c) => {
   const sub = c.get('session').sub
   const doc = await getDocument(sub, c.req.param('id'))
   if (!doc?.file) return apiError(c, 'not_found', 404)
   // The browser may reuse the redirect until shortly before the address expires.
-  c.header('Cache-Control', 'private, max-age=240')
+  c.header('Cache-Control', `private, max-age=${FILE_URL_SECONDS - 60}`)
   return c.redirect(await fileUrl(sub, doc.id, c.req.query('version') === 'processed' ? 'processed' : 'raw'))
 })
 
@@ -74,8 +74,8 @@ documents.delete(BY_ID, async (c) => {
   const sub = c.get('session').sub
   const doc = await getDocument(sub, c.req.param('id'))
   if (!doc) return apiError(c, 'not_found', 404)
-  // The files go first, so a failed delete can be repeated and never leaves a file without its document.
-  // A document still in the worker's hands may have its files already.
+  // The files go first, so a failed delete can be repeated. A file that arrives later finds no document,
+  // and the worker deletes it.
   await deleteFiles(sub, doc.id)
   await deleteDocument(sub, doc.id)
   return c.body(null, 204)

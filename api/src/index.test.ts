@@ -2,15 +2,14 @@ import assert from 'node:assert/strict'
 import { randomUUID } from 'node:crypto'
 import { test } from 'node:test'
 import { CognitoIdentityProviderClient } from '@aws-sdk/client-cognito-identity-provider'
-import { S3Client } from '@aws-sdk/client-s3'
 import { Hono } from 'hono'
 import { FILE_MAX_SIZE, type Draft, type Upload } from 'shared'
+import { fakeS3 } from './fake-s3.ts'
 import { setUpLocalTable } from './local-table.ts'
 
 setUpLocalTable('api-test')
 process.env.COGNITO_DOMAIN = 'https://auth.example.com'
 process.env.APP_URL = 'https://app.example.com'
-process.env.DOCUMENTS_BUCKET = 'documents-test'
 
 const { app } = await import('./index.ts')
 const { createSession } = await import('./session.ts')
@@ -170,12 +169,7 @@ test('shows both versions of a changed photo, keeps the chosen one and deletes b
   const chosen = await choose(owner, 'raw')
   assert.deepEqual(((await chosen.json()) as Draft).file, { ...checked, use: 'raw' })
 
-  // Stands in for S3.
-  const sent: string[] = []
-  t.mock.method(S3Client.prototype, 'send', async (command: { input: { Key: string } }) => {
-    sent.push(`${command.constructor.name} ${command.input.Key}`)
-    return {}
-  })
+  const sent = fakeS3(t)
   assert.equal((await app.request(`/api/documents/${id}`, { method: 'DELETE', headers: json(owner) })).status, 204)
-  assert.deepEqual(sent.sort(), [`DeleteObjectCommand processed/${sub}/${id}`, `DeleteObjectCommand raw/${sub}/${id}`])
+  assert.deepEqual(sent.toSorted(), [`DeleteObjectCommand processed/${sub}/${id}`, `DeleteObjectCommand raw/${sub}/${id}`])
 })

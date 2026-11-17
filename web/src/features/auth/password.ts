@@ -10,8 +10,6 @@ export function passwordChecks(password: string, email: string) {
   }
 }
 
-export type PasswordCheck = keyof ReturnType<typeof passwordChecks>
-
 export function passwordStrength(length: number) {
   if (length === 0) return 0
   if (length < 8) return 1

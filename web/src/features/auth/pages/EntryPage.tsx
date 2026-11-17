@@ -2,7 +2,7 @@ import { Button, Divider, Stack, Text, Title } from '@mantine/core'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router'
 import AuthLayout from '~/features/auth/components/AuthLayout.tsx'
-import GoogleButton from '~/shared/components/GoogleButton.tsx'
+import GoogleButton from '~/features/auth/components/GoogleButton.tsx'
 
 export default function EntryPage() {
   const { t } = useTranslation()

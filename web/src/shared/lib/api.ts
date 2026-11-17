@@ -14,12 +14,21 @@ export class ApiError extends Error {
 
 export const errorCode = (err: unknown): ApiErrorCode => (err instanceof ApiError ? err.code : 'internal_error')
 
-const isErrorCode = (value: unknown): value is ErrorCode => ERROR_CODES.includes(value as ErrorCode)
+export const isErrorCode = (value: unknown): value is ErrorCode => ERROR_CODES.includes(value as ErrorCode)
+
+// Where CloudFront, or Vite's proxy, sends requests on to the API.
+export const API_BASE = '/api'
+
+// Called when the API no longer knows the session, e.g. it expired or ended on another device.
+let sessionEnded = () => {}
+export const onSessionEnded = (handler: () => void) => {
+  sessionEnded = handler
+}
 
 async function request<T>(method: 'GET' | 'POST' | 'PUT' | 'DELETE', path: string, body?: unknown): Promise<T> {
   let response: Response
   try {
-    response = await fetch(`/api${path}`, {
+    response = await fetch(API_BASE + path, {
       method,
       headers: body === undefined ? undefined : { 'Content-Type': 'application/json' },
       body: body === undefined ? undefined : JSON.stringify(body),
@@ -35,6 +44,7 @@ async function request<T>(method: 'GET' | 'POST' | 'PUT' | 'DELETE', path: strin
   if (response.ok && data !== undefined) return data as T
 
   const code = (data as { error?: unknown } | undefined)?.error
+  if (code === 'unauthorized') sessionEnded()
   throw new ApiError(isErrorCode(code) ? code : 'internal_error')
 }
 

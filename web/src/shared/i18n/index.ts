@@ -6,6 +6,11 @@ import { pl } from '~/shared/i18n/pl.ts'
 
 const STORAGE_KEY = 'language'
 
+export const LANGUAGES = ['pl', 'en'] as const
+
+const isLanguage = (value: string | null): value is (typeof LANGUAGES)[number] =>
+  LANGUAGES.includes(value as (typeof LANGUAGES)[number])
+
 function readStoredLanguage() {
   try {
     return localStorage.getItem(STORAGE_KEY)
@@ -16,7 +21,7 @@ function readStoredLanguage() {
 
 function detectLanguage() {
   const stored = readStoredLanguage()
-  if (stored === 'pl' || stored === 'en') return stored
+  if (isLanguage(stored)) return stored
   return navigator.language.toLowerCase().startsWith('pl') ? 'pl' : 'en'
 }
 

@@ -52,6 +52,9 @@ export default function FileField({ onChange, onPreparing, disabled }: FileField
   const [turns, setTurns] = useState(0)
   const [prepared, setPrepared] = useState<PreparedFile & { image: string }>()
   const [error, setError] = useState<FileError>()
+  // Turns and changes wait for the file being prepared, so none of them is lost or applied out of order.
+  const [preparing, setPreparing] = useState(false)
+  const busy = disabled || preparing
   useEffect(
     () => () => {
       if (prepared) URL.revokeObjectURL(prepared.image)
@@ -63,6 +66,7 @@ export default function FileField({ onChange, onPreparing, disabled }: FileField
   async function prepare(file: File, quarterTurns: number) {
     // A PDF goes as it is, so one that is too big is refused before pdf.js reads it.
     if (isPdf(file.type) && file.size > FILE_MAX_SIZE) return reset('fileSize')
+    setPreparing(true)
     onPreparing(true)
     try {
       const result = await prepareFile(file, quarterTurns)
@@ -73,6 +77,7 @@ export default function FileField({ onChange, onPreparing, disabled }: FileField
     } catch {
       reset('fileUnreadable')
     } finally {
+      setPreparing(false)
       onPreparing(false)
     }
   }
@@ -105,27 +110,27 @@ export default function FileField({ onChange, onPreparing, disabled }: FileField
               <ActionIcon
                 variant="default"
                 aria-label={t('documents.rotateLeft')}
-                disabled={disabled}
+                disabled={busy}
                 onClick={() => rotate(3)}
               >
-                <IconRotate size={18} />
+                <IconRotate size={18} aria-hidden />
               </ActionIcon>
             </Tooltip>
             <Tooltip label={t('documents.rotateRight')}>
               <ActionIcon
                 variant="default"
                 aria-label={t('documents.rotateRight')}
-                disabled={disabled}
+                disabled={busy}
                 onClick={() => rotate(1)}
               >
-                <IconRotateClockwise size={18} />
+                <IconRotateClockwise size={18} aria-hidden />
               </ActionIcon>
             </Tooltip>
           </ActionIcon.Group>
         )}
-        <FileButton onChange={pick} accept={ACCEPT} disabled={disabled}>
+        <FileButton onChange={pick} accept={ACCEPT} disabled={busy}>
           {(props) => (
-            <Button variant="subtle" size="compact-md" disabled={disabled} {...props}>
+            <Button variant="subtle" size="compact-md" disabled={busy} {...props}>
               {t('documents.changeFile')}
             </Button>
           )}
@@ -135,10 +140,10 @@ export default function FileField({ onChange, onPreparing, disabled }: FileField
             variant="subtle"
             color="gray"
             aria-label={t('documents.removeFile')}
-            disabled={disabled}
+            disabled={busy}
             onClick={() => pick(null)}
           >
-            <IconX size={18} />
+            <IconX size={18} aria-hidden />
           </ActionIcon>
         </Tooltip>
       </FilePreview>
@@ -162,9 +167,9 @@ export default function FileField({ onChange, onPreparing, disabled }: FileField
       classNames={{ root: classes.dropzone, inner: classes.dropzoneInner }}
     >
       <IconReceipt size={260} stroke={0.75} className={classes.watermark} aria-hidden />
-      <Indicator size={28} offset={6} withBorder label={<IconPlus size={16} stroke={3} />}>
+      <Indicator size={28} offset={6} withBorder label={<IconPlus size={16} stroke={3} aria-hidden />}>
         <ThemeIcon size={88} radius="xl" variant="light">
-          <IconPhoto size={44} stroke={1.5} />
+          <IconPhoto size={44} stroke={1.5} aria-hidden />
         </ThemeIcon>
       </Indicator>
       <div>
@@ -178,14 +183,14 @@ export default function FileField({ onChange, onPreparing, disabled }: FileField
       <Flex direction={{ base: 'column', sm: 'row' }} gap="sm" w={{ base: '100%', sm: 'auto' }}>
         <FileButton onChange={pick} accept="image/*" capture="environment" disabled={disabled}>
           {(props) => (
-            <Button hiddenFrom="sm" variant="filled" leftSection={<IconCamera size={18} />} disabled={disabled} {...props}>
+            <Button hiddenFrom="sm" variant="filled" leftSection={<IconCamera size={18} aria-hidden />} disabled={disabled} {...props}>
               {t('documents.takePhoto')}
             </Button>
           )}
         </FileButton>
         <FileButton onChange={pick} accept={ACCEPT} disabled={disabled}>
           {(props) => (
-            <Button variant={chooseVariant} leftSection={<IconUpload size={18} />} disabled={disabled} {...props}>
+            <Button variant={chooseVariant} leftSection={<IconUpload size={18} aria-hidden />} disabled={disabled} {...props}>
               {t('documents.chooseFile')}
             </Button>
           )}

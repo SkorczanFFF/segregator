@@ -10,19 +10,18 @@ export const AMOUNT_MAX = 1_000_000_000
 const text = z.string().trim().min(1).max(TEXT_MAX_LENGTH)
 
 // What a person enters for a document. Amounts are whole grosze, so sums never round.
-const DocumentFields = z.object({
-  type: z.enum(DOCUMENT_TYPES),
-  subtype: z.string().optional(),
-  title: text.optional(),
-  issuer: text,
-  amount: z.number().int().min(0).max(AMOUNT_MAX).optional(),
-  docDate: z.iso.date(),
-})
-
-const subtypeFits = (doc: z.infer<typeof DocumentFields>) =>
-  doc.subtype === undefined || (CATEGORIES[doc.type] as readonly string[]).includes(doc.subtype)
-
-export const DocumentInput = DocumentFields.refine(subtypeFits, { path: ['subtype'] })
+export const DocumentInput = z
+  .object({
+    type: z.enum(DOCUMENT_TYPES),
+    subtype: z.string().optional(),
+    title: text.optional(),
+    issuer: text,
+    amount: z.number().int().min(0).max(AMOUNT_MAX).optional(),
+    docDate: z.iso.date(),
+  })
+  .refine((doc) => doc.subtype === undefined || (CATEGORIES[doc.type] as readonly string[]).includes(doc.subtype), {
+    path: ['subtype'],
+  })
 
 export type DocumentInput = z.infer<typeof DocumentInput>
 
@@ -31,6 +30,8 @@ export const UploadInput = z.object({ fileType: z.enum(FILE_TYPES) })
 
 // The version of a changed photo the person keeps.
 export const FileChoice = z.object({ use: z.enum(FILE_VERSIONS) })
+
+export type FileChoice = z.infer<typeof FileChoice>
 
 // A document with a file waits for it, then the worker checks it. One without a file is done at once.
 export type DocumentStatus = 'uploading' | 'processing' | 'done' | 'failed'

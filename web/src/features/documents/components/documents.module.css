@@ -42,10 +42,6 @@
   overflow: hidden;
 }
 
-.stage {
-  flex: 1;
-}
-
 /* Inset from the stage, so the image keeps a margin and fits whole. */
 .fit {
   position: absolute;
@@ -77,14 +73,6 @@
   .image {
     cursor: none;
   }
-}
-
-/* The whole image in the viewer, as wide as it can be. */
-.whole {
-  display: block;
-  width: 100%;
-  height: auto;
-  border-radius: var(--mantine-radius-sm);
 }
 
 .bar {

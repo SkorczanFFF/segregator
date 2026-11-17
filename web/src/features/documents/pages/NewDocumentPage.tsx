@@ -1,17 +1,19 @@
 import { Button, Paper, Skeleton, Stack, Text } from '@mantine/core'
 import { IconScan } from '@tabler/icons-react'
-import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useQueryClient } from '@tanstack/react-query'
 import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Navigate, useNavigate, useSearchParams } from 'react-router'
-import { isPdf, type Document, type DocumentInput, type Draft } from 'shared'
-import DocumentForm, { PAGE_WIDTH_WITH_FILE } from '~/features/documents/components/DocumentForm.tsx'
+import { isPdf, needsChoice, type Document, type DocumentInput } from 'shared'
+import DocumentForm from '~/features/documents/components/DocumentForm.tsx'
 import DocumentSteps from '~/features/documents/components/DocumentSteps.tsx'
 import DraftFile from '~/features/documents/components/DraftFile.tsx'
 import FileField from '~/features/documents/components/FileField.tsx'
 import FileStages from '~/features/documents/components/FileStages.tsx'
-import { documentKey, isPending, PENDING_REFRESH, refreshDocuments } from '~/features/documents/useDocuments.ts'
+import { PAGE_WIDTH } from '~/features/documents/look.ts'
+import { documentKey, refreshDocuments, useDocument } from '~/features/documents/useDocuments.ts'
 import { uploadDraft } from '~/features/upload/upload.ts'
+import ApiErrorAlert from '~/shared/components/ApiErrorAlert.tsx'
 import Page from '~/shared/components/Page.tsx'
 import StatusAlert from '~/shared/components/StatusAlert.tsx'
 import { useApiSubmit } from '~/shared/hooks/useApiSubmit.ts'
@@ -36,20 +38,19 @@ export default function NewDocumentPage() {
   const [progress, setProgress] = useState<number>()
   const [slow, setSlow] = useState(false)
   const upload = useRef<AbortController>(undefined)
-  const { data, error } = useQuery({
-    queryKey: documentKey(draftId ?? ''),
-    queryFn: () => api.get<Document | Draft>(`/documents/${draftId}`),
-    enabled: draftId !== undefined,
-    refetchInterval: (query) => (query.state.data && isPending(query.state.data) ? PENDING_REFRESH : false),
-  })
-  // The draft the address names, unless it is gone, e.g. expired.
-  const tracked = draftId !== undefined && !error
+  const { data, error } = useDocument(draftId)
+  const apiError = error ? errorCode(error) : undefined
+  // The draft the address names, unless it is gone, e.g. expired. Any other error keeps the page as it is.
+  const tracked = draftId !== undefined && apiError !== 'not_found'
   const draft = data?.draft ? data : undefined
   const sending = progress !== undefined
   const processing = !sending && draft?.status === 'processing'
-  const ready = draft?.status === 'done' && (!draft.file?.change || draft.file.use !== undefined)
+  const ready = draft?.status === 'done' && !needsChoice(draft.file)
   const kind = file ? (isPdf(file.type) ? 'pdf' : 'photo') : undefined
   const locked = (file !== null || tracked) && !ready
+
+  // Leaving the page stops the upload, which then deletes its draft.
+  useEffect(() => () => upload.current?.abort(), [])
 
   useEffect(() => {
     if (!processing) return
@@ -106,6 +107,8 @@ export default function NewDocumentPage() {
     else await api.post('/documents', input)
     await refreshDocuments(queryClient)
     navigate('/documents')
+    // Otherwise the document would open later as the draft it was.
+    if (draftId) queryClient.removeQueries({ queryKey: documentKey(draftId), exact: true })
   }
 
   // A saved document opens on its own page.
@@ -119,9 +122,8 @@ export default function NewDocumentPage() {
       )}
       {file && !draft && !sending && (
         <>
-          {send.error && <StatusAlert status="error">{t(`errors.${send.error}`)}</StatusAlert>}
+          <ApiErrorAlert code={send.error} />
           <Button
-            size="md"
             leftSection={<IconScan size={20} aria-hidden />}
             loading={preparing}
             onClick={() => void send.submit(undefined)}
@@ -158,8 +160,8 @@ export default function NewDocumentPage() {
   )
 
   return (
-    <Page title={t('documents.new')} back={{ to: '/documents', label: t('documents.title') }} width={PAGE_WIDTH_WITH_FILE}>
-      {error && <StatusAlert status="error">{t(`errors.${errorCode(error)}`)}</StatusAlert>}
+    <Page title={t('documents.new')} back={{ to: '/documents', label: t('documents.title') }} width={PAGE_WIDTH.withFile}>
+      <ApiErrorAlert code={apiError} />
       <DocumentSteps active={ready ? 2 : tracked || sending ? 1 : 0} />
       <DocumentForm aside={aside} locked={locked} onSave={save} onCancel={() => void cancel()} />
     </Page>

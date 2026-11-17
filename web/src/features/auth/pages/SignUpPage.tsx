@@ -1,19 +1,19 @@
-import { Anchor, Button, Stack } from '@mantine/core'
+import { Button, Stack } from '@mantine/core'
 import { useForm } from '@mantine/form'
 import { useTranslation } from 'react-i18next'
-import { Link, useNavigate } from 'react-router'
+import { useNavigate } from 'react-router'
+import type { RegisterInput } from 'shared'
+import AuthPrompt from '~/features/auth/components/AuthPrompt.tsx'
 import AuthScreen from '~/features/auth/components/AuthScreen.tsx'
 import { emailRule } from '~/features/auth/email.ts'
 import EmailInput from '~/features/auth/components/EmailInput.tsx'
 import NewPasswordInput from '~/features/auth/components/NewPasswordInput.tsx'
 import { newPasswordRules } from '~/features/auth/password.ts'
-import StatusAlert from '~/shared/components/StatusAlert.tsx'
+import ApiErrorAlert from '~/shared/components/ApiErrorAlert.tsx'
 import { useApiSubmit } from '~/shared/hooks/useApiSubmit.ts'
 import { useFormError } from '~/shared/hooks/useFormError.ts'
 import { api } from '~/shared/lib/api.ts'
 import { focusFirstError, validateFilledOnBlur } from '~/shared/lib/form.ts'
-
-type SignUpValues = { email: string; password: string }
 
 export default function SignUpPage() {
   const { t } = useTranslation()
@@ -28,7 +28,7 @@ export default function SignUpPage() {
       ...newPasswordRules,
     },
   })
-  const { submit, pending, error } = useApiSubmit(async (values: SignUpValues) => {
+  const { submit, pending, error } = useApiSubmit(async (values: RegisterInput) => {
     await api.post('/auth/register', values)
     navigate('/confirm', { state: { email: values.email } })
   })
@@ -37,18 +37,11 @@ export default function SignUpPage() {
     <AuthScreen
       title={t('auth.signUp')}
       step={{ current: 1, total: 2, label: t('auth.stepAccount') }}
-      description={
-        <>
-          {t('auth.hasAccount')}{' '}
-          <Anchor component={Link} to="/login" inherit>
-            {t('auth.signIn')}
-          </Anchor>
-        </>
-      }
+      description={<AuthPrompt text={t('auth.hasAccount')} link={t('auth.signIn')} to="/login" />}
     >
       <form onSubmit={form.onSubmit(submit, focusFirstError(form))} noValidate>
         <Stack gap="lg">
-          {error && <StatusAlert status="error">{t(`errors.${error}`)}</StatusAlert>}
+          <ApiErrorAlert code={error} />
           <EmailInput
             label={t('common.email')}
             {...form.getInputProps('email')}

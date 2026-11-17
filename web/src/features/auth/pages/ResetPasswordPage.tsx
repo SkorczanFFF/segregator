@@ -1,10 +1,13 @@
-import { Anchor, Button, Stack, TextInput } from '@mantine/core'
+import { Button, Stack } from '@mantine/core'
 import { useForm } from '@mantine/form'
 import { useTranslation } from 'react-i18next'
-import { Link, useLocation, useNavigate } from 'react-router'
+import { useLocation, useNavigate } from 'react-router'
+import type { ResetInput } from 'shared'
 import { codeRule } from '~/features/auth/code.ts'
+import AuthPrompt from '~/features/auth/components/AuthPrompt.tsx'
 import AuthScreen from '~/features/auth/components/AuthScreen.tsx'
 import CodeInput from '~/features/auth/components/CodeInput.tsx'
+import EmailField from '~/features/auth/components/EmailField.tsx'
 import { emailRule } from '~/features/auth/email.ts'
 import NewPasswordInput from '~/features/auth/components/NewPasswordInput.tsx'
 import { newPasswordRules } from '~/features/auth/password.ts'
@@ -15,7 +18,6 @@ import { api } from '~/shared/lib/api.ts'
 import { focusFirstError, validateFilledOnBlur } from '~/shared/lib/form.ts'
 
 type ResetState = { email?: string } | null
-type ResetValues = { email: string; code: string; password: string }
 
 export default function ResetPasswordPage() {
   const { t } = useTranslation()
@@ -32,7 +34,7 @@ export default function ResetPasswordPage() {
       ...newPasswordRules,
     },
   })
-  const { submit, pending, error } = useApiSubmit(async (values: ResetValues) => {
+  const { submit, pending, error } = useApiSubmit(async (values: ResetInput) => {
     await api.post('/auth/reset-password', values)
     navigate('/login', { state: { email: values.email, passwordReset: true } })
   })
@@ -42,14 +44,7 @@ export default function ResetPasswordPage() {
       title={t('auth.resetTitle')}
       description={t('auth.resetLead')}
       google={false}
-      footer={
-        <>
-          {t('auth.noCode')}{' '}
-          <Anchor component={Link} to="/forgot-password" inherit>
-            {t('auth.sendAgain')}
-          </Anchor>
-        </>
-      }
+      footer={<AuthPrompt text={t('auth.noCode')} link={t('auth.sendAgain')} to="/forgot-password" />}
     >
       <form onSubmit={form.onSubmit(submit, focusFirstError(form))} noValidate>
         <Stack gap="lg">
@@ -58,14 +53,7 @@ export default function ResetPasswordPage() {
               {t(error === 'code_expired' ? 'auth.resetCodeExpired' : `errors.${error}`)}
             </StatusAlert>
           )}
-          <TextInput
-            label={t('common.email')}
-            type="email"
-            inputMode="email"
-            autoComplete="username"
-            {...form.getInputProps('email')}
-            error={formError(form.errors.email)}
-          />
+          <EmailField {...form.getInputProps('email')} error={formError(form.errors.email)} />
           <CodeInput {...form.getInputProps('code')} error={formError(form.errors.code)} />
           <NewPasswordInput
             label={t('auth.newPassword')}

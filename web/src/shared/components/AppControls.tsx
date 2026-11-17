@@ -13,8 +13,7 @@ import { IconDeviceDesktop, IconMoon, IconSun, type Icon } from '@tabler/icons-r
 import type { ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import classes from '~/shared/components/AppControls.module.css'
-
-const LANGUAGES = ['pl', 'en'] as const
+import { LANGUAGES } from '~/shared/i18n/index.ts'
 
 // Auto follows the device's setting.
 const SCHEMES: { value: MantineColorScheme; icon: Icon }[] = [
@@ -34,8 +33,8 @@ function Labeled({ label, children }: { label: string; children: ReactNode }) {
   )
 }
 
-// Language and color scheme, each picked from all its options. With labels in the side menu,
-// without them in a corner of the entry pages.
+// Language and color scheme, each picked from all its options. With labels in the menus, without them in a
+// corner of the entry pages.
 export default function AppControls({ withLabels = false }: { withLabels?: boolean }) {
   const { t, i18n } = useTranslation()
   const { colorScheme, setColorScheme } = useMantineColorScheme()

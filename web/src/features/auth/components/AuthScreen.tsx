@@ -2,7 +2,7 @@ import { Divider, Group, Progress, Stack, Text, Title } from '@mantine/core'
 import type { ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import AuthLayout from '~/features/auth/components/AuthLayout.tsx'
-import GoogleButton from '~/shared/components/GoogleButton.tsx'
+import GoogleButton from '~/features/auth/components/GoogleButton.tsx'
 
 type Step = { current: number; total: number; label: string }
 

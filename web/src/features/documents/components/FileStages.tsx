@@ -59,7 +59,8 @@ export default function FileStages({ stage, progress = 0, kind }: FileStagesProp
                   {step.label}
                 </Text>
                 {step.state === 'active' && sending && (
-                  <Text ff="monospace" size="sm">
+                  // The bar tells a screen reader the progress, without every percent read out.
+                  <Text ff="monospace" size="sm" aria-hidden>
                     {progress}%
                   </Text>
                 )}

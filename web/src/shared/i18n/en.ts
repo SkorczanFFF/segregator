@@ -51,6 +51,8 @@ export const en: Translation = {
       good: 'Good',
       strong: 'Very good',
     },
+    requirementMet: ', met',
+    requirementNotMet: ', not met',
     requirements: {
       length: 'At least {{min}} characters',
       edges: 'No spaces at the start or end',
@@ -65,7 +67,7 @@ export const en: Translation = {
     resend: '<link>Send a new code</link>.',
     codeSent: 'A new code was sent.',
     checkSpam: 'Check your spam folder too. The code is valid for 24 hours.',
-    confirmLead: 'Enter the {{codeLength}}-digit code from the message sent to your address. The code is valid for 24 hours.',
+    confirmLead: 'Enter the {{codeLength}}-digit code from the message sent to your address.',
     codeResent: 'Your account is not confirmed yet. A new code was sent to your address.',
     confirm: 'Confirm',
     confirmed: 'Email confirmed. You can sign in now.',

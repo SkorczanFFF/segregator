@@ -1,13 +1,17 @@
-import { Anchor, Button, Stack, Text, TextInput } from '@mantine/core'
+import { Anchor, Button, Stack, Text } from '@mantine/core'
 import { useForm } from '@mantine/form'
 import { useInterval } from '@mantine/hooks'
 import { useState } from 'react'
 import { Trans, useTranslation } from 'react-i18next'
-import { Link, useLocation, useNavigate } from 'react-router'
+import { useLocation, useNavigate } from 'react-router'
+import type { ConfirmInput } from 'shared'
 import { codeRule } from '~/features/auth/code.ts'
+import AuthPrompt from '~/features/auth/components/AuthPrompt.tsx'
 import AuthScreen from '~/features/auth/components/AuthScreen.tsx'
 import CodeInput from '~/features/auth/components/CodeInput.tsx'
+import EmailField from '~/features/auth/components/EmailField.tsx'
 import { emailRule } from '~/features/auth/email.ts'
+import ApiErrorAlert from '~/shared/components/ApiErrorAlert.tsx'
 import StatusAlert from '~/shared/components/StatusAlert.tsx'
 import { useApiSubmit } from '~/shared/hooks/useApiSubmit.ts'
 import { useFormError } from '~/shared/hooks/useFormError.ts'
@@ -18,7 +22,6 @@ import { focusFirstError, validateFilledOnBlur } from '~/shared/lib/form.ts'
 const RESEND_DELAY = 45
 
 type ConfirmState = { email?: string; resent?: boolean } | null
-type ConfirmValues = { email: string; code: string }
 
 export default function ConfirmPage() {
   const { t } = useTranslation()
@@ -35,7 +38,7 @@ export default function ConfirmPage() {
       code: codeRule,
     },
   })
-  const { submit, pending, error } = useApiSubmit(async (values: ConfirmValues) => {
+  const { submit, pending, error } = useApiSubmit(async (values: ConfirmInput) => {
     await api.post('/auth/confirm', values)
     navigate('/login', { state: { email: values.email, confirmed: true } })
   })
@@ -44,6 +47,8 @@ export default function ConfirmPage() {
   const [seconds, setSeconds] = useState(RESEND_DELAY)
   useInterval(() => setSeconds((s) => Math.max(0, s - 1)), 1000, { autoInvoke: true })
   const resend = useApiSubmit(async () => {
+    if (form.validateField('email').hasError) return
+    setNotice(null)
     await api.post('/auth/resend-code', { email: form.getValues().email })
     setSeconds(RESEND_DELAY)
     setNotice('sent')
@@ -63,12 +68,7 @@ export default function ConfirmPage() {
       google={false}
       description={
         knownEmail ? (
-          <>
-            {t('auth.codeSentTo', { email: knownEmail })}{' '}
-            <Anchor component={Link} to="/register" inherit>
-              {t('auth.changeEmail')}
-            </Anchor>
-          </>
+          <AuthPrompt text={t('auth.codeSentTo', { email: knownEmail })} link={t('auth.changeEmail')} to="/register" />
         ) : (
           t('auth.confirmLead')
         )
@@ -76,22 +76,14 @@ export default function ConfirmPage() {
     >
       <form onSubmit={form.onSubmit(submit, focusFirstError(form))} noValidate>
         <Stack gap="lg">
-          {notice && !error && (
+          {notice && !apiError && (
             <StatusAlert status={notice === 'sent' ? 'success' : 'warning'}>
               {t(notice === 'sent' ? 'auth.codeSent' : 'auth.codeResent')}
             </StatusAlert>
           )}
-          {apiError && <StatusAlert status="error">{t(`errors.${apiError}`)}</StatusAlert>}
+          <ApiErrorAlert code={apiError} />
           {!knownEmail && (
-            <TextInput
-              label={t('common.email')}
-              type="email"
-              inputMode="email"
-              autoComplete="username"
-              key={form.key('email')}
-              {...form.getInputProps('email')}
-              error={formError(form.errors.email)}
-            />
+            <EmailField key={form.key('email')} {...form.getInputProps('email')} error={formError(form.errors.email)} />
           )}
           <CodeInput
             autoFocus={Boolean(knownEmail)}

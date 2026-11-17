@@ -1,19 +1,13 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { S3Client } from '@aws-sdk/client-s3'
-
-process.env.DOCUMENTS_BUCKET = 'documents-test'
+import { fakeS3 } from './fake-s3.ts'
 
 const { handler } = await import('./draft-cleanup.ts')
 
 const ID = '01KTEST0000000000000000002'
 
 test('deletes both files of an expired draft and nothing for other items', async (t) => {
-  const sent: string[] = []
-  t.mock.method(S3Client.prototype, 'send', async (command: { input: { Key: string } }) => {
-    sent.push(`${command.constructor.name} ${command.input.Key}`)
-    return {}
-  })
+  const sent = fakeS3(t)
 
   await handler({
     Records: [
@@ -21,7 +15,7 @@ test('deletes both files of an expired draft and nothing for other items', async
       { dynamodb: { Keys: { PK: { S: 'SESSION#made-up' }, SK: { S: 'SESSION#made-up' } } } },
     ],
   })
-  assert.deepEqual(sent.sort(), [
+  assert.deepEqual(sent.toSorted(), [
     `DeleteObjectCommand processed/0f1e2d3c-test/${ID}`,
     `DeleteObjectCommand raw/0f1e2d3c-test/${ID}`,
   ])

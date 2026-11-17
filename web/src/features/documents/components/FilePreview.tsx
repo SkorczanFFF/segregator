@@ -45,7 +45,7 @@ export default function FilePreview({ file, image, pages = 1, header, caption, c
           {header}
         </Box>
       )}
-      <div className={`${classes.ground} ${classes.stage}`}>
+      <Box className={classes.ground} flex={1}>
         <div className={classes.fit}>
           {image ? (
             <UnstyledButton className={classes.zoom} aria-label={t('documents.zoom')} onClick={viewer.open}>
@@ -59,11 +59,11 @@ export default function FilePreview({ file, image, pages = 1, header, caption, c
             </UnstyledButton>
           ) : (
             <ThemeIcon size={88} radius="xl" variant="light">
-              <IconFileText size={44} stroke={1.5} />
+              <IconFileText size={44} stroke={1.5} aria-hidden />
             </ThemeIcon>
           )}
         </div>
-      </div>
+      </Box>
       <Group justify="space-between" gap="xs" px="md" py="xs" className={classes.bar}>
         <Stack gap={0}>
           <Text size="sm" c="dimmed">

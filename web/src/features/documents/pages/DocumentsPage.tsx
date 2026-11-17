@@ -25,7 +25,7 @@ import classes from '~/features/documents/components/documents.module.css'
 import { CARD_INSET, describeDocument, documentName, TYPE_LOOKS } from '~/features/documents/look.ts'
 import { useDocuments } from '~/features/documents/useDocuments.ts'
 import Page from '~/shared/components/Page.tsx'
-import StatusAlert from '~/shared/components/StatusAlert.tsx'
+import ApiErrorAlert from '~/shared/components/ApiErrorAlert.tsx'
 import { formatDate, formatDayMonth, formatMoney, formatMonth } from '~/shared/lib/format.ts'
 
 // The list comes newest first, so the documents of one month follow each other.
@@ -79,7 +79,7 @@ function DocumentRow({ doc }: { doc: Document }) {
             {documentName(doc)}
           </Text>
           <Text size="sm" c="dimmed" truncate>
-            {describeDocument(t, doc).join(' · ')}
+            {describeDocument(t, doc)}
           </Text>
         </Stack>
         {/* The year is in the month's heading, so the date is short. */}
@@ -109,7 +109,7 @@ export default function DocumentsPage() {
       title={t('documents.title')}
       actions={<AddButton visibleFrom="sm" />}
     >
-      {error && <StatusAlert status="error">{t(`errors.${error}`)}</StatusAlert>}
+      <ApiErrorAlert code={error} />
       {!items && !error && (
         <Paper p="xl" aria-busy>
           {[0, 1, 2].map((row) => (

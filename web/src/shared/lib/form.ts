@@ -4,9 +4,12 @@ type FormLike = {
   getInputNode: (path: string) => HTMLElement | null
 }
 
-// Validation failure handler for form.onSubmit: moves focus to the first field with an error.
-export const focusFirstError = (form: FormLike) => (errors: Record<string, unknown>) =>
-  form.getInputNode(Object.keys(errors)[0] ?? '')?.focus()
+// Validation failure handler for form.onSubmit: moves focus to the first field with an error. A field of
+// several inputs, such as the code's boxes, focuses its first one.
+export const focusFirstError = (form: FormLike) => (errors: Record<string, unknown>) => {
+  const node = form.getInputNode(Object.keys(errors)[0] ?? '')
+  ;(node instanceof HTMLInputElement ? node : node?.querySelector('input'))?.focus()
+}
 
 // For useForm's enhanceGetInputProps: checks a field when it loses focus, but only once something is typed,
 // so leaving an empty field shows no error. Sending the form still checks every field.

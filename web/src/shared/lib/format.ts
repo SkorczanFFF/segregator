@@ -13,6 +13,10 @@ export const currencySymbol = () =>
     .formatToParts(0)
     .find((part) => part.type === 'currency')?.value
 
+// The decimal separator of the language, e.g. a comma in Polish.
+export const decimalSeparator = () =>
+  new Intl.NumberFormat(i18n.language).formatToParts(0.5).find((part) => part.type === 'decimal')?.value
+
 // A date from a document has no time zone, so it is formatted in UTC to keep the same day everywhere.
 const documentDate = (options: Intl.DateTimeFormatOptions) => (isoDate: string) =>
   new Intl.DateTimeFormat(i18n.language, { ...options, timeZone: 'UTC' }).format(new Date(isoDate))

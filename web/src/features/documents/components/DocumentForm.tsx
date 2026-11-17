@@ -35,11 +35,11 @@ import {
 } from 'shared'
 import classes from '~/features/documents/components/documents.module.css'
 import { CARD_INSET, describeDocument, documentName, TYPE_LOOKS } from '~/features/documents/look.ts'
-import StatusAlert from '~/shared/components/StatusAlert.tsx'
+import ApiErrorAlert from '~/shared/components/ApiErrorAlert.tsx'
 import { useApiSubmit } from '~/shared/hooks/useApiSubmit.ts'
 import { useFormError } from '~/shared/hooks/useFormError.ts'
 import { focusFirstError, validateFilledOnBlur } from '~/shared/lib/form.ts'
-import { currencySymbol, formatMoney } from '~/shared/lib/format.ts'
+import { currencySymbol, decimalSeparator, formatMoney } from '~/shared/lib/format.ts'
 
 type DocumentValues = {
   type: DocumentType
@@ -82,9 +82,6 @@ const toggle = (chosen: boolean, color: MantineColor) =>
 
 // The buttons of the bottom bar fill its height and reach the card's edges.
 const BAR_BUTTON = { radius: 0, h: '100%', px: CARD_INSET } as const
-
-// The page is wide enough for the file in a column beside the fields.
-export const PAGE_WIDTH_WITH_FILE = 1100
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
@@ -170,7 +167,7 @@ export default function DocumentForm({ doc, aside, locked = false, onSave, onDel
               {name || t('documents.untitled')}
             </Text>
             <Text size="sm" c="dimmed">
-              {describeDocument(t, input).join(' · ')}
+              {describeDocument(t, input)}
             </Text>
           </Stack>
           {input.amount !== undefined && (
@@ -194,7 +191,7 @@ export default function DocumentForm({ doc, aside, locked = false, onSave, onDel
         {/* Closed while saving, so nothing changes after the values were sent, and while the photo waits. */}
         <Fieldset variant="unstyled" disabled={pending || locked} m={0}>
           <Stack gap="lg" p={CARD_INSET}>
-            {error && <StatusAlert status="error">{t(`errors.${error}`)}</StatusAlert>}
+            <ApiErrorAlert code={error} />
             <Section title={t('documents.fields.type')}>
               <Group gap="xs" role="group" aria-label={t('documents.fields.type')}>
                 {DOCUMENT_TYPES.map((type) => {
@@ -262,7 +259,7 @@ export default function DocumentForm({ doc, aside, locked = false, onSave, onDel
                     </>
                   }
                   decimalScale={2}
-                  decimalSeparator={i18n.language === 'pl' ? ',' : '.'}
+                  decimalSeparator={decimalSeparator()}
                   allowNegative={false}
                   hideControls
                   inputMode="decimal"

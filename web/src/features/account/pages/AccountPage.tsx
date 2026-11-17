@@ -2,9 +2,9 @@ import { Button, Stack, Text } from '@mantine/core'
 import { useTranslation } from 'react-i18next'
 import { useSession, useSignOut } from '~/features/auth/session.ts'
 import Page from '~/shared/components/Page.tsx'
-import StatusAlert from '~/shared/components/StatusAlert.tsx'
+import ApiErrorAlert from '~/shared/components/ApiErrorAlert.tsx'
 
-// Signing out of this device sits in the header; here only signing out everywhere.
+// Signing out of this device sits in the header, or the side menu on a phone; here only signing out everywhere.
 export default function AccountPage() {
   const { t } = useTranslation()
   const { user } = useSession()
@@ -15,7 +15,7 @@ export default function AccountPage() {
       <Stack gap="md">
         <Text>{t('account.signedInAs', { email: user?.email ?? '' })}</Text>
         {signOutEverywhere.error && (
-          <StatusAlert status="error">{t(`errors.${signOutEverywhere.error}`)}</StatusAlert>
+          <ApiErrorAlert code={signOutEverywhere.error} />
         )}
         <Stack gap={6}>
           <Button

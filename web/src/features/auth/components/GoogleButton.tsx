@@ -1,5 +1,6 @@
 import { Button } from '@mantine/core'
 import { useTranslation } from 'react-i18next'
+import { API_BASE } from '~/shared/lib/api.ts'
 
 function GoogleIcon() {
   return (
@@ -29,7 +30,7 @@ export default function GoogleButton() {
 
   return (
     // A full page load: the API sends the browser on to Google and back.
-    <Button component="a" href="/api/auth/google" variant="default" fullWidth leftSection={<GoogleIcon />}>
+    <Button component="a" href={`${API_BASE}/auth/google`} variant="default" fullWidth leftSection={<GoogleIcon />}>
       {t('common.continueWithGoogle')}
     </Button>
   )

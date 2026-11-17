@@ -52,6 +52,8 @@ export const pl = {
       good: 'Dobre',
       strong: 'Bardzo dobre',
     },
+    requirementMet: ', spełnione',
+    requirementNotMet: ', niespełnione',
     requirements: {
       length: 'Co najmniej {{min}} znaków',
       edges: 'Bez spacji na początku i na końcu',
@@ -66,7 +68,7 @@ export const pl = {
     resend: '<link>Wyślij kod ponownie</link>.',
     codeSent: 'Wysłano nowy kod.',
     checkSpam: 'Sprawdź też folder Spam. Kod jest ważny 24 godziny.',
-    confirmLead: 'Wpisz {{codeLength}}-cyfrowy kod z wiadomości wysłanej na Twój adres. Kod jest ważny 24 godziny.',
+    confirmLead: 'Wpisz {{codeLength}}-cyfrowy kod z wiadomości wysłanej na Twój adres.',
     codeResent: 'Konto nie jest jeszcze potwierdzone. Na Twój adres wysłano nowy kod.',
     confirm: 'Potwierdź',
     confirmed: 'Adres potwierdzony. Możesz się zalogować.',

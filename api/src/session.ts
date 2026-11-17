@@ -2,7 +2,6 @@ import { createHash, randomBytes } from 'node:crypto'
 import {
   BatchWriteItemCommand,
   DeleteItemCommand,
-  DynamoDBClient,
   GetItemCommand,
   PutItemCommand,
   QueryCommand,
@@ -12,19 +11,16 @@ import {
 } from '@aws-sdk/client-dynamodb'
 import type { Context } from 'hono'
 import { deleteCookie, getCookie, setCookie } from 'hono/cookie'
+import { TTL_ATTRIBUTE } from 'shared'
+import { DAY, TABLE, db, ifConditionMet, now } from './table.ts'
 
 export type Session = { sub: string; email: string }
 export type Env = { Variables: { session: Session } }
 
-const db = new DynamoDBClient({})
-const TABLE = process.env.TABLE_NAME ?? ''
 const COOKIE = 'session'
 const COOKIE_OPTIONS = { prefix: 'host', httpOnly: true, sameSite: 'Strict' } as const
-const DAY = 24 * 60 * 60
 const IDLE_LIMIT = 7 * DAY
 const ABSOLUTE_LIMIT = 30 * DAY
-
-const now = () => Math.floor(Date.now() / 1000)
 
 // The table keeps only a hash, so a leaked table can't be turned into working cookies.
 const key = (id: string) => ({
@@ -54,8 +50,8 @@ export async function createSession(c: Context, session: Session) {
         createdAt: { N: String(createdAt) },
         GSI1PK: userSessions(session.sub),
         GSI1SK: { S: String(createdAt) },
-        // Also the TTL attribute, so DynamoDB removes expired sessions for free.
-        expiresAt: { N: String(createdAt + IDLE_LIMIT) },
+        // DynamoDB removes expired sessions for free.
+        [TTL_ATTRIBUTE]: { N: String(createdAt + IDLE_LIMIT) },
       },
     }),
   )
@@ -70,23 +66,29 @@ export async function readSession(c: Context): Promise<Session | undefined> {
     new GetItemCommand({ TableName: TABLE, Key: key(id), ConsistentRead: true }),
   )
   // TTL deletes items up to a few days late, so expiry is checked here too.
-  const expiresAt = Number(Item?.expiresAt?.N)
+  const expiresAt = Number(Item?.[TTL_ATTRIBUTE]?.N)
   const sub = Item?.sub?.S
   const email = Item?.email?.S
   const time = now()
   if (!sub || !email || !(expiresAt > time)) return undefined
 
-  // Extend the idle limit at most once a day, which saves a write on most requests.
+  // Extend the idle limit at most once a day, which saves a write on most requests. A session ended
+  // meanwhile, by signing out or a new password, stays ended.
   if (expiresAt - time < IDLE_LIMIT - DAY) {
     const extended = Math.min(Number(Item?.createdAt?.N) + ABSOLUTE_LIMIT, time + IDLE_LIMIT)
-    await db.send(
-      new UpdateItemCommand({
-        TableName: TABLE,
-        Key: key(id),
-        UpdateExpression: 'SET expiresAt = :expiresAt',
-        ExpressionAttributeValues: { ':expiresAt': { N: String(extended) } },
-      }),
+    const updated = await ifConditionMet(
+      db.send(
+        new UpdateItemCommand({
+          TableName: TABLE,
+          Key: key(id),
+          UpdateExpression: 'SET #ttl = :expiresAt',
+          ConditionExpression: 'attribute_exists(PK)',
+          ExpressionAttributeNames: { '#ttl': TTL_ATTRIBUTE },
+          ExpressionAttributeValues: { ':expiresAt': { N: String(extended) } },
+        }),
+      ),
     )
+    if (!updated) return undefined
   }
   return { sub, email }
 }

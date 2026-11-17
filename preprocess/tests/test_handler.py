@@ -6,7 +6,7 @@ import numpy as np
 import pytest
 
 import handler
-from tests.pages import on_table, page
+from tests.pages import SLANTED, on_table, page
 
 KEY = "raw/0f1e2d3c-test/01KTEST0000000000000000002"
 TARGET = "processed/0f1e2d3c-test/01KTEST0000000000000000002"
@@ -42,10 +42,14 @@ def s3(monkeypatch):
     return install
 
 
-def message(key, message_id="message-1"):
+def message(key, receive_count=1):
     """An SQS message carrying an S3 notification, as Lambda hands it over."""
     body = {"Records": [{"eventSource": "aws:s3", "s3": {"object": {"key": key}}}]}
-    return {"messageId": message_id, "body": json.dumps(body)}
+    return {
+        "messageId": "message-1",
+        "body": json.dumps(body),
+        "attributes": {"ApproximateReceiveCount": str(receive_count)},
+    }
 
 
 def jpeg(image):
@@ -53,7 +57,7 @@ def jpeg(image):
 
 
 def test_writes_the_straightened_photo_to_processed(s3):
-    photo = on_table(page(), [(330, 160), (1250, 210), (1290, 1450), (300, 1430)])
+    photo = on_table(page(), SLANTED)
     fake = s3({KEY: {"bytes": jpeg(photo), "type": "image/jpeg"}})
 
     assert handler.handler({"Records": [message(KEY)]}, None) == {"batchItemFailures": []}
@@ -81,6 +85,26 @@ def test_copies_the_original_when_there_is_nothing_to_straighten(s3, file):
     assert fake.written[TARGET] == file
 
 
+def test_copies_the_original_when_straightening_fails(s3, monkeypatch):
+    def broken(image):
+        raise cv2.error("out of memory")
+
+    monkeypatch.setattr(handler, "straighten", broken)
+    file = {"bytes": jpeg(on_table(page(), SLANTED)), "type": "image/jpeg"}
+    fake = s3({KEY: file})
+
+    assert handler.handler({"Records": [message(KEY)]}, None) == {"batchItemFailures": []}
+    assert fake.written[TARGET] == file
+
+
+def test_copies_the_original_on_the_last_try(s3):
+    file = {"bytes": jpeg(on_table(page(), SLANTED)), "type": "image/jpeg"}
+    fake = s3({KEY: file})
+
+    assert handler.handler({"Records": [message(KEY, handler.MAX_RECEIVES)]}, None) == {"batchItemFailures": []}
+    assert fake.written[TARGET] == file
+
+
 def test_sends_the_message_back_when_s3_fails(s3):
     s3({KEY: ConnectionError("S3 is unreachable")})
     assert handler.handler({"Records": [message(KEY)]}, None) == {
@@ -90,7 +114,7 @@ def test_sends_the_message_back_when_s3_fails(s3):
 
 def test_skips_the_test_event_and_other_keys(s3):
     fake = s3({})
-    test_event = {"messageId": "test", "body": json.dumps({"Service": "Amazon S3", "Event": "s3:TestEvent"})}
+    test_event = {**message(KEY), "body": json.dumps({"Service": "Amazon S3", "Event": "s3:TestEvent"})}
 
     result = handler.handler({"Records": [test_event, message("processed/x/01KTEST0000000000000000002")]}, None)
     assert result == {"batchItemFailures": []}

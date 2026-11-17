@@ -23,7 +23,15 @@ import * as s3n from 'aws-cdk-lib/aws-s3-notifications'
 import * as sqs from 'aws-cdk-lib/aws-sqs'
 import * as ssm from 'aws-cdk-lib/aws-ssm'
 import type { Construct } from 'constructs'
-import { FILE_VERSIONS, PASSWORD_MIN_LENGTH } from 'shared'
+import {
+  AFTER_SIGN_IN_PATH,
+  DOC_PREFIX,
+  FILE_VERSIONS,
+  GOOGLE_CALLBACK_PATH,
+  PASSWORD_MIN_LENGTH,
+  TTL_ATTRIBUTE,
+  type FileVersion,
+} from 'shared'
 
 const WEB_DIST = fileURLToPath(new URL('../../web/dist', import.meta.url))
 const API_ENTRY = fileURLToPath(new URL('../../api/src/index.ts', import.meta.url))
@@ -33,11 +41,15 @@ const DRAFT_CLEANUP_ENTRY = fileURLToPath(new URL('../../api/src/draft-cleanup.t
 const PREPROCESS_DIR = fileURLToPath(new URL('../../preprocess', import.meta.url))
 // clientId and clientSecret of the OAuth client in Google Cloud, stored once by hand.
 const GOOGLE_SECRET = 'segregator/google-oauth'
-// Served by api/src/google.ts.
-const GOOGLE_CALLBACK = '/api/auth/google/callback'
+
+export const NODE = lambda.Runtime.NODEJS_24_X
+export const PYTHON = lambda.Runtime.PYTHON_3_14
+
+// The version alone, as in nodejs24.x or python3.14.
+export const runtimeVersion = (runtime: lambda.Runtime) => runtime.name.replace(/^[a-z]+|\.x$/g, '')
 
 const NODE_FUNCTION = {
-  runtime: lambda.Runtime.NODEJS_24_X,
+  runtime: NODE,
   architecture: lambda.Architecture.ARM_64,
   // The runtime ships the SDK clients, but not helpers such as s3-presigned-post, so those are bundled.
   // Their ESM build imports the clients; the CommonJS one would require them, which an ES module can't.
@@ -48,8 +60,6 @@ const NODE_FUNCTION = {
     mainFields: ['module', 'main'],
   },
 } satisfies nodejs.NodejsFunctionProps
-
-const PYTHON = lambda.Runtime.PYTHON_3_14
 
 // The Python code with its libraries for Linux on arm64. uv fetches those wheels on any machine, so bundling
 // needs no Docker. The versions come from uv.lock and are checked against its hashes. Each stack needs its own.
@@ -67,7 +77,7 @@ const preprocessCode = () =>
           uv(
             ...['pip', 'install', '--requirement', requirements, '--target', outputDir, '--no-deps'],
             ...['--only-binary', ':all:', '--python-platform', 'aarch64-manylinux_2_28'],
-            ...['--python-version', PYTHON.name.replace('python', '')],
+            ...['--python-version', runtimeVersion(PYTHON)],
           )
           for (const file of readdirSync(PREPROCESS_DIR).filter((name) => name.endsWith('.py'))) {
             cpSync(join(PREPROCESS_DIR, file), join(outputDir, file))
@@ -81,15 +91,13 @@ const preprocessCode = () =>
 // A message that fails this many times moves to its dead-letter queue. AWS advises at least 5, because
 // a throttled call counts as a try too.
 const MAX_RECEIVES = 5
-// Long enough to look into a failed file and send it back.
-const DEAD_LETTER_RETENTION = Duration.days(14)
-// One message at a time, at most two at once: the account runs only 10 functions together, and the API
-// needs its share.
+// One message at a time, and at most two at once from a queue, the lowest limit SQS allows: dev and prod share
+// the account's 10 functions running together, and their APIs need a share.
 const ONE_BY_ONE = { batchSize: 1, reportBatchItemFailures: true, maxConcurrency: 2 } satisfies SqsEventSourceProps
 const PREPROCESS_TIMEOUT = Duration.seconds(30)
 const WORKER_TIMEOUT = Duration.seconds(15)
-// The browser leaves a photo at most 2560 px on its longer side, about 6.5 megapixels. The cap stops a small
-// file that unpacks into a huge image.
+// Well above a photo the browser prepares (PHOTO_MAX_SIDE in web/src/features/upload/prepare.ts). The cap
+// stops a small file that unpacks into a huge image.
 const MAX_PIXELS = 25_000_000
 
 // Paths without a file extension belong to the client-side router.
@@ -217,9 +225,9 @@ export class SegregatorStack extends Stack {
       oAuth: {
         flows: { authorizationCodeGrant: true },
         scopes: [cognito.OAuthScope.OPENID, cognito.OAuthScope.EMAIL],
-        callbackUrls: appUrls.map((url) => url + GOOGLE_CALLBACK),
+        callbackUrls: appUrls.map((url) => url + GOOGLE_CALLBACK_PATH),
         // The callback ends Cognito's own session and lands here.
-        logoutUrls: appUrls.map((url) => url + '/documents'),
+        logoutUrls: appUrls.map((url) => url + AFTER_SIGN_IN_PATH),
       },
       // The API drops Cognito tokens right after sign-in, so they can be short-lived.
       idTokenValidity: Duration.minutes(5),
@@ -264,11 +272,12 @@ export class SegregatorStack extends Stack {
       partitionKey: { name: 'PK', type: dynamodb.AttributeType.STRING },
       sortKey: { name: 'SK', type: dynamodb.AttributeType.STRING },
       billing: dynamodb.Billing.onDemand(),
-      timeToLiveAttribute: 'expiresAt',
+      timeToLiveAttribute: TTL_ATTRIBUTE,
       // The keys of removed items, so the files of an expired draft can go too.
       dynamoStream: dynamodb.StreamViewType.KEYS_ONLY,
-      // Documents can be restored to any second of the last 35 days.
+      // The data can be restored to any second of the last 35 days. Files can't, as the bucket keeps no versions.
       pointInTimeRecoverySpecification: { pointInTimeRecoveryEnabled: true },
+      deletionProtection: true,
       // One index for per-user lists: an account's sessions and documents.
       globalSecondaryIndexes: [
         {
@@ -295,32 +304,38 @@ export class SegregatorStack extends Stack {
       logGroup: monthOfLogs('ApiLogs'),
     })
 
+    // Each version of a file sits under its own prefix, as in api/src/document-files.ts.
+    const files = (version: FileVersion) => documentsBucket.arnForObjects(`${version}/*`)
+    const allFiles = FILE_VERSIONS.map(files)
+
     table.grantReadWriteData(apiFunction)
     userPool.grant(apiFunction, 'cognito-idp:DescribeUserPoolClient', 'cognito-idp:AdminGetUser')
-    // Signing an upload needs the right to put the file itself, and with it the KMS key.
-    documentsBucket.grantReadWrite(apiFunction, 'raw/*')
-    // The processed copy is only shown and deleted.
+    // Signing an upload needs the right to put the file itself. Every version is shown and deleted.
+    apiFunction.addToRolePolicy(new iam.PolicyStatement({ actions: ['s3:PutObject'], resources: [files('raw')] }))
     apiFunction.addToRolePolicy(
-      new iam.PolicyStatement({
-        actions: ['s3:GetObject', 's3:DeleteObject'],
-        resources: [documentsBucket.arnForObjects('processed/*')],
-      }),
+      new iam.PolicyStatement({ actions: ['s3:GetObject', 's3:DeleteObject'], resources: allFiles }),
     )
+    documentsKey.grantEncryptDecrypt(apiFunction)
 
-    // A step of the background work: the files that land under prefix wait in a queue for the step's function.
-    // AWS advises a visibility timeout of six times the function's, so a retry after throttling still fits.
-    const stepQueue = (id: string, prefix: string, timeout: Duration) => {
-      const deadLetters = new sqs.Queue(this, `${id}DeadLetters`, {
-        enforceSSL: true,
-        retentionPeriod: DEAD_LETTER_RETENTION,
-      })
+    // Where failed messages wait, with its address among the outputs. 14 days, the most SQS keeps them.
+    const deadLetterQueue = (id: string) => {
+      const queue = new sqs.Queue(this, `${id}DeadLetters`, { enforceSSL: true, retentionPeriod: Duration.days(14) })
+      new CfnOutput(this, `${id}DeadLettersUrl`, { value: queue.queueUrl })
+      return queue
+    }
+
+    // A step of the background work: the files that land under one version's prefix wait in a queue for the
+    // step's function. AWS advises a visibility timeout of six times the function's, so a retry after
+    // throttling still fits.
+    const stepQueue = (id: string, version: FileVersion, timeout: Duration) => {
       const queue = new sqs.Queue(this, id, {
         enforceSSL: true,
         visibilityTimeout: Duration.seconds(timeout.toSeconds() * 6),
-        deadLetterQueue: { queue: deadLetters, maxReceiveCount: MAX_RECEIVES },
+        deadLetterQueue: { queue: deadLetterQueue(id), maxReceiveCount: MAX_RECEIVES },
       })
-      documentsBucket.addEventNotification(s3.EventType.OBJECT_CREATED, new s3n.SqsDestination(queue), { prefix })
-      new CfnOutput(this, `${id}DeadLettersUrl`, { value: deadLetters.queueUrl })
+      documentsBucket.addEventNotification(s3.EventType.OBJECT_CREATED, new s3n.SqsDestination(queue), {
+        prefix: `${version}/`,
+      })
       return queue
     }
 
@@ -337,24 +352,23 @@ export class SegregatorStack extends Stack {
       environment: {
         DOCUMENTS_BUCKET: documentsBucket.bucketName,
         OPENCV_IO_MAX_IMAGE_PIXELS: String(MAX_PIXELS),
+        MAX_RECEIVES: String(MAX_RECEIVES),
       },
       logGroup: monthOfLogs('PreprocessLogs'),
     })
     // Only what preprocessing needs: read the original and write the copy.
+    preprocessFunction.addToRolePolicy(new iam.PolicyStatement({ actions: ['s3:GetObject'], resources: [files('raw')] }))
     preprocessFunction.addToRolePolicy(
-      new iam.PolicyStatement({ actions: ['s3:GetObject'], resources: [documentsBucket.arnForObjects('raw/*')] }),
-    )
-    preprocessFunction.addToRolePolicy(
-      new iam.PolicyStatement({ actions: ['s3:PutObject'], resources: [documentsBucket.arnForObjects('processed/*')] }),
+      new iam.PolicyStatement({ actions: ['s3:PutObject'], resources: [files('processed')] }),
     )
     documentsKey.grantEncryptDecrypt(preprocessFunction)
-    preprocessFunction.addEventSource(new SqsEventSource(stepQueue('Uploads', 'raw/', PREPROCESS_TIMEOUT), ONE_BY_ONE))
+    preprocessFunction.addEventSource(new SqsEventSource(stepQueue('Uploads', 'raw', PREPROCESS_TIMEOUT), ONE_BY_ONE))
 
     const workerFunction = new nodejs.NodejsFunction(this, 'WorkerFunction', {
       ...NODE_FUNCTION,
       entry: WORKER_ENTRY,
       timeout: WORKER_TIMEOUT,
-      // A PDF of up to 10 MB is read whole by pdf.js.
+      // pdf.js reads a PDF whole, up to FILE_MAX_SIZE in shared/src/file.ts.
       memorySize: 256,
       environment: {
         TABLE_NAME: table.tableName,
@@ -363,16 +377,14 @@ export class SegregatorStack extends Stack {
       },
       logGroup: monthOfLogs('WorkerLogs'),
     })
-    // Only what the check needs: read the file and what preprocessing did to it, and update its document.
+    // Only what the check needs: read the file and what preprocessing did to it, update its document, and
+    // delete the files of a document deleted before they arrived.
     table.grant(workerFunction, 'dynamodb:UpdateItem')
     workerFunction.addToRolePolicy(
-      new iam.PolicyStatement({
-        actions: ['s3:GetObject'],
-        resources: FILE_VERSIONS.map((version) => documentsBucket.arnForObjects(`${version}/*`)),
-      }),
+      new iam.PolicyStatement({ actions: ['s3:GetObject', 's3:DeleteObject'], resources: allFiles }),
     )
     documentsKey.grantDecrypt(workerFunction)
-    workerFunction.addEventSource(new SqsEventSource(stepQueue('Processed', 'processed/', WORKER_TIMEOUT), ONE_BY_ONE))
+    workerFunction.addEventSource(new SqsEventSource(stepQueue('Processed', 'processed', WORKER_TIMEOUT), ONE_BY_ONE))
 
     // When TTL removes a draft nobody saved, its files go too. Only expiry removes items as the service
     // itself, and sessions expire in the same table, so the filter passes only documents.
@@ -382,22 +394,18 @@ export class SegregatorStack extends Stack {
       environment: { DOCUMENTS_BUCKET: documentsBucket.bucketName },
       logGroup: monthOfLogs('DraftCleanupLogs'),
     })
-    draftCleanupFunction.addToRolePolicy(
-      new iam.PolicyStatement({
-        actions: ['s3:DeleteObject'],
-        resources: FILE_VERSIONS.map((version) => documentsBucket.arnForObjects(`${version}/*`)),
-      }),
-    )
-    const cleanupDeadLetters = new sqs.Queue(this, 'DraftCleanupDeadLetters', {
-      enforceSSL: true,
-      retentionPeriod: DEAD_LETTER_RETENTION,
-    })
+    draftCleanupFunction.addToRolePolicy(new iam.PolicyStatement({ actions: ['s3:DeleteObject'], resources: allFiles }))
     draftCleanupFunction.addEventSource(
       new DynamoEventSource(table, {
         startingPosition: lambda.StartingPosition.LATEST,
+        // A few drafts at once, well within the function's time. A failing batch is split to find the record
+        // that fails.
+        batchSize: 10,
+        bisectBatchOnError: true,
         // As many tries as a queue gives a message. Without a limit a failing batch would hold up the stream.
         retryAttempts: MAX_RECEIVES - 1,
-        onFailure: new SqsDlq(cleanupDeadLetters),
+        // A failed batch leaves where its records are in the stream, which keeps them for 24 hours.
+        onFailure: new SqsDlq(deadLetterQueue('DraftCleanup')),
         filters: [
           lambda.FilterCriteria.filter({
             eventName: lambda.FilterRule.isEqual('REMOVE'),
@@ -405,12 +413,11 @@ export class SegregatorStack extends Stack {
               type: lambda.FilterRule.isEqual('Service'),
               principalId: lambda.FilterRule.isEqual('dynamodb.amazonaws.com'),
             },
-            dynamodb: { Keys: { SK: { S: lambda.FilterRule.beginsWith('DOC#') } } },
+            dynamodb: { Keys: { SK: { S: lambda.FilterRule.beginsWith(DOC_PREFIX) } } },
           }),
         ],
       }),
     )
-    new CfnOutput(this, 'DraftCleanupDeadLettersUrl', { value: cleanupDeadLetters.queueUrl })
 
     const integration = new HttpLambdaIntegration('ApiIntegration', apiFunction)
     const api = new HttpApi(this, 'Api', { defaultIntegration: integration, createDefaultStage: false })
@@ -442,7 +449,6 @@ export class SegregatorStack extends Stack {
       priceClass: cloudfront.PriceClass.PRICE_CLASS_100,
       defaultBehavior: {
         origin: S3BucketOrigin.withOriginAccessControl(bucket),
-        viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
         cachePolicy: cloudfront.CachePolicy.CACHING_OPTIMIZED,
         responseHeadersPolicy: headers,
         functionAssociations: [

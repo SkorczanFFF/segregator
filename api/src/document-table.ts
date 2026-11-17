@@ -1,45 +1,52 @@
 import {
   ConditionalCheckFailedException,
   DeleteItemCommand,
-  DynamoDBClient,
   GetItemCommand,
   PutItemCommand,
   QueryCommand,
   UpdateItemCommand,
   type AttributeValue,
 } from '@aws-sdk/client-dynamodb'
-import type {
-  Document,
-  DocumentFile,
-  DocumentInput,
-  DocumentList,
-  DocumentStatus,
-  Draft,
-  FileChange,
-  FileType,
-  FileVersion,
+import {
+  DOC_PREFIX,
+  TTL_ATTRIBUTE,
+  type Document,
+  type DocumentFile,
+  type DocumentInput,
+  type DocumentList,
+  type DocumentStatus,
+  type Draft,
+  type FileChange,
+  type FileType,
+  type FileVersion,
 } from 'shared'
 import { ulid } from 'ulid'
+import { DAY, TABLE, db, ifConditionMet, now } from './table.ts'
 
 type Item = Record<string, AttributeValue>
 
-const db = new DynamoDBClient({})
-const TABLE = process.env.TABLE_NAME ?? ''
 const PAGE_SIZE = 50
 // A draft nobody saves is deleted with its files this long after it was made.
-const DRAFT_KEEP = 24 * 60 * 60
+const DRAFT_KEEP = DAY
 
-const now = () => Math.floor(Date.now() / 1000)
+const status = (value: DocumentStatus) => ({ S: value })
+
+// TTL removes an expired draft within a few days, so until then its time alone hides it, and no write
+// touches it.
+const expired = (item: Item) => Number(item[TTL_ATTRIBUTE]?.N) <= now()
+const LIVE = '(attribute_not_exists(#ttl) OR #ttl > :now)'
+const live = () => ({ names: { '#ttl': TTL_ATTRIBUTE }, values: { ':now': { N: String(now()) } } })
 
 // Every key starts from the account, so a query can never reach another account's documents.
 const listKey = (sub: string) => `USER#${sub}#DOCS`
 
-const docKey = (sub: string, id: string): Item => ({ PK: { S: `USER#${sub}` }, SK: { S: `DOC#${id}` } })
+const docKey = (sub: string, id: string): Item => ({ PK: { S: `USER#${sub}` }, SK: { S: DOC_PREFIX + id } })
 
 // The account and document of a document's keys, as a table stream sends them.
 export function parseDocKey(keys: Item) {
   const sub = /^USER#(.+)$/.exec(keys.PK?.S ?? '')?.[1]
-  const id = /^DOC#(.+)$/.exec(keys.SK?.S ?? '')?.[1]
+  const sk = keys.SK?.S ?? ''
+  const id = sk.startsWith(DOC_PREFIX) ? sk.slice(DOC_PREFIX.length) : undefined
   return sub && id ? { sub, id } : undefined
 }
 
@@ -56,9 +63,6 @@ const fieldAttributes = (sub: string, id: string, input: DocumentInput): Record<
   title: input.title ? { S: input.title } : undefined,
   amount: input.amount === undefined ? undefined : { N: String(input.amount) },
 })
-
-// TTL deletes an expired draft within a few days, so until then its time alone hides it.
-const expired = (item: Item) => item.expiresAt?.N !== undefined && Number(item.expiresAt.N) <= now()
 
 function fromItem(item: Item): Document | Draft {
   const stored = {
@@ -102,7 +106,7 @@ export async function createDocument(sub: string, input: DocumentInput) {
         ...docKey(sub, doc.id),
         id: { S: doc.id },
         createdAt: { S: doc.createdAt },
-        status: { S: doc.status },
+        status: status(doc.status),
         ...(Object.fromEntries(fields) as Item),
       },
     }),
@@ -120,8 +124,8 @@ export async function createDraft(sub: string) {
         ...docKey(sub, draft.id),
         id: { S: draft.id },
         createdAt: { S: draft.createdAt },
-        status: { S: draft.status },
-        expiresAt: { N: String(now() + DRAFT_KEEP) },
+        status: status(draft.status),
+        [TTL_ATTRIBUTE]: { N: String(now() + DRAFT_KEEP) },
       },
     }),
   )
@@ -134,35 +138,36 @@ export async function getDocument(sub: string, id: string) {
 }
 
 // Saves what a person entered and leaves the status and the file to the worker. A draft becomes a document
-// on the list and stops expiring, but only once its file is checked. Undefined means no such document,
-// or a draft not ready to save, so an edit never brings back a deleted one.
+// on the list and stops expiring, but only once its file is checked and, for a photo preprocessing changed,
+// a version is chosen. Undefined means no such document, or a draft not ready to save, so an edit never
+// brings back a deleted one.
 export async function updateDocument(sub: string, id: string, input: DocumentInput) {
   const attributes = Object.entries(fieldAttributes(sub, id, input))
   const set = attributes.filter(([, value]) => value !== undefined)
-  const remove = [...attributes.filter(([, value]) => value === undefined).map(([name]) => name), 'expiresAt']
-  try {
-    const { Attributes } = await db.send(
+  const remove = attributes.filter(([, value]) => value === undefined).map(([name]) => `#${name}`)
+  const { names, values } = live()
+  const updated = await ifConditionMet(
+    db.send(
       new UpdateItemCommand({
         TableName: TABLE,
         Key: docKey(sub, id),
-        UpdateExpression: `SET ${set.map(([name]) => `#${name} = :${name}`).join(', ')} REMOVE ${remove.map((name) => `#${name}`).join(', ')}`,
-        ConditionExpression: 'attribute_exists(PK) AND (attribute_exists(GSI1PK) OR #status = :done)',
+        UpdateExpression: `SET ${set.map(([name]) => `#${name} = :${name}`).join(', ')} REMOVE ${[...remove, '#ttl'].join(', ')}`,
+        ConditionExpression: `${LIVE} AND (attribute_exists(GSI1PK) OR (#status = :done AND (attribute_not_exists(fileChange) OR attribute_exists(fileUse))))`,
         // Names like type are reserved words, so every one goes through a placeholder.
-        ExpressionAttributeNames: Object.fromEntries(
-          [...attributes.map(([name]) => name), 'expiresAt', 'status'].map((name) => [`#${name}`, name]),
-        ),
+        ExpressionAttributeNames: {
+          ...Object.fromEntries([...attributes.map(([name]) => name), 'status'].map((name) => [`#${name}`, name])),
+          ...names,
+        },
         ExpressionAttributeValues: {
           ...(Object.fromEntries(set.map(([name, value]) => [`:${name}`, value])) as Item),
-          ':done': { S: 'done' },
+          ':done': status('done'),
+          ...values,
         },
         ReturnValues: 'ALL_NEW',
       }),
-    )
-    return Attributes && fromItem(Attributes)
-  } catch (err) {
-    if (err instanceof ConditionalCheckFailedException) return undefined
-    throw err
-  }
+    ),
+  )
+  return updated?.Attributes && fromItem(updated.Attributes)
 }
 
 export async function deleteDocument(sub: string, id: string) {
@@ -172,51 +177,52 @@ export async function deleteDocument(sub: string, id: string) {
 // The browser has sent the file, so the document shows as processing before the worker takes it.
 // A document already further along, or gone, stays as it is.
 export async function markSent(sub: string, id: string) {
-  try {
-    await db.send(
+  const { names, values } = live()
+  await ifConditionMet(
+    db.send(
       new UpdateItemCommand({
         TableName: TABLE,
         Key: docKey(sub, id),
         UpdateExpression: 'SET #status = :processing',
-        ConditionExpression: '#status = :uploading',
-        ExpressionAttributeNames: { '#status': 'status' },
-        ExpressionAttributeValues: { ':uploading': { S: 'uploading' }, ':processing': { S: 'processing' } },
+        ConditionExpression: `#status = :uploading AND ${LIVE}`,
+        ExpressionAttributeNames: { '#status': 'status', ...names },
+        ExpressionAttributeValues: { ':uploading': status('uploading'), ':processing': status('processing'), ...values },
       }),
-    )
-  } catch (err) {
-    if (!(err instanceof ConditionalCheckFailedException)) throw err
-  }
+    ),
+  )
 }
 
 // Gives the document to one message: a new upload, a failed one sent again, or this message's own
-// earlier try. A document the browser marked as sent has no message yet. False means another message
-// has it or the document is gone.
+// earlier try. A document the browser marked as sent has no message yet. Taken means another message has
+// it or the draft expired, gone means the document was deleted.
 export async function claimDocument(sub: string, id: string, messageId: string) {
+  const { names, values } = live()
   try {
     await db.send(
       new UpdateItemCommand({
         TableName: TABLE,
         Key: docKey(sub, id),
         UpdateExpression: 'SET #status = :processing, claimedBy = :message',
-        ConditionExpression:
-          '#status IN (:uploading, :failed) OR (#status = :processing AND (attribute_not_exists(claimedBy) OR claimedBy = :message))',
-        ExpressionAttributeNames: { '#status': 'status' },
+        ConditionExpression: `${LIVE} AND (#status IN (:uploading, :failed) OR (#status = :processing AND (attribute_not_exists(claimedBy) OR claimedBy = :message)))`,
+        ExpressionAttributeNames: { '#status': 'status', ...names },
         ExpressionAttributeValues: {
-          ':uploading': { S: 'uploading' },
-          ':processing': { S: 'processing' },
-          ':failed': { S: 'failed' },
+          ':uploading': status('uploading'),
+          ':processing': status('processing'),
+          ':failed': status('failed'),
           ':message': { S: messageId },
+          ...values,
         },
+        ReturnValuesOnConditionCheckFailure: 'ALL_OLD',
       }),
     )
-    return true
+    return 'claimed'
   } catch (err) {
-    if (err instanceof ConditionalCheckFailedException) return false
-    throw err
+    if (!(err instanceof ConditionalCheckFailedException)) throw err
+    return err.Item ? 'taken' : 'gone'
   }
 }
 
-export type CheckResult = { status: 'done'; file: DocumentFile } | { status: 'failed' }
+export type CheckResult = { status: 'done'; file: Omit<DocumentFile, 'use'> & { pages: number } } | { status: 'failed' }
 
 // Ends this message's work on the document. A document deleted meanwhile stays deleted.
 export async function settleDocument(sub: string, id: string, messageId: string, result: CheckResult) {
@@ -226,8 +232,8 @@ export async function settleDocument(sub: string, id: string, messageId: string,
     ...(file ? ['fileType = :type', 'fileSize = :size', 'pages = :pages'] : []),
     ...(file?.change ? ['fileChange = :change'] : []),
   ]
-  try {
-    await db.send(
+  await ifConditionMet(
+    db.send(
       new UpdateItemCommand({
         TableName: TABLE,
         Key: docKey(sub, id),
@@ -235,8 +241,8 @@ export async function settleDocument(sub: string, id: string, messageId: string,
         ConditionExpression: '#status = :processing AND claimedBy = :message',
         ExpressionAttributeNames: { '#status': 'status' },
         ExpressionAttributeValues: {
-          ':status': { S: result.status },
-          ':processing': { S: 'processing' },
+          ':status': status(result.status),
+          ':processing': status('processing'),
           ':message': { S: messageId },
           ...(file && {
             ':type': { S: file.type },
@@ -246,30 +252,27 @@ export async function settleDocument(sub: string, id: string, messageId: string,
           ...(file?.change && { ':change': { S: file.change } }),
         },
       }),
-    )
-  } catch (err) {
-    if (!(err instanceof ConditionalCheckFailedException)) throw err
-  }
+    ),
+  )
 }
 
 // Keeps one version of a photo that preprocessing changed. Undefined means no such photo.
 export async function chooseVersion(sub: string, id: string, use: FileVersion) {
-  try {
-    const { Attributes } = await db.send(
+  const { names, values } = live()
+  const updated = await ifConditionMet(
+    db.send(
       new UpdateItemCommand({
         TableName: TABLE,
         Key: docKey(sub, id),
         UpdateExpression: 'SET fileUse = :use',
-        ConditionExpression: 'attribute_exists(fileChange)',
-        ExpressionAttributeValues: { ':use': { S: use } },
+        ConditionExpression: `attribute_exists(fileChange) AND ${LIVE}`,
+        ExpressionAttributeNames: names,
+        ExpressionAttributeValues: { ':use': { S: use }, ...values },
         ReturnValues: 'ALL_NEW',
       }),
-    )
-    return Attributes && fromItem(Attributes)
-  } catch (err) {
-    if (err instanceof ConditionalCheckFailedException) return undefined
-    throw err
-  }
+    ),
+  )
+  return updated?.Attributes && fromItem(updated.Attributes)
 }
 
 // The cursor is the last key of a page. One that points outside the caller's list is rejected.
@@ -300,6 +303,7 @@ export async function listDocuments(sub: string, cursor?: string): Promise<Docum
     }),
   )
   return {
+    // The filter only tells TypeScript what the list keys already guarantee.
     items: (Items ?? []).map(fromItem).filter((doc): doc is Document => !doc.draft),
     cursor: LastEvaluatedKey && Buffer.from(JSON.stringify(LastEvaluatedKey)).toString('base64url'),
   }

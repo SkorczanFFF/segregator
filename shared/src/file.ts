@@ -24,3 +24,10 @@ export type FileChange = (typeof FILE_CHANGES)[number]
 // Checked by the worker. Files saved before it counted pages have no count. A photo preprocessing changed
 // has both versions, and use is the one the person chose.
 export type DocumentFile = { type: FileType; size: number; pages?: number; change?: FileChange; use?: FileVersion }
+
+// A photo preprocessing changed waits for a version to be chosen before its fields can be saved. The API's
+// updateDocument checks the same in its condition.
+export const needsChoice = (file?: DocumentFile) => Boolean(file?.change && !file.use)
+
+// The version a document goes with: the one chosen, or the file as sent when nothing changed.
+export const usedVersion = (file: DocumentFile): FileVersion => file.use ?? 'raw'

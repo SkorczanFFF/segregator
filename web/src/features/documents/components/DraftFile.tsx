@@ -4,14 +4,14 @@ import { IconCheck, IconFileText } from '@tabler/icons-react'
 import { useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { isPdf, type DocumentFile, type Draft, type FileChange, type FileVersion } from 'shared'
+import { isPdf, needsChoice, usedVersion, type DocumentFile, type Draft, type FileChange, type FileVersion } from 'shared'
 import FilePreview from '~/features/documents/components/FilePreview.tsx'
 import ImageViewer from '~/features/documents/components/ImageViewer.tsx'
 import VersionSwitch from '~/features/documents/components/VersionSwitch.tsx'
-import { documentKey, fileUrl } from '~/features/documents/useDocuments.ts'
+import { chooseVersion, fileUrl } from '~/features/documents/useDocuments.ts'
+import ApiErrorAlert from '~/shared/components/ApiErrorAlert.tsx'
 import StatusAlert from '~/shared/components/StatusAlert.tsx'
 import { useApiSubmit } from '~/shared/hooks/useApiSubmit.ts'
-import { api } from '~/shared/lib/api.ts'
 
 type DraftFileProps = {
   draft: Draft
@@ -31,7 +31,7 @@ export default function DraftFile({ draft, onOtherPhoto }: DraftFileProps) {
   if (draft.status === 'failed' || !file) {
     return <Problem status="error" text={t('documents.fileFailed')} action={t('documents.otherPhoto')} onAction={onOtherPhoto} />
   }
-  if (file.change && (!file.use || choosing)) {
+  if (file.change && (needsChoice(file) || choosing)) {
     return (
       <Comparison id={draft.id} file={file} change={file.change} onChosen={() => setChoosing(false)} onOtherPhoto={onOtherPhoto} />
     )
@@ -43,7 +43,7 @@ function Problem({ status, text, action, onAction }: { status: 'warning' | 'erro
   return (
     <Stack gap="md">
       <StatusAlert status={status}>{text}</StatusAlert>
-      <Button size="md" onClick={onAction}>
+      <Button onClick={onAction}>
         {action}
       </Button>
     </Stack>
@@ -64,7 +64,7 @@ function Comparison({ id, file, change, onChosen, onOtherPhoto }: ComparisonProp
   const queryClient = useQueryClient()
   const [shown, setShown] = useState<FileVersion>('processed')
   const choose = useApiSubmit(async (use: FileVersion) => {
-    queryClient.setQueryData(documentKey(id), await api.put<Draft>(`/documents/${id}/file`, { use }))
+    await chooseVersion(queryClient, id, use)
     onChosen()
   })
 
@@ -76,9 +76,8 @@ function Comparison({ id, file, change, onChosen, onOtherPhoto }: ComparisonProp
         header={<VersionSwitch value={shown} onChange={setShown} />}
         caption={t(`documents.changes.${change}`)}
       />
-      {choose.error && <StatusAlert status="error">{t(`errors.${choose.error}`)}</StatusAlert>}
+      <ApiErrorAlert code={choose.error} />
       <Button
-        size="md"
         leftSection={<IconCheck size={18} aria-hidden />}
         loading={choose.pending}
         onClick={() => void choose.submit('processed')}
@@ -103,8 +102,7 @@ function Chosen({ id, file, onChange }: { id: string; file: DocumentFile; onChan
   const { t } = useTranslation()
   const [viewing, viewer] = useDisclosure()
   const pdf = isPdf(file.type)
-  // Without a change the processed copy is the same as the original.
-  const version = file.use ?? 'raw'
+  const version = usedVersion(file)
   const image = pdf ? undefined : fileUrl(id, version)
   const state = file.change ? version : pdf ? 'pdf' : 'unchanged'
   const title = t(`documents.chosen.${state}.title`)

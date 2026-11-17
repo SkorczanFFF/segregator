@@ -1,4 +1,5 @@
 import { Autocomplete, type AutocompleteProps } from '@mantine/core'
+import { EMAIL_PROPS } from '~/features/auth/email.ts'
 
 const DOMAINS = ['gmail.com', 'wp.pl', 'o2.pl', 'onet.pl', 'interia.pl', 'outlook.com']
 
@@ -13,10 +14,7 @@ export default function EmailInput({ value = '', ...props }: EmailInputProps) {
 
   return (
     <Autocomplete
-      type="email"
-      inputMode="email"
-      autoComplete="username"
-      spellCheck={false}
+      {...EMAIL_PROPS}
       data={data}
       value={value}
       {...props}

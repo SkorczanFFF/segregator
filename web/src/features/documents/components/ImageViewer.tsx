@@ -1,8 +1,6 @@
-import { Modal, Stack } from '@mantine/core'
-import { useMediaQuery } from '@mantine/hooks'
+import { Image, Modal, Stack, useMatches } from '@mantine/core'
 import type { ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
-import classes from '~/features/documents/components/documents.module.css'
 
 type ImageViewerProps = {
   image: string
@@ -16,12 +14,13 @@ type ImageViewerProps = {
 // where two fingers zoom in further.
 export default function ImageViewer({ image, opened, onClose, header }: ImageViewerProps) {
   const { t } = useTranslation()
-  const phone = useMediaQuery('(max-width: 48em)')
+  // Where the rest of the document's page switches to its phone layout.
+  const phone = useMatches({ base: true, md: false })
   return (
     <Modal opened={opened} onClose={onClose} title={t('documents.preview')} size="xl" fullScreen={phone} centered>
       <Stack gap="sm">
         {header}
-        <img className={classes.whole} src={image} alt={t('documents.preview')} />
+        <Image src={image} alt={t('documents.preview')} radius="sm" />
       </Stack>
     </Modal>
   )

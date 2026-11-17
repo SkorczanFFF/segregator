@@ -4,6 +4,7 @@ import {
   ListUsersCommand,
 } from '@aws-sdk/client-cognito-identity-provider'
 import { GetParameterCommand, SSMClient } from '@aws-sdk/client-ssm'
+import type { TRIGGER_ERRORS } from './trigger-errors.ts'
 
 // The part of Cognito's Pre sign-up event this trigger reads.
 type PreSignUpEvent = {
@@ -13,6 +14,8 @@ type PreSignUpEvent = {
   userName: string
   request: { userAttributes: Record<string, string | undefined> }
 }
+
+const reject = (error: (typeof TRIGGER_ERRORS)[number]) => new Error(error)
 
 const ssm = new SSMClient({})
 const cognito = new CognitoIdentityProviderClient({})
@@ -37,7 +40,7 @@ async function usersWithEmail(userPoolId: string, email: string) {
 export async function handler(event: PreSignUpEvent) {
   const { email = '', email_verified } = event.request.userAttributes
   const { Parameter } = await ssm.send(new GetParameterCommand({ Name: process.env.SIGNUP_ALLOWLIST }))
-  if (!signUpAllowed(email, Parameter?.Value ?? '')) throw new Error('signup_closed')
+  if (!signUpAllowed(email, Parameter?.Value ?? '')) throw reject('signup_closed')
 
   const users = await usersWithEmail(event.userPoolId, email)
   if (event.triggerSource === 'PreSignUp_ExternalProvider') {
@@ -59,7 +62,7 @@ export async function handler(event: PreSignUpEvent) {
     }
   } else if (users.some((user) => user.UserStatus === 'EXTERNAL_PROVIDER')) {
     // An account that came from Google can't get a password, so a sign-up with its address is turned away.
-    throw new Error('account_exists')
+    throw reject('account_exists')
   }
   return event
 }

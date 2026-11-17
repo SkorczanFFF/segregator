@@ -1,4 +1,4 @@
-"""Straightens each new photo under raw/ into processed/, from where the worker reads it.
+"""Straightens each new photo under raw/ into processed/, whose arrival starts the worker.
 
 The key layout is the one in api/src/document-files.ts. This function never writes to the table.
 """
@@ -16,14 +16,16 @@ import numpy as np
 from document import straighten
 
 logger = logging.getLogger()
-logger.setLevel(logging.INFO)
 
 s3 = boto3.client("s3")
 BUCKET = os.environ.get("DOCUMENTS_BUCKET", "")
+# The queue's last try copies the original as it is, so a photo that keeps timing out still reaches the worker.
+MAX_RECEIVES = int(os.environ["MAX_RECEIVES"])
 
 RAW_KEY = re.compile(r"^raw/([^/]+)/([0-9A-HJKMNP-TV-Z]{26})$")
-# The first bytes of the photo types; anything else, such as a PDF, is copied as it is.
+# The first bytes of the photo types, as in api/src/worker.ts; anything else, such as a PDF, is copied as it is.
 SIGNATURES = {"image/jpeg": b"\xff\xd8\xff", "image/png": b"\x89PNG\r\n\x1a\n"}
+# As in web/src/features/upload/prepare.ts, which sends every photo as a JPEG.
 JPEG_QUALITY = 90
 
 
@@ -40,15 +42,22 @@ def handler(event, context):
 
 
 def process_message(message):
+    last_try = int(message["attributes"]["ApproximateReceiveCount"]) >= MAX_RECEIVES
     # S3's test event, sent when the notification is set up, has no records.
     for record in json.loads(message["body"]).get("Records", []):
         # S3 encodes the key as in a URL, with spaces as plus signs.
         source = unquote_plus(record["s3"]["object"]["key"])
         match = RAW_KEY.match(source)
-        if match:
-            process_file(source, f"processed/{match[1]}/{match[2]}")
-        else:
+        if not match:
             logger.warning("Skipped a key that is not a document file")
+        elif last_try:
+            copy_original(source, f"processed/{match[1]}/{match[2]}")
+        else:
+            process_file(source, f"processed/{match[1]}/{match[2]}")
+
+
+def copy_original(source, target):
+    s3.copy_object(Bucket=BUCKET, Key=target, CopySource={"Bucket": BUCKET, "Key": source})
 
 
 def process_file(source, target):
@@ -62,16 +71,20 @@ def process_file(source, target):
     """
     original = s3.get_object(Bucket=BUCKET, Key=source)
     image = decode(original["Body"].read(), original["ContentType"])
-    result = None
+    result = jpeg = None
     if image is not None:
         try:
             result = straighten(image)
+            if result is not None:
+                encoded, jpeg = cv2.imencode(".jpg", result.image, [cv2.IMWRITE_JPEG_QUALITY, JPEG_QUALITY])
+                if not encoded:
+                    raise ValueError("The straightened photo could not be encoded")
         except Exception:
             logger.exception("Straightening failed, the original goes on")
+            result = None
     if result is None:
-        s3.copy_object(Bucket=BUCKET, Key=target, CopySource={"Bucket": BUCKET, "Key": source})
+        copy_original(source, target)
         return
-    _, jpeg = cv2.imencode(".jpg", result.image, [cv2.IMWRITE_JPEG_QUALITY, JPEG_QUALITY])
     s3.put_object(
         Bucket=BUCKET,
         Key=target,

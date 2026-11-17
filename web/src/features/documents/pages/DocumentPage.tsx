@@ -1,15 +1,15 @@
 import { Button, Group, Modal, Paper, Skeleton, Stack, Text } from '@mantine/core'
 import { useDisclosure } from '@mantine/hooks'
-import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { Navigate, useNavigate, useParams } from 'react-router'
-import type { Document, DocumentInput, Draft } from 'shared'
-import DocumentForm, { PAGE_WIDTH_WITH_FILE } from '~/features/documents/components/DocumentForm.tsx'
+import type { Document, DocumentInput } from 'shared'
+import DocumentForm from '~/features/documents/components/DocumentForm.tsx'
 import SavedFile from '~/features/documents/components/SavedFile.tsx'
-import { documentName } from '~/features/documents/look.ts'
-import { documentKey, refreshDocuments } from '~/features/documents/useDocuments.ts'
+import { documentName, PAGE_WIDTH } from '~/features/documents/look.ts'
+import { documentKey, refreshDocuments, useDocument } from '~/features/documents/useDocuments.ts'
+import ApiErrorAlert from '~/shared/components/ApiErrorAlert.tsx'
 import Page from '~/shared/components/Page.tsx'
-import StatusAlert from '~/shared/components/StatusAlert.tsx'
 import { useApiSubmit } from '~/shared/hooks/useApiSubmit.ts'
 import { api, errorCode } from '~/shared/lib/api.ts'
 import { formatDay } from '~/shared/lib/format.ts'
@@ -20,10 +20,7 @@ export default function DocumentPage() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const [confirming, { open, close }] = useDisclosure()
-  const { data: doc, error } = useQuery({
-    queryKey: documentKey(id),
-    queryFn: () => api.get<Document | Draft>(`/documents/${id}`),
-  })
+  const { data: doc, error } = useDocument(id)
 
   async function save(input: DocumentInput) {
     queryClient.setQueryData(documentKey(id), await api.put<Document>(`/documents/${id}`, input))
@@ -35,6 +32,7 @@ export default function DocumentPage() {
     await api.delete(`/documents/${id}`)
     await refreshDocuments(queryClient)
     navigate('/documents')
+    queryClient.removeQueries({ queryKey: documentKey(id), exact: true })
   })
 
   // A draft goes on where new documents are made.
@@ -51,9 +49,9 @@ export default function DocumentPage() {
           </Text>
         )
       }
-      width={doc && !doc.file ? 560 : PAGE_WIDTH_WITH_FILE}
+      width={doc && !doc.file ? PAGE_WIDTH.fields : PAGE_WIDTH.withFile}
     >
-      {error && <StatusAlert status="error">{t(`errors.${errorCode(error)}`)}</StatusAlert>}
+      <ApiErrorAlert code={error ? errorCode(error) : undefined} />
       {!doc && !error && (
         <Paper p="xl" aria-busy>
           <Skeleton h={320} />
@@ -71,7 +69,7 @@ export default function DocumentPage() {
       <Modal opened={confirming} onClose={close} title={t('documents.deleteTitle')} centered>
         <Stack gap="md">
           <Text>{t('documents.deleteText')}</Text>
-          {remove.error && <StatusAlert status="error">{t(`errors.${remove.error}`)}</StatusAlert>}
+          <ApiErrorAlert code={remove.error} />
           <Group justify="flex-end">
             <Button variant="default" onClick={close}>
               {t('documents.cancel')}

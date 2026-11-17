@@ -1,6 +1,5 @@
 import { Hono, type Context } from 'hono'
-import { CODE_PATTERN, PASSWORD_MIN_LENGTH, type ErrorCode, type User } from 'shared'
-import * as z from 'zod'
+import { ConfirmInput, ForgotInput, LoginInput, RegisterInput, ResetInput, type ErrorCode, type User } from 'shared'
 import {
   confirmSignUp,
   findUserSub,
@@ -12,16 +11,8 @@ import {
 } from './cognito.ts'
 import { apiError } from './errors.ts'
 import { createSession, deleteAllSessions, deleteSession, type Env } from './session.ts'
+import { triggerErrorIn } from './trigger-errors.ts'
 import { jsonBody } from './validate.ts'
-
-const Email = z.string().trim().toLowerCase().pipe(z.email().max(254))
-const Code = z.string().regex(CODE_PATTERN)
-const NewPassword = z.string().min(PASSWORD_MIN_LENGTH).max(256)
-const RegisterInput = z.object({ email: Email, password: NewPassword })
-const LoginInput = z.object({ email: Email, password: z.string().min(1).max(256) })
-const ConfirmInput = z.object({ email: Email, code: Code })
-const ForgotInput = z.object({ email: Email })
-const ResetInput = z.object({ email: Email, code: Code, password: NewPassword })
 
 // What Cognito says about accounts that are unknown, unconfirmed or disabled.
 const SILENT_FORGOT_ERRORS = new Set([
@@ -41,9 +32,7 @@ const errorName = (err: unknown) => (err instanceof Error ? err.name : '')
 
 // The Pre sign-up trigger's message reaches the API inside Cognito's UserLambdaValidationException.
 const triggerError = (err: unknown) =>
-  errorName(err) === 'UserLambdaValidationException'
-    ? (err as Error).message.match(/signup_closed|account_exists/)?.[0]
-    : undefined
+  errorName(err) === 'UserLambdaValidationException' ? triggerErrorIn((err as Error).message) : undefined
 
 // Turns the Cognito errors a route expects into API error codes. Anything else ends as a 500.
 function fail(c: Context, err: unknown, expected: Record<string, ErrorCode>) {

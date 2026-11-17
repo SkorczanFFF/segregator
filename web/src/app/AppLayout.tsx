@@ -7,7 +7,7 @@ import classes from '~/app/AppLayout.module.css'
 import { useSession, useSignOut } from '~/features/auth/session.ts'
 import AppControls from '~/shared/components/AppControls.tsx'
 import Logo from '~/shared/components/Logo.tsx'
-import StatusAlert from '~/shared/components/StatusAlert.tsx'
+import ApiErrorAlert from '~/shared/components/ApiErrorAlert.tsx'
 
 const NAV = [
   { to: '/documents', label: 'app.nav.documents', icon: IconFileText },
@@ -94,11 +94,7 @@ export default function AppLayout() {
       </AppShell.Navbar>
       <AppShell.Main bg="var(--app-page-bg)" className={classes.main}>
         <IconFolder size={420} stroke={0.6} className={classes.watermark} aria-hidden />
-        {signOut.error && (
-          <StatusAlert status="error" mb="lg">
-            {t(`errors.${signOut.error}`)}
-          </StatusAlert>
-        )}
+        <ApiErrorAlert code={signOut.error} mb="lg" />
         <Outlet />
       </AppShell.Main>
     </AppShell>

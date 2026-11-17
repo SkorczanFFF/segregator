@@ -8,7 +8,6 @@ import {
   Paper,
   PasswordInput,
   rgba,
-  Select,
   TextInput,
   Tooltip,
   type CSSVariablesResolver,
@@ -94,7 +93,6 @@ export const cssVariablesResolver: CSSVariablesResolver = (theme) => ({
     '--mantine-color-placeholder': theme.colors.dark[3],
     '--mantine-color-default-border': theme.colors.dark[3],
     '--mantine-color-error': theme.colors.red[9],
-    '--mantine-color-red-text': theme.colors.red[9],
     '--mantine-color-red-light-color': theme.colors.red[9],
     '--mantine-color-orange-text': ORANGE_TEXT,
     '--mantine-color-orange-light-color': ORANGE_TEXT,
@@ -150,7 +148,6 @@ export const theme = createTheme({
       defaultProps: { radius: 'md', shadow: 'md', withBorder: true },
     }),
     PasswordInput: PasswordInput.extend({ defaultProps: { size: 'md' } }),
-    Select: Select.extend({ defaultProps: { size: 'md' } }),
     TextInput: TextInput.extend({ defaultProps: { size: 'md' } }),
     Tooltip: Tooltip.extend({
       defaultProps: { withArrow: true, openDelay: 300 },

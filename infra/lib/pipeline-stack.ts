@@ -2,10 +2,9 @@ import { createRequire } from 'node:module'
 import { Stack, Stage, type StackProps, type StageProps } from 'aws-cdk-lib/core'
 import * as codebuild from 'aws-cdk-lib/aws-codebuild'
 import { CfnConnection } from 'aws-cdk-lib/aws-codestarconnections'
-import { PipelineType } from 'aws-cdk-lib/aws-codepipeline'
 import * as pipelines from 'aws-cdk-lib/pipelines'
 import type { Construct } from 'constructs'
-import { SegregatorStack, type SiteProps } from './segregator-stack.ts'
+import { NODE, PYTHON, runtimeVersion, SegregatorStack, type SiteProps } from './segregator-stack.ts'
 
 const REPO = 'SkorczanFFF/segregator'
 
@@ -33,7 +32,6 @@ export class PipelineStack extends Stack {
 
     const pipeline = new pipelines.CodePipeline(this, 'Pipeline', {
       pipelineName: 'segregator',
-      pipelineType: PipelineType.V2,
       synth: new pipelines.ShellStep('Synth', {
         input: pipelines.CodePipelineSource.connection(REPO, 'main', {
           connectionArn: connection.attrConnectionArn,
@@ -55,9 +53,9 @@ export class PipelineStack extends Stack {
       codeBuildDefaults: {
         buildEnvironment: { buildImage: codebuild.LinuxBuildImage.AMAZON_LINUX_2023_6 },
         partialBuildSpec: codebuild.BuildSpec.fromObject({
-          // Only the runtimes named here are on the image. Python brings pip, which installs uv, and is the
-          // version of the Python function, so uv bundles it without fetching another.
-          phases: { install: { 'runtime-versions': { nodejs: 24, python: 3.14 } } },
+          // Only the runtimes named here are on the image, the same as the functions'. Python brings pip, which
+          // installs uv, and uv bundles the Python function without fetching another Python.
+          phases: { install: { 'runtime-versions': { nodejs: runtimeVersion(NODE), python: runtimeVersion(PYTHON) } } },
         }),
       },
     })

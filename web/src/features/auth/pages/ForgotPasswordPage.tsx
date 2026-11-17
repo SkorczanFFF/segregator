@@ -1,16 +1,17 @@
-import { Anchor, Button, Stack, TextInput } from '@mantine/core'
+import { Button, Stack } from '@mantine/core'
 import { useForm } from '@mantine/form'
 import { useTranslation } from 'react-i18next'
-import { Link, useNavigate } from 'react-router'
+import { useNavigate } from 'react-router'
+import type { ForgotInput } from 'shared'
+import AuthPrompt from '~/features/auth/components/AuthPrompt.tsx'
 import AuthScreen from '~/features/auth/components/AuthScreen.tsx'
+import EmailField from '~/features/auth/components/EmailField.tsx'
 import { emailRule } from '~/features/auth/email.ts'
-import StatusAlert from '~/shared/components/StatusAlert.tsx'
+import ApiErrorAlert from '~/shared/components/ApiErrorAlert.tsx'
 import { useApiSubmit } from '~/shared/hooks/useApiSubmit.ts'
 import { useFormError } from '~/shared/hooks/useFormError.ts'
 import { api } from '~/shared/lib/api.ts'
 import { focusFirstError, validateFilledOnBlur } from '~/shared/lib/form.ts'
-
-type ForgotValues = { email: string }
 
 export default function ForgotPasswordPage() {
   const { t } = useTranslation()
@@ -22,7 +23,7 @@ export default function ForgotPasswordPage() {
     enhanceGetInputProps: validateFilledOnBlur(),
     validate: { email: emailRule },
   })
-  const { submit, pending, error } = useApiSubmit(async (values: ForgotValues) => {
+  const { submit, pending, error } = useApiSubmit(async (values: ForgotInput) => {
     await api.post('/auth/forgot-password', values)
     navigate('/reset-password', { state: { email: values.email } })
   })
@@ -32,27 +33,12 @@ export default function ForgotPasswordPage() {
       title={t('auth.forgotTitle')}
       description={t('auth.forgotLead')}
       google={false}
-      footer={
-        <>
-          {t('auth.rememberPassword')}{' '}
-          <Anchor component={Link} to="/login" inherit>
-            {t('auth.signIn')}
-          </Anchor>
-        </>
-      }
+      footer={<AuthPrompt text={t('auth.rememberPassword')} link={t('auth.signIn')} to="/login" />}
     >
       <form onSubmit={form.onSubmit(submit, focusFirstError(form))} noValidate>
         <Stack gap="lg">
-          {error && <StatusAlert status="error">{t(`errors.${error}`)}</StatusAlert>}
-          <TextInput
-            label={t('common.email')}
-            type="email"
-            inputMode="email"
-            autoComplete="username"
-            key={form.key('email')}
-            {...form.getInputProps('email')}
-            error={formError(form.errors.email)}
-          />
+          <ApiErrorAlert code={error} />
+          <EmailField key={form.key('email')} {...form.getInputProps('email')} error={formError(form.errors.email)} />
           <Button type="submit" fullWidth loading={pending}>
             {t('auth.sendCode')}
           </Button>

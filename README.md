@@ -7,17 +7,17 @@ Live at [segregator.skoftware.pl](https://segregator.skoftware.pl).
 ## Repository
 
 - `web/`: React front end (Vite, Mantine)
-- `api/`: Hono API, the worker that checks uploaded files and the cleanup of abandoned drafts, each deployed as an AWS Lambda function
+- `api/`: Hono API, the worker that checks uploaded files, the cleanup of abandoned drafts and the Cognito trigger that guards sign-up, each deployed as an AWS Lambda function
 - `preprocess/`: Python function that straightens photos of documents with OpenCV, managed with uv
-- `shared/`: Zod schemas and the category list used by both the API and the web app
+- `shared/`: Zod schemas, the category list and the file, auth and table constants used by the API, the web app and the stack
 - `infra/`: AWS CDK app stack and the CodePipeline that deploys it to `dev` and `prod`
 
 ## Local development
 
-The web app runs on Vite and the API runs as a plain Node.js process. There is no local database: users, sessions and data live in the Cognito user pool and DynamoDB table of the deployed `dev-Segregator` stack.
+The web app runs on Vite and the API runs as a plain Node.js process. There is no local database: users, sessions, data and files live in the Cognito user pool, DynamoDB table and S3 bucket of the deployed `dev-Segregator` stack.
 
 ```
-browser → Vite (localhost:5173) ── /api ──▶ Hono on Node.js (127.0.0.1:3000) ──▶ Cognito + DynamoDB (dev stack)
+browser → Vite (localhost:5173) ── /api ──▶ Hono on Node.js (127.0.0.1:3000) ──▶ Cognito + DynamoDB + S3 (dev stack)
 ```
 
 You need Node.js 24, pnpm (the version in `packageManager`), uv (the version `preprocess/pyproject.toml` requires), AWS CLI v2 and access to the AWS account with the dev stack. uv brings its own Python, and `pnpm cdk synth` uses it to bundle the Python function for Linux on arm64 without Docker.

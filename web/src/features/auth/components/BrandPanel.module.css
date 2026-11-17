@@ -31,6 +31,4 @@
 
 .read {
   rotate: 2deg;
-  margin-left: -36px;
-  box-shadow: var(--mantine-shadow-xl);
 }

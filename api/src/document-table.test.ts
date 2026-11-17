@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict'
 import { randomUUID } from 'node:crypto'
 import { test } from 'node:test'
-import type { DocumentFile, DocumentInput } from 'shared'
+import type { DocumentInput } from 'shared'
+import type { CheckResult } from './document-table.ts'
 import { setUpLocalTable } from './local-table.ts'
 
 setUpLocalTable('documents-test')
@@ -91,8 +92,10 @@ test('does not bring back a deleted document', async () => {
   assert.equal(await getDocument(sub, id), undefined)
 })
 
+type CheckedFile = Extract<CheckResult, { status: 'done' }>['file']
+
 // A draft whose file the worker checked, as one message would leave it.
-async function checkedDraft(sub: string, file: DocumentFile = { type: 'image/jpeg', size: 99, pages: 1 }) {
+async function checkedDraft(sub: string, file: CheckedFile = { type: 'image/jpeg', size: 99, pages: 1 }) {
   const { id } = await createDraft(sub)
   await claimDocument(sub, id, 'message')
   await settleDocument(sub, id, 'message', { status: 'done', file })
@@ -121,9 +124,10 @@ test('keeps a draft off the list until its checked file gets fields', async (t) 
 
 test('forgets a draft nobody saved after a day', async (t) => {
   const sub = randomUUID()
-  const { id } = await createDraft(sub)
+  const id = await checkedDraft(sub)
   t.mock.timers.enable({ apis: ['Date'], now: Date.now() + 25 * 60 * 60 * 1000 })
   assert.equal(await getDocument(sub, id), undefined)
+  assert.equal(await updateDocument(sub, id, doc('2026-11-17')), undefined, 'not brought back by a save')
 })
 
 test('lets one message at a time check a file, and the same message again on a retry', async () => {
@@ -132,17 +136,17 @@ test('lets one message at a time check a file, and the same message again on a r
   await markSent(sub, id)
   assert.equal((await getDocument(sub, id))?.status, 'processing', 'sent, before any message')
 
-  assert.equal(await claimDocument(sub, id, 'first'), true)
-  assert.equal(await claimDocument(sub, id, 'duplicate'), false)
-  assert.equal(await claimDocument(sub, id, 'first'), true, 'a retry of the same message')
+  assert.equal(await claimDocument(sub, id, 'first'), 'claimed')
+  assert.equal(await claimDocument(sub, id, 'duplicate'), 'taken')
+  assert.equal(await claimDocument(sub, id, 'first'), 'claimed', 'a retry of the same message')
 
   await settleDocument(sub, id, 'first', { status: 'failed' })
   await markSent(sub, id)
   assert.equal((await getDocument(sub, id))?.status, 'failed', 'a late report from the browser')
-  assert.equal(await claimDocument(sub, id, 'sent again'), true, 'a failed file sent back from the dead-letter queue')
+  assert.equal(await claimDocument(sub, id, 'sent again'), 'claimed', 'a failed file sent back from the dead-letter queue')
   const file = { type: 'application/pdf', size: 1234, pages: 2 } as const
   await settleDocument(sub, id, 'sent again', { status: 'done', file })
-  assert.equal(await claimDocument(sub, id, 'late duplicate'), false)
+  assert.equal(await claimDocument(sub, id, 'late duplicate'), 'taken')
 
   const done = await getDocument(sub, id)
   assert.equal(done?.status, 'done')
@@ -166,8 +170,10 @@ test('keeps the chosen version of a photo that preprocessing changed', async () 
   assert.equal(await chooseVersion(sub, await checkedDraft(sub), 'raw'), undefined, 'a photo left as it was')
 
   const id = await checkedDraft(sub, { type: 'image/jpeg', size: 99, pages: 1, change: 'cut' })
+  assert.equal(await updateDocument(sub, id, doc('2026-11-17')), undefined, 'saved before a version is chosen')
   const chosen = await chooseVersion(sub, id, 'raw')
   assert.deepEqual(chosen?.file, { type: 'image/jpeg', size: 99, pages: 1, change: 'cut', use: 'raw' })
+  assert.equal((await updateDocument(sub, id, doc('2026-11-17')))?.draft, undefined)
 })
 
 test('leaves a document deleted while its file was being checked', async () => {
@@ -178,4 +184,5 @@ test('leaves a document deleted while its file was being checked', async () => {
 
   await settleDocument(sub, id, 'message', { status: 'failed' })
   assert.equal(await getDocument(sub, id), undefined)
+  assert.equal(await claimDocument(sub, id, 'late file'), 'gone')
 })

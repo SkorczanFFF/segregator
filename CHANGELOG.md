@@ -2,6 +2,21 @@
 
 The minor version marks a stage of the build plan and the patch version each step or fix within it, as [Semantic Versioning](https://semver.org/spec/v2.0.0.html) allows before 1.0.0. Each entry starts with the version and its commit message, followed by a description of what changed.
 
+## 0.10.3 - fix: close the gaps found in a review of the whole code
+
+Released 2026-11-17.
+
+- A file that reaches the bucket after its document was deleted, for example a photo still on its way, is deleted too instead of staying behind.
+- The API saves the fields of a changed photo only once a version is chosen, and an expired draft can no longer be saved or changed.
+- A photo whose processing keeps failing or running out of time goes on unchanged on its last try, so its document never waits in processing until the draft expires. A straightened photo that can't be encoded falls back to the original as well.
+- Leaving the new document page during an upload stops it and deletes the draft. The page asks for the draft only while it is in processing, and a passing error no longer unlocks the fields.
+- A saved document opens straight from the list, and a deleted one is no longer shown from memory when going back.
+- Turning or changing a photo waits until the previous turn is ready, so no turn gets lost.
+- When the session ends, for example after signing out everywhere on another device, the app goes back to the entry page instead of showing an error on every screen.
+- The code field is read out with its label and its error, and a wrong code gets the focus like any other field. A screen reader hears whether each password requirement is met, and no longer every percent of an upload.
+- The confirmation screen no longer shows "code sent" beside a failed resend, checks the address before sending a new code, and says how long the code is valid only once. The address fields accept exactly what the API accepts.
+- Behind the scenes, the API may only put, show and delete files, without listing the bucket, and the table is protected from deletion. The sign-in rules, Google's addresses, the table's TTL attribute and key prefix, and the runtimes the pipeline builds with each live in one place for the web app, the API and the stack. Dependabot also updates the Python libraries, and a failing batch of expired drafts is split to find the record at fault.
+
 ## 0.10.2 - feat: approve the processed photo before the fields
 
 Released 2026-11-17.

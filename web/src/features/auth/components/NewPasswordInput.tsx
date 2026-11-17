@@ -1,42 +1,34 @@
-import { Group, List, PasswordInput, Progress, Stack, Text, type PasswordInputProps } from '@mantine/core'
+import { Group, List, Progress, Stack, Text, VisuallyHidden, type PasswordInputProps } from '@mantine/core'
 import { IconCheck, IconCircle, IconX } from '@tabler/icons-react'
-import { useId, type FocusEvent } from 'react'
+import { useId } from 'react'
 import { useTranslation } from 'react-i18next'
 import { PASSWORD_MIN_LENGTH } from 'shared'
-import { passwordChecks, passwordStrength, type PasswordCheck } from '~/features/auth/password.ts'
-import CapsLockNote from '~/shared/components/CapsLockNote.tsx'
-import { useCapsLock } from '~/shared/hooks/useCapsLock.ts'
+import PasswordField from '~/features/auth/components/PasswordField.tsx'
+import { passwordChecks, passwordStrength } from '~/features/auth/password.ts'
 
 const STRENGTH = ['empty', 'short', 'short', 'good', 'strong'] as const
 const METER = ['red', 'orange', 'yellow', 'green'] as const
-const CHECKS: PasswordCheck[] = ['length', 'edges', 'email']
 
 type NewPasswordInputProps = Omit<PasswordInputProps, 'value'> & { value?: string; email: string }
 
 // A new password with a live strength meter and requirements.
 // Requirements get a green tick as they are met; unmet ones turn red only once the field has an error.
-export default function NewPasswordInput({ value = '', email, error, onBlur, ...props }: NewPasswordInputProps) {
+// A screen reader hears whether each one is met.
+export default function NewPasswordInput({ value = '', email, error, ...props }: NewPasswordInputProps) {
   const { t } = useTranslation()
-  const { capsLock, onKeyUp, reset } = useCapsLock()
   const listId = useId()
   const checks = passwordChecks(value, email)
   const strength = passwordStrength(value.length)
 
   return (
     <Stack gap={6}>
-      <PasswordInput
+      <PasswordField
         autoComplete="new-password"
         value={value}
         error={Boolean(error)}
         aria-describedby={listId}
-        onKeyUp={onKeyUp}
-        onBlur={(event: FocusEvent<HTMLInputElement>) => {
-          reset()
-          onBlur?.(event)
-        }}
         {...props}
       />
-      {capsLock && <CapsLockNote />}
       <Group grow gap={4} aria-hidden>
         {[1, 2, 3, 4].map((level) => (
           <Progress key={level} size={4} value={strength >= level ? 100 : 0} color={METER[strength - 1] ?? 'gray'} />
@@ -51,8 +43,7 @@ export default function NewPasswordInput({ value = '', email, error, onBlur, ...
         </Text>
       </Group>
       <List id={listId} listStyleType="none" spacing={4} center>
-        {CHECKS.map((check) => {
-          const met = checks[check]
+        {Object.entries(checks).map(([check, met]) => {
           const failed = !met && Boolean(error) && (check === 'length' || value.length > 0)
           const Icon = met ? IconCheck : failed ? IconX : IconCircle
           const color = met ? 'green' : failed ? 'var(--mantine-color-error)' : 'dimmed'
@@ -66,7 +57,8 @@ export default function NewPasswordInput({ value = '', email, error, onBlur, ...
               }
             >
               <Text span size="sm" c={met ? undefined : color}>
-                {t(`auth.requirements.${check}`, { min: PASSWORD_MIN_LENGTH })}
+                {t(`auth.requirements.${check as keyof typeof checks}`, { min: PASSWORD_MIN_LENGTH })}
+                <VisuallyHidden>{t(met ? 'auth.requirementMet' : 'auth.requirementNotMet')}</VisuallyHidden>
               </Text>
             </List.Item>
           )
