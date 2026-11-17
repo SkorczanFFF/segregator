@@ -101,12 +101,15 @@ export const pl = {
     storage: 'Miejsce na pliki',
     storageUsed: '{{used}} z {{limit}}',
     storageHint: 'Liczą się pliki takie, jak je wysłano. Usunięcie dokumentu zwalnia jego miejsce.',
+    settings: 'Ustawienia',
+    session: 'Sesja',
   },
   app: {
     menu: 'Menu',
     signOut: 'Wyloguj',
     nav: {
       documents: 'Dokumenty',
+      add: 'Dodaj',
       account: 'Konto',
     },
   },

@@ -1,9 +1,6 @@
 import {
-  Affix,
-  Box,
   Button,
   Divider,
-  getDefaultZIndex,
   Group,
   Indicator,
   Paper,
@@ -14,19 +11,19 @@ import {
   Title,
   UnstyledButton,
   VisuallyHidden,
-  type ButtonProps,
 } from '@mantine/core'
 import { IconChevronRight, IconFileText, IconPaperclip, IconPlus } from '@tabler/icons-react'
 import { Fragment } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router'
 import type { Document } from 'shared'
+import decor from '~/app/decor.module.css'
 import classes from '~/features/documents/components/documents.module.css'
 import { CARD_INSET, describeDocument, documentName, TYPE_LOOKS } from '~/features/documents/look.ts'
 import { useDocuments } from '~/features/documents/useDocuments.ts'
 import Page from '~/shared/components/Page.tsx'
 import ApiErrorAlert from '~/shared/components/ApiErrorAlert.tsx'
-import { formatDate, formatDayMonth, formatMoney, formatMonth } from '~/shared/lib/format.ts'
+import { formatDate, formatDayMonth, formatMoney, formatMonthName } from '~/shared/lib/format.ts'
 
 // The list comes newest first, so the documents of one month follow each other.
 function byMonth(items: Document[]) {
@@ -38,15 +35,6 @@ function byMonth(items: Document[]) {
     else months.push({ month, docs: [doc] })
   }
   return months
-}
-
-function AddButton(props: ButtonProps) {
-  const { t } = useTranslation()
-  return (
-    <Button component={Link} to="/documents/new" leftSection={<IconPlus size={18} aria-hidden />} {...props}>
-      {t('documents.add')}
-    </Button>
-  )
 }
 
 function DocumentRow({ doc }: { doc: Document }) {
@@ -107,7 +95,18 @@ export default function DocumentsPage() {
   return (
     <Page
       title={t('documents.title')}
-      actions={<AddButton visibleFrom="sm" />}
+      // On a phone adding a document is in the menu at the bottom.
+      actions={
+        <Button
+          component={Link}
+          to="/documents/new"
+          leftSection={<IconPlus size={18} aria-hidden />}
+          visibleFrom="sm"
+          className={decor.stamp}
+        >
+          {t('documents.add')}
+        </Button>
+      }
     >
       <ApiErrorAlert code={error} />
       {!items && !error && (
@@ -130,11 +129,16 @@ export default function DocumentsPage() {
       )}
       {items &&
         byMonth(items).map(({ month, docs }) => (
-          <Stack key={month} gap="xs">
-            <Title order={2} size="h4" tt="capitalize">
-              {formatMonth(month)}
+          <Stack key={month} gap={0}>
+            <Title order={2} size="h4" className={classes.monthTab}>
+              <Text span inherit tt="capitalize">
+                {formatMonthName(month)}
+              </Text>{' '}
+              <Text span ff="monospace" fz="xs" fw={500} c="dimmed">
+                {month.slice(0, 4)}
+              </Text>
             </Title>
-            <Paper className={classes.card}>
+            <Paper className={`${classes.card} ${classes.underTab}`}>
               {docs.map((doc, index) => (
                 <Fragment key={doc.id}>
                   {index > 0 && <Divider />}
@@ -149,12 +153,6 @@ export default function DocumentsPage() {
           {t('documents.loadMore')}
         </Button>
       )}
-      {/* On a phone the add button floats in the corner, below the app shell so the open menu covers it.
-          The empty box keeps it off the end of the list. */}
-      <Affix hiddenFrom="sm" position={{ bottom: 16, right: 16 }} zIndex={getDefaultZIndex('app') - 1}>
-        <AddButton size="lg" className={classes.fab} />
-      </Affix>
-      <Box h={40} hiddenFrom="sm" />
     </Page>
   )
 }

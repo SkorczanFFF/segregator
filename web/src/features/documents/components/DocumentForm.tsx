@@ -1,4 +1,5 @@
 import {
+  ActionIcon,
   Badge,
   Box,
   Button,
@@ -35,6 +36,7 @@ import {
   type ReadResult,
   type Subtype,
 } from 'shared'
+import decor from '~/app/decor.module.css'
 import AiMark from '~/features/documents/components/AiMark.tsx'
 import classes from '~/features/documents/components/documents.module.css'
 import { CARD_INSET, describeDocument, documentName, dueDateLabel, TYPE_LOOKS } from '~/features/documents/look.ts'
@@ -101,9 +103,6 @@ const toggle = (chosen: boolean, color: MantineColor) =>
     bd: chosen ? `1px solid var(--mantine-color-${color}-outline)` : undefined,
     'aria-pressed': chosen,
   }) as const
-
-// The buttons of the bottom bar fill its height and reach the card's edges.
-const BAR_BUTTON = { radius: 0, h: '100%', px: CARD_INSET } as const
 
 function Section({ title, children }: { title: ReactNode; children: ReactNode }) {
   return (
@@ -216,6 +215,8 @@ export default function DocumentForm({ doc, aside, top, lock, suggestion, onSave
         className={classes.card}
         pos="relative"
         visibleFrom={lock === 'photo' ? 'md' : undefined}
+        // Room for the buttons, which stay at the bottom of a phone's screen.
+        mb={{ base: 72, sm: 0 }}
         aria-label={t('documents.fieldsTitle')}
         onSubmit={form.onSubmit(submit, focusFirstError(form))}
         noValidate
@@ -273,7 +274,7 @@ export default function DocumentForm({ doc, aside, top, lock, suggestion, onSave
           <Stack gap="lg" p={CARD_INSET}>
             <ApiErrorAlert code={error} />
             <Section title={labelOf('type', t('documents.fields.type'))}>
-              <Group gap="xs" role="group" aria-label={t('documents.fields.type')}>
+              <SimpleGrid cols={4} spacing={6} role="group" aria-label={t('documents.fields.type')}>
                 {DOCUMENT_TYPES.map((type) => {
                   const look = TYPE_LOOKS[type]
                   const chosen = type === input.type
@@ -281,15 +282,18 @@ export default function DocumentForm({ doc, aside, top, lock, suggestion, onSave
                     <Button
                       key={type}
                       size="sm"
+                      h={64}
+                      px={4}
                       {...toggle(chosen, look.color)}
-                      leftSection={<look.icon size={18} aria-hidden />}
+                      leftSection={<look.icon size={20} aria-hidden />}
+                      classNames={{ inner: classes.tileInner, section: classes.tileSection, label: classes.tileLabel }}
                       onClick={() => chooseType(type)}
                     >
                       {t(`categories.types.${type}`)}
                     </Button>
                   )
                 })}
-              </Group>
+              </SimpleGrid>
             </Section>
             {subtypes.length > 0 && (
               <Section title={labelOf('subtype', t('documents.fields.subtype'))}>
@@ -384,29 +388,28 @@ export default function DocumentForm({ doc, aside, top, lock, suggestion, onSave
             </Section>
           </Stack>
         </Fieldset>
-        <Divider mt="auto" />
         {/* Above the lock, so Cancel works while the fields wait. */}
-        <Group gap={0} h={56} wrap="nowrap" bg="var(--app-page-bg)" pos="relative" className={classes.overLock}>
+        <Group gap="xs" wrap="nowrap" px={CARD_INSET} className={`${classes.overLock} ${classes.actions}`}>
           {onDelete && (
             <Tooltip label={t('documents.delete')}>
-              <Button
+              <ActionIcon
                 variant="subtle"
                 color="red"
-                {...BAR_BUTTON}
+                size={42}
                 aria-label={t('documents.delete')}
                 disabled={pending}
                 onClick={onDelete}
               >
                 <IconTrash size={20} aria-hidden />
-              </Button>
+              </ActionIcon>
             </Tooltip>
           )}
           {onCancel ? (
-            <Button variant="subtle" color="gray" {...BAR_BUTTON} ml="auto" onClick={onCancel}>
+            <Button variant="subtle" color="gray" ml="auto" onClick={onCancel}>
               {t('documents.cancel')}
             </Button>
           ) : (
-            <Button component={Link} to="/documents" variant="subtle" color="gray" {...BAR_BUTTON} ml="auto">
+            <Button component={Link} to="/documents" variant="subtle" color="gray" ml="auto">
               {t('documents.cancel')}
             </Button>
           )}
@@ -415,9 +418,10 @@ export default function DocumentForm({ doc, aside, top, lock, suggestion, onSave
             type="submit"
             variant="filled"
             color={strong}
-            {...BAR_BUTTON}
+            px="xl"
             loading={pending}
             disabled={locked}
+            className={decor.stamp}
           >
             {t('documents.save')}
           </Button>

@@ -2,6 +2,18 @@
 
 The minor version marks a stage of the build plan and the patch version each step or fix within it, as [Semantic Versioning](https://semver.org/spec/v2.0.0.html) allows before 1.0.0. Each entry starts with the version and its commit message, followed by a description of what changed.
 
+## 0.13.0 - feat: move the phone menu to the bottom and stamp the main actions
+
+Released 2026-11-17.
+
+- On a phone a bar at the bottom of the screen takes the place of the menu button: Documents, Add and Account. Add stands up out of the bar, so the floating add button is gone.
+- On a phone the account page holds the language, the color scheme and signing out of this device.
+- On a wider screen the header holds only the logo. The email and a quiet Sign out sit at the bottom of the side menu, under the language and the color scheme, and the open page in the menu looks like the amount's tag.
+- The main action of a screen (Add document, Send for processing, Read with AI, Save) has a solid offset shadow like the amount's tag, and sinks into it when pressed.
+- Each month in the list is the tab of a binder's divider, joined to the top of its card, with the year beside it.
+- The document types are tiles with the icon over the name, four in a row, so they take two rows.
+- The form's buttons sit in a bar at the bottom of the card. On a phone the bar stays at the bottom of the screen, so saving is always at hand.
+
 ## 0.12.3 - fix: show amounts with two decimals
 
 Released 2026-11-17.

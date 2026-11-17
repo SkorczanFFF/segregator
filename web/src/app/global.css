@@ -1,6 +1,8 @@
-/* How hover and focus changes ease in, here and in the CSS modules. */
+/* How hover and focus changes ease in, here and in the CSS modules. The amount's tag casts a solid shadow this far
+   right and down, and so does everything made to look like it. */
 :root {
   --app-transition: 300ms ease;
+  --app-tag-offset: 3px;
 }
 
 /* Colors only, so reduced motion is respected. */

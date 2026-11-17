@@ -30,8 +30,8 @@ export const formatDay = (isoTime: string) =>
 // The day and month, e.g. 15.11.
 export const formatDayMonth = documentDate({ day: '2-digit', month: '2-digit' })
 
-// A month such as 2026-11, e.g. listopad 2026.
-export const formatMonth = (isoMonth: string) => documentDate({ month: 'long', year: 'numeric' })(`${isoMonth}-01`)
+// The name of a month such as 2026-11, e.g. listopad.
+export const formatMonthName = (isoMonth: string) => documentDate({ month: 'long' })(`${isoMonth}-01`)
 
 const MEGABYTE = 1024 * 1024
 

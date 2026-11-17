@@ -203,12 +203,63 @@
 .price {
   background: var(--mantine-color-body);
   border-color: var(--mantine-color-saffron-filled);
-  box-shadow: 3px 3px 0 var(--mantine-color-brand-filled);
+  box-shadow: var(--app-tag-offset) var(--app-tag-offset) 0 var(--mantine-color-brand-filled);
 }
 
-/* The add button floating over the list on a phone. */
-.fab {
-  box-shadow: var(--mantine-shadow-xl);
+/* A month's heading as the tab of a binder's divider, joined to the top of its card and covering the card's
+   border under it. Its border matches the Paper's. */
+.monthTab {
+  align-self: flex-start;
+  position: relative;
+  z-index: 1;
+  margin-bottom: -1px;
+  padding: 8px var(--mantine-spacing-md) 7px;
+  border: 1px solid var(--mantine-color-gray-3);
+  border-bottom: 0;
+  border-radius: var(--mantine-radius-md) var(--mantine-radius-md) 0 0;
+  background-color: var(--mantine-color-body);
+}
+
+:global([data-mantine-color-scheme='dark']) .monthTab {
+  border-color: var(--mantine-color-dark-4);
+}
+
+.underTab {
+  border-top-left-radius: 0;
+}
+
+/* A type of document as a tile, its icon over its name, so the types take two rows even on a phone. */
+.tileInner {
+  flex-direction: column;
+  gap: 4px;
+}
+
+.tileSection {
+  margin-inline: 0;
+}
+
+.tileLabel {
+  height: auto;
+  font-size: var(--mantine-font-size-xs);
+}
+
+/* The form's buttons, at the bottom of the card. On a phone they stay at the bottom of the screen, so saving
+   is always at hand. */
+.actions {
+  margin-top: auto;
+  padding-block: var(--mantine-spacing-sm);
+  border-top: 1px solid var(--mantine-color-default-border);
+  background-color: var(--app-page-bg);
+}
+
+@media (max-width: 47.99em) {
+  .actions {
+    position: fixed;
+    inset-inline: 0;
+    bottom: 0;
+    z-index: 100;
+    padding-bottom: calc(var(--mantine-spacing-sm) + env(safe-area-inset-bottom));
+  }
 }
 
 .mono {

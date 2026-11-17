@@ -3,6 +3,7 @@ import { IconCheck, IconSparkles } from '@tabler/icons-react'
 import { useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import type { Document, DocumentRead, Draft } from 'shared'
+import decor from '~/app/decor.module.css'
 import { CARD_INSET } from '~/features/documents/look.ts'
 import { isReading, readDocument, useReadUse } from '~/features/documents/useDocuments.ts'
 import ApiErrorAlert from '~/shared/components/ApiErrorAlert.tsx'
@@ -47,6 +48,8 @@ export default function ReadPanel({ doc, outcome }: ReadPanelProps) {
       leftSection={<IconSparkles size={18} aria-hidden />}
       loading={read.pending}
       disabled={Boolean(blocked)}
+      // The reading offered first is the panel's main action.
+      className={variant === 'filled' ? `${decor.stamp} ${decor.stampOnSaffron}` : undefined}
       onClick={() => void read.submit(undefined)}
     >
       {label}

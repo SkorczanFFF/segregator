@@ -11,3 +11,35 @@
   background-image: radial-gradient(var(--dots) 1px, transparent 1px);
   background-size: 20px 20px;
 }
+
+/* A screen's main action, set off like the amount's tag by a solid offset shadow, saffron unless a use sets
+   --stamp. Pressed, it sinks into its shadow; for those who prefer less motion the shadow only goes. */
+.stamp {
+  box-shadow: var(--app-tag-offset) var(--app-tag-offset) 0 var(--stamp, var(--mantine-color-saffron-filled));
+}
+
+/* A loading button is disabled too. */
+.stamp:disabled,
+.stamp[data-disabled],
+.stamp:active {
+  box-shadow: none;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .stamp {
+    transition:
+      background-color var(--app-transition),
+      color var(--app-transition),
+      box-shadow 100ms ease,
+      transform 100ms ease;
+  }
+
+  .stamp:active:not(:disabled, [data-disabled]) {
+    transform: translate(var(--app-tag-offset), var(--app-tag-offset));
+  }
+}
+
+/* On a saffron button the shadow takes the brand color, the amount's tag turned around. */
+.stampOnSaffron {
+  --stamp: var(--mantine-color-brand-filled);
+}

@@ -1,6 +1,6 @@
 {
   "name": "segregator",
-  "version": "0.12.3",
+  "version": "0.13.0",
   "private": true,
   "packageManager": "pnpm@11.28.8",
   "engines": {

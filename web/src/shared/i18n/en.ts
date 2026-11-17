@@ -100,12 +100,15 @@ export const en: Translation = {
     storage: 'Storage for files',
     storageUsed: '{{used}} of {{limit}}',
     storageHint: 'Files count as they were sent. Deleting a document frees its space.',
+    settings: 'Settings',
+    session: 'Session',
   },
   app: {
     menu: 'Menu',
     signOut: 'Sign out',
     nav: {
       documents: 'Documents',
+      add: 'Add',
       account: 'Account',
     },
   },

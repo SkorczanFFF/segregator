@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, Navigate, useNavigate, useSearchParams } from 'react-router'
 import { isPdf, needsChoice, type Document, type DocumentInput } from 'shared'
+import decor from '~/app/decor.module.css'
 import DocumentForm from '~/features/documents/components/DocumentForm.tsx'
 import DocumentSteps from '~/features/documents/components/DocumentSteps.tsx'
 import DraftFile from '~/features/documents/components/DraftFile.tsx'
@@ -166,6 +167,7 @@ export default function NewDocumentPage() {
           <Button
             leftSection={<IconScan size={20} aria-hidden />}
             loading={preparing}
+            className={decor.stamp}
             onClick={() => void send.submit(undefined)}
           >
             {t(kind === 'pdf' ? 'documents.sendPdf' : 'documents.send')}

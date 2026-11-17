@@ -33,8 +33,8 @@ function Labeled({ label, children }: { label: string; children: ReactNode }) {
   )
 }
 
-// Language and color scheme, each picked from all its options. With labels in the menus, without them in a
-// corner of the entry pages.
+// Language and color scheme, each picked from all its options. With labels in the side menu and on a phone's
+// account page, without them in a corner of the entry pages.
 export default function AppControls({ withLabels = false }: { withLabels?: boolean }) {
   const { t, i18n } = useTranslation()
   const { colorScheme, setColorScheme } = useMantineColorScheme()

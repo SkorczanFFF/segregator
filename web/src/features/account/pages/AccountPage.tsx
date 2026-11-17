@@ -1,17 +1,21 @@
-import { Button, Group, Progress, Skeleton, Stack, Text } from '@mantine/core'
+import { Button, Group, Paper, Progress, Skeleton, Stack, Text, Title } from '@mantine/core'
+import { IconLogout } from '@tabler/icons-react'
 import { useTranslation } from 'react-i18next'
 import { STORAGE_LIMIT } from 'shared'
 import { useSession, useSignOut } from '~/features/auth/session.ts'
 import { useStorageUse } from '~/features/documents/useDocuments.ts'
 import ApiErrorAlert from '~/shared/components/ApiErrorAlert.tsx'
+import AppControls from '~/shared/components/AppControls.tsx'
 import Page from '~/shared/components/Page.tsx'
 import { errorCode } from '~/shared/lib/api.ts'
 import { formatFileSize } from '~/shared/lib/format.ts'
 
-// Signing out of this device sits in the header, or the side menu on a phone; here only signing out everywhere.
+// The account, with signing out everywhere. On a phone it also takes the language, the color scheme and
+// signing out of this device, which a wider screen keeps in the side menu.
 export default function AccountPage() {
   const { t } = useTranslation()
   const { user } = useSession()
+  const signOut = useSignOut('/auth/logout')
   const signOutEverywhere = useSignOut('/auth/logout-all')
   const storage = useStorageUse()
 
@@ -45,8 +49,29 @@ export default function AccountPage() {
             {t('account.storageHint')}
           </Text>
         </Stack>
-        <Stack gap={6}>
-          <ApiErrorAlert code={signOutEverywhere.error} />
+        <Stack gap="sm" hiddenFrom="sm">
+          <Title order={2} size="h4">
+            {t('account.settings')}
+          </Title>
+          <Paper p="md">
+            <AppControls withLabels />
+          </Paper>
+        </Stack>
+        <Stack gap="sm">
+          <Title order={2} size="h4">
+            {t('account.session')}
+          </Title>
+          <ApiErrorAlert code={signOut.error ?? signOutEverywhere.error} />
+          <Button
+            variant="default"
+            fullWidth
+            hiddenFrom="sm"
+            leftSection={<IconLogout size={18} aria-hidden />}
+            loading={signOut.pending}
+            onClick={() => void signOut.submit(undefined)}
+          >
+            {t('app.signOut')}
+          </Button>
           <Button
             variant="light"
             color="red"
