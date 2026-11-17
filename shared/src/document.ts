@@ -1,5 +1,5 @@
 import * as z from 'zod'
-import { CATEGORIES, DOCUMENT_TYPES } from './categories.ts'
+import { CATEGORIES, DOCUMENT_TYPES, hasDueDate } from './categories.ts'
 import { FILE_MAX_SIZE, FILE_TYPES, FILE_VERSIONS, type DocumentFile } from './file.ts'
 
 export const TEXT_MAX_LENGTH = 120
@@ -18,10 +18,12 @@ export const DocumentInput = z
     issuer: text,
     amount: z.number().int().min(0).max(AMOUNT_MAX).optional(),
     docDate: z.iso.date(),
+    dueDate: z.iso.date().optional(),
   })
   .refine((doc) => doc.subtype === undefined || (CATEGORIES[doc.type] as readonly string[]).includes(doc.subtype), {
     path: ['subtype'],
   })
+  .refine((doc) => doc.dueDate === undefined || hasDueDate(doc.type), { path: ['dueDate'] })
 
 export type DocumentInput = z.infer<typeof DocumentInput>
 

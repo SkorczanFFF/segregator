@@ -79,6 +79,7 @@ const fieldAttributes = (sub: string, id: string, input: DocumentInput): Record<
   subtype: input.subtype ? { S: input.subtype } : undefined,
   title: input.title ? { S: input.title } : undefined,
   amount: input.amount === undefined ? undefined : { N: String(input.amount) },
+  dueDate: input.dueDate ? { S: input.dueDate } : undefined,
 })
 
 function fromItem(item: Item): Document | Draft {
@@ -109,6 +110,7 @@ function fromItem(item: Item): Document | Draft {
     ...(item.subtype?.S ? { subtype: item.subtype.S } : {}),
     ...(item.title?.S ? { title: item.title.S } : {}),
     ...(item.amount?.N ? { amount: Number(item.amount.N) } : {}),
+    ...(item.dueDate?.S ? { dueDate: item.dueDate.S } : {}),
   }
 }
 

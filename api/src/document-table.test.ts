@@ -86,6 +86,14 @@ test('updates what a person entered and keeps the id and creation time', async (
   assert.equal((await listDocuments(sub))?.items.at(-1)?.id, created.id)
 })
 
+test('keeps a due date for the types that have one', async () => {
+  const sub = randomUUID()
+  const { id } = await createDocument(sub, doc('2026-11-12', { type: 'invoice', dueDate: '2026-11-26' }))
+  assert.equal((await saved(sub, id))?.dueDate, '2026-11-26')
+  await updateDocument(sub, id, doc('2026-11-12', { type: 'invoice' }))
+  assert.equal((await saved(sub, id))?.dueDate, undefined, 'removed when left out')
+})
+
 test('does not bring back a deleted document', async () => {
   const sub = randomUUID()
   const { id } = await createDocument(sub, doc('2026-11-10'))

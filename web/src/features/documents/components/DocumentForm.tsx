@@ -17,7 +17,7 @@ import {
 } from '@mantine/core'
 import { DatePickerInput } from '@mantine/dates'
 import { schemaResolver, useForm } from '@mantine/form'
-import { IconBuildingStore, IconCalendar, IconLock, IconTag, IconTrash } from '@tabler/icons-react'
+import { IconBuildingStore, IconCalendar, IconCalendarDue, IconLock, IconTag, IconTrash } from '@tabler/icons-react'
 import dayjs from 'dayjs'
 import 'dayjs/locale/pl'
 import type { ReactNode } from 'react'
@@ -28,13 +28,14 @@ import {
   CATEGORIES,
   DOCUMENT_TYPES,
   DocumentInput,
+  hasDueDate,
   TEXT_MAX_LENGTH,
   type Document,
   type DocumentType,
   type Subtype,
 } from 'shared'
 import classes from '~/features/documents/components/documents.module.css'
-import { CARD_INSET, describeDocument, documentName, TYPE_LOOKS } from '~/features/documents/look.ts'
+import { CARD_INSET, describeDocument, documentName, dueDateLabel, TYPE_LOOKS } from '~/features/documents/look.ts'
 import ApiErrorAlert from '~/shared/components/ApiErrorAlert.tsx'
 import { useApiSubmit } from '~/shared/hooks/useApiSubmit.ts'
 import { useFormError } from '~/shared/hooks/useFormError.ts'
@@ -48,6 +49,7 @@ type DocumentValues = {
   issuer: string
   amount: number | string
   docDate: string | null
+  dueDate: string | null
 }
 
 const toValues = (doc?: DocumentInput): DocumentValues => ({
@@ -57,9 +59,11 @@ const toValues = (doc?: DocumentInput): DocumentValues => ({
   issuer: doc?.issuer ?? '',
   amount: doc?.amount === undefined ? '' : doc.amount / 100,
   docDate: doc?.docDate ?? dayjs().format('YYYY-MM-DD'),
+  dueDate: doc?.dueDate ?? null,
 })
 
-// Empty fields drop out and the amount turns into grosze.
+// Empty fields drop out and the amount turns into grosze. A due date stays while the type has one, so it
+// comes back when the type is switched there again.
 const toInput = (values: DocumentValues): DocumentInput => ({
   type: values.type,
   subtype: values.subtype ?? undefined,
@@ -67,6 +71,7 @@ const toInput = (values: DocumentValues): DocumentInput => ({
   issuer: values.issuer,
   amount: typeof values.amount === 'number' ? Math.round(values.amount * 100) : undefined,
   docDate: values.docDate ?? '',
+  dueDate: (hasDueDate(values.type) && values.dueDate) || undefined,
 })
 
 const checkInput = schemaResolver(DocumentInput, { sync: true })
@@ -126,6 +131,7 @@ export default function DocumentForm({ doc, aside, locked = false, onSave, onDel
   const name = documentName(input).trim()
   const { icon: TypeIcon, color, strong } = TYPE_LOOKS[input.type]
   const subtypes: readonly Subtype[] = CATEGORIES[input.type]
+  const dueLabel = dueDateLabel(t, input.type)
 
   function chooseType(type: DocumentType) {
     if (type === input.type) return
@@ -249,8 +255,8 @@ export default function DocumentForm({ doc, aside, locked = false, onSave, onDel
                 error={formError(form.errors.title)}
               />
             </Section>
-            <Section title={t('documents.sections.amountDate')}>
-              <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="md">
+            <Section title={t(dueLabel ? 'documents.sections.amountDates' : 'documents.sections.amountDate')}>
+              <SimpleGrid cols={{ base: 1, sm: dueLabel ? 3 : 2 }} spacing="md">
                 <NumberInput
                   label={
                     <>
@@ -282,6 +288,17 @@ export default function DocumentForm({ doc, aside, locked = false, onSave, onDel
                   {...form.getInputProps('docDate')}
                   error={formError(form.errors.docDate)}
                 />
+                {dueLabel && (
+                  <DatePickerInput
+                    label={dueLabel}
+                    leftSection={<IconCalendarDue size={18} aria-hidden />}
+                    locale={i18n.language}
+                    valueFormat="D MMM YYYY"
+                    clearable
+                    {...form.getInputProps('dueDate')}
+                    error={formError(form.errors.dueDate)}
+                  />
+                )}
               </SimpleGrid>
             </Section>
           </Stack>

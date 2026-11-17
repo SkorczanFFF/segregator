@@ -193,7 +193,17 @@ export const pl = {
     sections: {
       who: 'Od kogo i co',
       amountDate: 'Kwota i data',
+      amountDates: 'Kwota i daty',
     },
+    // The label of the due date, by type. A receipt has none.
+    due: {
+      invoice: 'Zapłać do',
+      bill: 'Zapłać do',
+      policy: 'Ważna do',
+      warranty: 'Gwarancja do',
+      contract: 'Obowiązuje do',
+      other: 'Termin',
+    } satisfies Record<Exclude<DocumentType, 'receipt'>, string>,
     steps: {
       file: 'Plik',
       processing: 'Obróbka',
@@ -216,6 +226,7 @@ export const pl = {
       title: 'Nazwa może mieć najwyżej {{maxLength}} znaków.',
       amount: 'Kwota może wynosić najwyżej {{maxAmount}}.',
       docDate: 'Podaj datę z dokumentu.',
+      dueDate: 'Podaj poprawną datę.',
       fileSize: 'Plik może mieć najwyżej {{maxSize}}.',
       fileUnreadable: 'Nie da się otworzyć tego pliku. Wybierz zdjęcie JPEG lub PNG albo PDF bez hasła.',
     },

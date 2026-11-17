@@ -10,7 +10,8 @@ import {
   type Icon,
 } from '@tabler/icons-react'
 import type { TFunction } from 'i18next'
-import type { DocumentInput, DocumentType, Subtype } from 'shared'
+import { hasDueDate, type DocumentInput, type DocumentType, type Subtype } from 'shared'
+import { formatDate } from '~/shared/lib/format.ts'
 
 // Each type has its own icon and color, so documents read at a glance. strong is the shade
 // of a filled button in that color, deep enough for white text at 4.5:1 or more.
@@ -34,15 +35,20 @@ export const PAGE_WIDTH = { fields: 560, withFile: 1100 } as const
 // A document's own name, or its issuer when it has none.
 export const documentName = (doc: Pick<DocumentInput, 'title' | 'issuer'>) => doc.title ?? doc.issuer
 
-// What a document is: its type, subcategory and, when its name is its own, the issuer.
+// The label of a document's due date, which depends on its type, e.g. pay by for an invoice.
+export const dueDateLabel = (t: TFunction, type: DocumentType) =>
+  hasDueDate(type) ? t(`documents.due.${type as Exclude<DocumentType, 'receipt'>}`) : undefined
+
+// What a document is: its type, subcategory, when its name is its own the issuer, and its due date.
 export const describeDocument = (
   t: TFunction,
-  doc: Pick<DocumentInput, 'type' | 'subtype' | 'title' | 'issuer'>,
+  doc: Pick<DocumentInput, 'type' | 'subtype' | 'title' | 'issuer' | 'dueDate'>,
 ) =>
   [
     t(`categories.types.${doc.type}`),
     doc.subtype && t(`categories.subtypes.${doc.subtype as Subtype}`),
     doc.title && doc.issuer,
+    doc.dueDate && `${dueDateLabel(t, doc.type)?.toLocaleLowerCase()} ${formatDate(doc.dueDate)}`,
   ]
     .filter(Boolean)
     .join(' · ')

@@ -17,3 +17,6 @@ export type DocumentType = keyof typeof CATEGORIES
 export type Subtype = (typeof CATEGORIES)[DocumentType][number]
 
 export const DOCUMENT_TYPES = Object.keys(CATEGORIES) as [DocumentType, ...DocumentType[]]
+
+// A receipt has no printed deadline, unlike the rest: pay by, valid until, warranty until or in force until.
+export const hasDueDate = (type: DocumentType) => type !== 'receipt'

@@ -192,6 +192,15 @@ export const en: Translation = {
     sections: {
       who: 'Who and what',
       amountDate: 'Amount and date',
+      amountDates: 'Amount and dates',
+    },
+    due: {
+      invoice: 'Pay by',
+      bill: 'Pay by',
+      policy: 'Valid until',
+      warranty: 'Warranty until',
+      contract: 'In force until',
+      other: 'Due',
     },
     steps: {
       file: 'File',
@@ -215,6 +224,7 @@ export const en: Translation = {
       title: 'The name can have up to {{maxLength}} characters.',
       amount: 'The amount can be at most {{maxAmount}}.',
       docDate: 'Enter the date on the document.',
+      dueDate: 'Enter a valid date.',
       fileSize: 'The file can be at most {{maxSize}}.',
       fileUnreadable: "This file can't be opened. Choose a JPEG or PNG photo, or a PDF without a password.",
     },

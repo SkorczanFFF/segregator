@@ -167,6 +167,18 @@ test('turns away a file the account already has, pointing at its document', asyn
   assert.deepEqual(await again.json(), { error: 'duplicate', id })
 })
 
+test('turns away a due date on a receipt', async () => {
+  const cookie = await signIn()
+  const create = (type: string) =>
+    app.request('/api/documents', {
+      method: 'POST',
+      headers: json(cookie),
+      body: JSON.stringify({ type, issuer: 'Sklep', docDate: '2026-11-12', dueDate: '2026-11-26' }),
+    })
+  assert.equal((await create('receipt')).status, 400)
+  assert.equal((await create('invoice')).status, 201)
+})
+
 test('turns away a file that would not fit in the storage, and tells how much is used', async () => {
   const sub = randomUUID()
   const cookie = await signIn(sub)

@@ -2,6 +2,14 @@
 
 The minor version marks a stage of the build plan and the patch version each step or fix within it, as [Semantic Versioning](https://semver.org/spec/v2.0.0.html) allows before 1.0.0. Each entry starts with the version and its commit message, followed by a description of what changed.
 
+## 0.12.1 - feat: add a due date to documents
+
+Released 2026-11-17.
+
+- A document other than a receipt can keep a due date, named for its type: pay by for an invoice or a bill, valid until for a policy, warranty until for a warranty, in force until for a contract. A receipt has none, since the length of a warranty isn't printed on it.
+- The due date shows in the document's description on the list and on its card.
+- Behind the scenes, the API turns away a due date on a receipt.
+
 ## 0.12.0 - feat: animate the photo while it is processed
 
 Released 2026-11-17.
