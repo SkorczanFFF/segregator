@@ -2,6 +2,12 @@
 
 The minor version marks a stage of the build plan and the patch version each step or fix within it, as [Semantic Versioning](https://semver.org/spec/v2.0.0.html) allows before 1.0.0. Each entry starts with the version and its commit message, followed by a description of what changed.
 
+## 0.12.3 - fix: show amounts with two decimals
+
+Released 2026-11-17.
+
+- The amount field always shows two decimals, e.g. 20,80 instead of 20,8, whether it was typed with a dot or a comma, pasted, read by AI or saved before. It matches the amount on the card.
+
 ## 0.12.2 - feat: read a document's fields with AI
 
 Released 2026-11-17.

@@ -342,6 +342,8 @@ export default function DocumentForm({ doc, aside, top, lock, suggestion, onSave
                   )}
                   description={wasOf('amount')}
                   decimalScale={2}
+                  // Always two decimals, e.g. 20,80, however it was typed: a dot or a comma both separate them.
+                  fixedDecimalScale
                   decimalSeparator={decimalSeparator()}
                   allowNegative={false}
                   hideControls
