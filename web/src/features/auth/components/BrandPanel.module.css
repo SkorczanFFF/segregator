@@ -5,11 +5,13 @@
   overflow: hidden;
 }
 
-/* A large faint binder in the corner, behind the panel's content. */
+/* The logo's spine, large and faint in the corner, behind the panel's content. */
 .watermark {
   composes: watermark from '../../../app/decor.module.css';
-  right: -140px;
-  bottom: -150px;
+  width: 290px;
+  height: 550px;
+  right: -60px;
+  bottom: -170px;
   rotate: -12deg;
   opacity: 0.06;
   color: var(--mantine-color-saffron-5);

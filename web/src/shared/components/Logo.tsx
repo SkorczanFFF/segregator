@@ -1,15 +1,30 @@
-import { Anchor, Group, type MantineColor } from '@mantine/core'
+import { Anchor, type MantineColor } from '@mantine/core'
 import { Link } from 'react-router'
+import classes from '~/shared/components/Logo.module.css'
+import SpineMark from '~/shared/components/SpineMark.tsx'
 import { APP_NAME } from '~/shared/lib/app.ts'
 
-// The binder mark, which is also the favicon, beside the app's name.
-export default function Logo({ to, c }: { to: string; c?: MantineColor }) {
+type LogoProps = {
+  to: string
+  // The name's color, when the ground calls for another than the brand's.
+  c?: MantineColor
+  // On the brand's own ground the mark turns saffron, since purple would sink into it.
+  onBrand?: boolean
+}
+
+// The mark stands on the name's baseline as tall as its capitals, so it reads as the word's first letter.
+export default function Logo({ to, c, onBrand = false }: LogoProps) {
   return (
-    <Anchor component={Link} to={to} ff="heading" fw={600} fz={22} c={c} underline="never" w="fit-content">
-      <Group gap={10} wrap="nowrap">
-        <img src="/logo.svg" width={30} height={30} alt="" />
-        {APP_NAME}
-      </Group>
+    <Anchor component={Link} to={to} ff="heading" fw={650} fz={24} c={c} underline="never" className={classes.logo}>
+      <SpineMark
+        className={classes.mark}
+        colors={
+          onBrand
+            ? { body: 'var(--mantine-color-saffron-5)', label: 'var(--mantine-color-brand-9)' }
+            : { body: 'var(--mantine-primary-color-filled)', label: 'var(--mantine-color-saffron-5)' }
+        }
+      />
+      {APP_NAME}
     </Anchor>
   )
 }

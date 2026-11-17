@@ -1,10 +1,11 @@
 import { ActionIcon, Badge, Box, Group, Image, List, Paper, Popover, Stack, Text, ThemeIcon, Title } from '@mantine/core'
-import { IconAdjustmentsHorizontal, IconFolderFilled, IconSparkles } from '@tabler/icons-react'
+import { IconAdjustmentsHorizontal, IconSparkles } from '@tabler/icons-react'
 import { Trans, useTranslation } from 'react-i18next'
 import classes from '~/features/auth/components/BrandPanel.module.css'
 import sampleReceipt from '~/features/auth/components/sample-receipt.svg'
 import AppControls from '~/shared/components/AppControls.tsx'
 import Logo from '~/shared/components/Logo.tsx'
+import SpineMark from '~/shared/components/SpineMark.tsx'
 import { formatDate, formatMoney } from '~/shared/lib/format.ts'
 
 const STEPS = ['add', 'check', 'remind'] as const
@@ -53,10 +54,10 @@ export default function BrandPanel() {
 
   return (
     <Box component="aside" w="100%" p={{ base: 'lg', sm: 48 }} bg="brand.9" c="brand.0" className={classes.panel}>
-      <IconFolderFilled size={520} className={classes.watermark} aria-hidden />
+      <SpineMark className={classes.watermark} />
       <Stack justify="space-between" gap="xl" h="100%" pos="relative">
         <Group justify="space-between" wrap="nowrap">
-          <Logo to="/" c="brand.2" />
+          <Logo to="/" c="brand.2" onBrand />
           {/* A phone has no room for both controls beside the logo, so one button opens them. */}
           <Popover position="bottom-end" width={260} shadow="md">
             <Popover.Target>

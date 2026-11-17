@@ -3,11 +3,13 @@
   overflow: hidden;
 }
 
-/* A large faint folder in the corner, behind the page. */
+/* The logo's spine, large and faint in the corner, behind the page. */
 .watermark {
   composes: watermark from './decor.module.css';
-  right: -90px;
-  bottom: -110px;
+  width: 232px;
+  height: 440px;
+  right: -40px;
+  bottom: -120px;
   rotate: 12deg;
   opacity: 0.05;
   color: var(--mantine-primary-color-filled);

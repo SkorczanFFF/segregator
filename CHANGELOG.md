@@ -2,6 +2,15 @@
 
 The minor version marks a stage of the build plan and the patch version each step or fix within it, as [Semantic Versioning](https://semver.org/spec/v2.0.0.html) allows before 1.0.0. Each entry starts with the version and its commit message, followed by a description of what changed.
 
+## 0.13.3 - feat: redesign the logo as a binder's spine
+
+Released 2026-11-17.
+
+- The logo's mark is a binder's spine: a saffron label at the top and the round hole for a finger below, cut out so the ground shows through. It stands on the name's baseline as tall as its capitals, so it reads as the word's first letter.
+- The name is in the deep purple of the brand, light on the dark scheme. On the purple panel of the entry pages the mark turns saffron.
+- The browser tab's icon is the same spine, lighter on a dark browser.
+- The large faint folders behind the pages and on the entry pages' panel are the spine now too, in one color with its label and hole cut out.
+
 ## 0.13.2 - fix: refresh the logo and other fixed-name files on deploy
 
 Released 2026-11-17.

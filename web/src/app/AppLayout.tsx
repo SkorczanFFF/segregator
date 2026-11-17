@@ -1,5 +1,5 @@
 import { AppShell, Button, Divider, Group, NavLink, Stack, Text, UnstyledButton } from '@mantine/core'
-import { IconFileText, IconFolder, IconLogout, IconPlus, IconUser } from '@tabler/icons-react'
+import { IconFileText, IconLogout, IconPlus, IconUser } from '@tabler/icons-react'
 import { useTranslation } from 'react-i18next'
 import { Link, Outlet, useLocation } from 'react-router'
 import classes from '~/app/AppLayout.module.css'
@@ -7,6 +7,7 @@ import decor from '~/app/decor.module.css'
 import { useSession, useSignOut } from '~/features/auth/session.ts'
 import AppControls from '~/shared/components/AppControls.tsx'
 import Logo from '~/shared/components/Logo.tsx'
+import SpineMark from '~/shared/components/SpineMark.tsx'
 import ApiErrorAlert from '~/shared/components/ApiErrorAlert.tsx'
 
 const NAV = [
@@ -98,7 +99,7 @@ export default function AppLayout() {
         </AppShell.Section>
       </AppShell.Navbar>
       <AppShell.Main bg="var(--app-page-bg)" className={classes.main}>
-        <IconFolder size={420} stroke={0.6} className={classes.watermark} aria-hidden />
+        <SpineMark className={classes.watermark} />
         <ApiErrorAlert code={signOut.error} mb="lg" />
         <Outlet />
       </AppShell.Main>
