@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import { randomUUID } from 'node:crypto'
 import { test } from 'node:test'
 import { CognitoIdentityProviderClient } from '@aws-sdk/client-cognito-identity-provider'
+import { QueryCommand } from '@aws-sdk/client-dynamodb'
 import { SQSClient } from '@aws-sdk/client-sqs'
 import { SSMClient } from '@aws-sdk/client-ssm'
 import { Hono } from 'hono'
@@ -15,7 +16,8 @@ process.env.APP_URL = 'https://app.example.com'
 
 const { app } = await import('./index.ts')
 const { createSession } = await import('./session.ts')
-const { claimDocument, createDraft, finishRead, settleDocument } = await import('./document-table.ts')
+const { claimDocument, createDraft, finishRead, settleDocument, startRead } = await import('./document-table.ts')
+const { db, TABLE } = await import('./table.ts')
 
 // Starts a session through the real session code and returns the cookie a browser would send back.
 async function signIn(sub = randomUUID()) {
@@ -262,4 +264,48 @@ test('starts a reading of a checked photo within the limits, and shows how many 
   const over = await read()
   assert.equal(over.status, 403)
   assert.deepEqual(await over.json(), { error: 'read_limit' })
+})
+
+test('deletes the account with its documents, files and sessions once its address is typed again', async (t) => {
+  const sub = randomUUID()
+  const cookie = await signIn(sub)
+  const other = await signIn(sub)
+  // A saved photo with its fingerprint, a draft, and a reading counted this month.
+  const saved = await createDraft(sub, randomHash(), 2048)
+  await claimDocument(sub, saved.id, 'message')
+  await settleDocument(sub, saved.id, 'message', { status: 'done', file: { type: 'image/jpeg', size: 2048, pages: 1 } })
+  const fields = { type: 'receipt', issuer: 'Sklep', docDate: '2026-11-17' }
+  await app.request(`/api/documents/${saved.id}`, { method: 'PUT', headers: json(cookie), body: JSON.stringify(fields) })
+  await startRead(sub, saved.id, { account: 5, app: 1_000_000 })
+  const draft = await createDraft(sub, randomHash(), 1024)
+  const photo = { type: 'image/jpeg', bytes: new Uint8Array([1]) }
+  const sent = fakeS3(t, { [`raw/${sub}/${saved.id}`]: photo, [`processed/${sub}/${saved.id}`]: photo, [`raw/${sub}/${draft.id}`]: photo })
+  const cognito: string[] = []
+  t.mock.method(CognitoIdentityProviderClient.prototype, 'send', async (command: { input: { Username?: string } }) => {
+    cognito.push(`${command.constructor.name} ${command.input.Username ?? ''}`.trim())
+    return { Users: [{ Username: 'user-of-the-sub' }] }
+  })
+  const remove = (email: string) =>
+    app.request('/api/account', { method: 'DELETE', headers: json(cookie), body: JSON.stringify({ email }) })
+
+  const wrong = await remove('someone@example.com')
+  assert.equal(wrong.status, 400)
+  assert.deepEqual(await wrong.json(), { error: 'email_mismatch' })
+  assert.deepEqual(sent, [], 'nothing goes before the address matches')
+
+  const deleted = await remove(`  ${sub.toUpperCase()}@EXAMPLE.COM `)
+  assert.equal(deleted.status, 204)
+  assert.match(deleted.headers.get('set-cookie') ?? '', /__Host-session=;/)
+  assert.deepEqual(sent, [
+    `ListObjectsV2Command raw/${sub}/`,
+    `DeleteObjectsCommand raw/${sub}/${saved.id},raw/${sub}/${draft.id}`,
+    `ListObjectsV2Command processed/${sub}/`,
+    `DeleteObjectsCommand processed/${sub}/${saved.id}`,
+  ])
+  assert.deepEqual(cognito, ['ListUsersCommand', 'AdminDeleteUserCommand user-of-the-sub'])
+  const { Count } = await db.send(
+    new QueryCommand({ TableName: TABLE, KeyConditionExpression: 'PK = :pk', ExpressionAttributeValues: { ':pk': { S: `USER#${sub}` } } }),
+  )
+  assert.equal(Count, 0, 'documents, fingerprints and counters are gone')
+  assert.equal((await app.request('/api/auth/me', { headers: { Cookie: other } })).status, 401, 'other devices are signed out')
 })

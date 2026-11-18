@@ -18,6 +18,7 @@ export const en: Translation = {
   entry: {
     title: 'Start organizing your documents',
     lead: 'Create an account, or sign in if you already have one.',
+    accountDeleted: 'The account and all its documents have been deleted.',
     signUpEmail: 'Sign up with email',
   },
   brand: {
@@ -103,6 +104,13 @@ export const en: Translation = {
     readsHint: 'Each Read with AI uses one reading, a failed one too. They renew on the first day of each month.',
     settings: 'Settings',
     session: 'Session',
+    deleteTitle: 'Deleting the account',
+    deleteHint: 'Deletes the account with all its documents and files, and signs out on every device.',
+    deleteOpen: 'Delete account',
+    deleteConfirmTitle: 'Delete the account?',
+    deleteConfirmText: "The account, its documents and files go at once and can't be brought back. Backups keep them for up to {{days}} days, then they go too.",
+    deleteEmailLabel: 'Type the email address of this account to confirm',
+    deleteConfirm: 'Delete the account for good',
   },
   app: {
     menu: 'Menu',
@@ -294,6 +302,7 @@ export const en: Translation = {
     not_found: 'Not found.',
     duplicate: 'This file is already among your documents.',
     read_limit: "This month's AI readings are used up. Enter the fields yourself.",
+    email_mismatch: 'That is not the email address of this account.',
     read_unavailable: 'Reading with AI is unavailable right now. Enter the fields yourself.',
     storage_full: "This file won't fit in the {{storageLimit}} for files. Delete documents you no longer need and try again.",
     internal_error: 'Something went wrong. Try again.',

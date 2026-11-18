@@ -29,6 +29,7 @@ import {
   FILE_VERSIONS,
   GOOGLE_CALLBACK_PATH,
   PASSWORD_MIN_LENGTH,
+  RESTORE_DAYS,
   TTL_ATTRIBUTE,
   type FileVersion,
 } from 'shared'
@@ -104,9 +105,6 @@ const READ_MODEL = 'eu.amazon.nova-2-lite-v1:0'
 // Readings a month, as set on the first deploy. Like the sign-up list, a change in Parameter Store stays until
 // this value changes in the template.
 const READ_LIMITS = { account: 100, app: 2000 }
-// How far back the table can be restored, its longest. Older versions of files stay as long, so a restored
-// document still has its file.
-const RESTORE_DAYS = 35
 // After this long a file is opened rarely, so it moves to a class about a fifth of the price that still opens
 // at once. S3 leaves files under 128 kB where they are, since the class bills each file as at least that.
 const ARCHIVE_AFTER = Duration.days(90)
@@ -334,11 +332,26 @@ export class SegregatorStack extends Stack {
     const allFiles = FILE_VERSIONS.map(files)
 
     table.grantReadWriteData(apiFunction)
-    userPool.grant(apiFunction, 'cognito-idp:DescribeUserPoolClient', 'cognito-idp:AdminGetUser')
+    // Deleting an account finds its user by sub.
+    userPool.grant(
+      apiFunction,
+      'cognito-idp:DescribeUserPoolClient',
+      'cognito-idp:AdminGetUser',
+      'cognito-idp:ListUsers',
+      'cognito-idp:AdminDeleteUser',
+    )
     // Signing an upload needs the right to put the file itself. Every version is shown and deleted.
     apiFunction.addToRolePolicy(new iam.PolicyStatement({ actions: ['s3:PutObject'], resources: [files('raw')] }))
     apiFunction.addToRolePolicy(
       new iam.PolicyStatement({ actions: ['s3:GetObject', 's3:DeleteObject'], resources: allFiles }),
+    )
+    // Deleting an account lists its files, only under the versions' prefixes.
+    apiFunction.addToRolePolicy(
+      new iam.PolicyStatement({
+        actions: ['s3:ListBucket'],
+        resources: [documentsBucket.bucketArn],
+        conditions: { StringLike: { 's3:prefix': FILE_VERSIONS.map((version) => `${version}/*`) } },
+      }),
     )
     documentsKey.grantEncryptDecrypt(apiFunction)
 

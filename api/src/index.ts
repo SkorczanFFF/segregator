@@ -2,6 +2,7 @@ import { Hono } from 'hono'
 import { handle } from '@hono/aws-lambda'
 import { csrf } from 'hono/csrf'
 import { HTTPException } from 'hono/http-exception'
+import { account } from './account.ts'
 import { auth } from './auth.ts'
 import { documents } from './documents.ts'
 import { apiError } from './errors.ts'
@@ -40,6 +41,7 @@ app.get('/health', (c) => c.json({ ok: true }))
 app.route('/auth/google', google)
 app.route('/auth', auth)
 app.route('/documents', documents)
+app.route('/account', account)
 
 // The API answers with error codes; the web app translates them.
 app.notFound((c) => apiError(c, 'not_found', 404))

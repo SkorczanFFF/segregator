@@ -8,6 +8,10 @@ export const isPdf = (type: string) => type === 'application/pdf'
 
 export const FILE_MAX_SIZE = 10 * 1024 * 1024
 
+// How far back the table can be restored, its longest. A deleted or replaced file stays as an older version as
+// long, so a restored document still has its file, and deleted data is gone for good after it.
+export const RESTORE_DAYS = 35
+
 // What one account may keep, counted in files as sent, drafts included. A processed copy doesn't count.
 export const STORAGE_LIMIT = 500 * 1024 * 1024
 

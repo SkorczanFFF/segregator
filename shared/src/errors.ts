@@ -16,6 +16,7 @@ export const ERROR_CODES = [
   'storage_full',
   'read_limit',
   'read_unavailable',
+  'email_mismatch',
   'internal_error',
 ] as const
 

@@ -6,6 +6,7 @@ import { STORAGE_LIMIT } from 'shared'
 import { useSession, useSignOut } from '~/features/auth/session.ts'
 import { useReadUse, useStorageUse } from '~/features/documents/useDocuments.ts'
 import ApiErrorAlert from '~/shared/components/ApiErrorAlert.tsx'
+import DeleteAccount from '~/features/account/components/DeleteAccount.tsx'
 import AppControls from '~/shared/components/AppControls.tsx'
 import Page from '~/shared/components/Page.tsx'
 import { errorCode } from '~/shared/lib/api.ts'
@@ -45,7 +46,7 @@ function Meter({ label, value, percent, error, hint }: MeterProps) {
   )
 }
 
-// The account: the storage and the readings with AI it has left, and signing out everywhere. On a phone it
+// The account: the storage and the readings with AI it has left, signing out everywhere and deleting it. On a phone it
 // also takes the language, the color scheme and signing out of this device, which a wider screen keeps in the
 // side menu.
 export default function AccountPage() {
@@ -113,6 +114,7 @@ export default function AccountPage() {
             {t('account.signOutEverywhereHint')}
           </Text>
         </Stack>
+        <DeleteAccount />
       </Stack>
     </Page>
   )

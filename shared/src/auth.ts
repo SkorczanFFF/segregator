@@ -17,12 +17,15 @@ export const LoginInput = z.object({ email: Email, password: z.string().min(1).m
 export const ConfirmInput = z.object({ email: Email, code: Code })
 export const ForgotInput = z.object({ email: Email })
 export const ResetInput = z.object({ email: Email, code: Code, password: NewPassword })
+// The account's own address, typed again to confirm that it goes for good.
+export const DeleteAccountInput = z.object({ email: Email })
 
 export type RegisterInput = z.infer<typeof RegisterInput>
 export type LoginInput = z.infer<typeof LoginInput>
 export type ConfirmInput = z.infer<typeof ConfirmInput>
 export type ForgotInput = z.infer<typeof ForgotInput>
 export type ResetInput = z.infer<typeof ResetInput>
+export type DeleteAccountInput = z.infer<typeof DeleteAccountInput>
 
 // Google sends the browser back here, and Cognito accepts only addresses listed in the stack.
 export const GOOGLE_CALLBACK_PATH = '/api/auth/google/callback'

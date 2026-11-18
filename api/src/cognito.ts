@@ -1,5 +1,6 @@
 import { createHmac } from 'node:crypto'
 import {
+  AdminDeleteUserCommand,
   AdminGetUserCommand,
   CognitoIdentityProviderClient,
   ConfirmForgotPasswordCommand,
@@ -7,6 +8,7 @@ import {
   DescribeUserPoolClientCommand,
   ForgotPasswordCommand,
   InitiateAuthCommand,
+  ListUsersCommand,
   ResendConfirmationCodeCommand,
   SignUpCommand,
 } from '@aws-sdk/client-cognito-identity-provider'
@@ -168,4 +170,12 @@ export async function findUserSub(email: string) {
   const sub = UserAttributes?.find((attribute) => attribute.Name === 'sub')?.Value
   if (!sub) throw new Error('Cognito user has no sub')
   return sub
+}
+
+// Deletes the user with this sub, found by it, since one made by Google has no username to go by. A sub comes from
+// the session, never from the browser, so it can't change the filter.
+export async function deleteUser(sub: string) {
+  const { Users } = await cognito.send(new ListUsersCommand({ UserPoolId: USER_POOL_ID, Filter: `sub = "${sub}"`, Limit: 1 }))
+  const username = Users?.[0]?.Username
+  if (username) await cognito.send(new AdminDeleteUserCommand({ UserPoolId: USER_POOL_ID, Username: username }))
 }

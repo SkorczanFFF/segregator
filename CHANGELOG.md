@@ -2,6 +2,13 @@
 
 The minor version marks a stage of the build plan and the patch version each step or fix within it, as [Semantic Versioning](https://semver.org/spec/v2.0.0.html) allows before 1.0.0. Each entry starts with the version and its commit message, followed by a description of what changed.
 
+## 0.14.0 - feat: delete an account with all its data
+
+Released 2026-11-18.
+
+- The account page can delete the account for good, once its email address is typed again. Its documents, drafts and files go, and every device is signed out. The entry page then says the account is gone.
+- Backups keep the deleted data for up to 35 days, as the confirmation says, and then it goes too.
+
 ## 0.13.4 - fix: describe what the app does today on the entry pages
 
 Released 2026-11-17.

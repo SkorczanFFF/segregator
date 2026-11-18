@@ -1,4 +1,11 @@
-import { DeleteObjectCommand, GetObjectCommand, HeadObjectCommand, S3Client } from '@aws-sdk/client-s3'
+import {
+  DeleteObjectCommand,
+  DeleteObjectsCommand,
+  GetObjectCommand,
+  HeadObjectCommand,
+  ListObjectsV2Command,
+  S3Client,
+} from '@aws-sdk/client-s3'
 import { createPresignedPost } from '@aws-sdk/s3-presigned-post'
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 import { FILE_CHANGES, FILE_VERSIONS, type FileChange, type FileType, type FileVersion, type Upload } from 'shared'
@@ -54,6 +61,25 @@ export async function readChange(sub: string, id: string): Promise<FileChange | 
 // A short-lived address of one version of the file, for an img tag or a new tab.
 export const fileUrl = (sub: string, id: string, version: FileVersion) =>
   getSignedUrl(s3, new GetObjectCommand({ Bucket: BUCKET, Key: fileKey(sub, id, version) }), { expiresIn: FILE_URL_SECONDS })
+
+// Deletes every file of the account under each version's prefix, files left by a failed upload too. Each stays
+// as an older version until the bucket's lifecycle removes it.
+export async function deleteAccountFiles(sub: string) {
+  for (const version of FILE_VERSIONS) {
+    let token: string | undefined
+    do {
+      const page = await s3.send(
+        new ListObjectsV2Command({ Bucket: BUCKET, Prefix: `${version}/${sub}/`, ContinuationToken: token }),
+      )
+      const files = (page.Contents ?? []).flatMap(({ Key }) => (Key ? [{ Key }] : []))
+      if (files.length > 0) {
+        const { Errors } = await s3.send(new DeleteObjectsCommand({ Bucket: BUCKET, Delete: { Objects: files, Quiet: true } }))
+        if (Errors?.length) throw new Error(`S3 kept ${Errors.length} files of an account being deleted`)
+      }
+      token = page.NextContinuationToken
+    } while (token)
+  }
+}
 
 // Both copies of a document's file, as sent and processed. The bucket keeps each as an older version for a
 // while, as the stack sets. S3 deletes a missing key without error.

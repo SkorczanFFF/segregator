@@ -27,7 +27,7 @@ import {
 } from 'shared'
 import { ulid } from 'ulid'
 import type { ReadLimits } from './read-limits.ts'
-import { DAY, TABLE, db, ifConditionMet, now } from './table.ts'
+import { DAY, TABLE, db, deleteItems, ifConditionMet, now } from './table.ts'
 
 type Item = Record<string, AttributeValue>
 
@@ -483,6 +483,25 @@ export async function storageUsed(sub: string) {
     startKey = page.LastEvaluatedKey
   } while (startKey)
   return used
+}
+
+// Deletes all the account keeps in the table: documents, drafts, file fingerprints and counts of readings.
+// Its sessions are keyed apart.
+export async function deleteAccountItems(sub: string) {
+  let startKey: Item | undefined
+  do {
+    const page = await db.send(
+      new QueryCommand({
+        TableName: TABLE,
+        KeyConditionExpression: 'PK = :pk',
+        ProjectionExpression: 'PK, SK',
+        ExpressionAttributeValues: { ':pk': accountKey(sub) },
+        ExclusiveStartKey: startKey,
+      }),
+    )
+    await deleteItems(page.Items ?? [])
+    startKey = page.LastEvaluatedKey
+  } while (startKey)
 }
 
 // The cursor is the last key of a page. One that points outside the caller's list is rejected.

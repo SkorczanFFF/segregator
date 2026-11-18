@@ -1,18 +1,16 @@
 import { createHash, randomBytes } from 'node:crypto'
 import {
-  BatchWriteItemCommand,
   DeleteItemCommand,
   GetItemCommand,
   PutItemCommand,
   QueryCommand,
   UpdateItemCommand,
   type AttributeValue,
-  type WriteRequest,
 } from '@aws-sdk/client-dynamodb'
 import type { Context } from 'hono'
 import { deleteCookie, getCookie, setCookie } from 'hono/cookie'
 import { TTL_ATTRIBUTE } from 'shared'
-import { DAY, TABLE, db, ifConditionMet, now } from './table.ts'
+import { DAY, TABLE, db, deleteItems, ifConditionMet, now } from './table.ts'
 
 export type Session = { sub: string; email: string }
 export type Env = { Variables: { session: Session } }
@@ -112,15 +110,7 @@ export async function deleteAllSessions(sub: string) {
         ExclusiveStartKey: startKey,
       }),
     )
-    const deletes: WriteRequest[] = (page.Items ?? []).map(({ PK, SK }) => ({ DeleteRequest: { Key: { PK, SK } } }))
-    // BatchWriteItem takes 25 items per call and may hand some back to retry.
-    for (let i = 0; i < deletes.length; i += 25) {
-      let pending: Record<string, WriteRequest[]> = { [TABLE]: deletes.slice(i, i + 25) }
-      while (Object.keys(pending).length > 0) {
-        const { UnprocessedItems } = await db.send(new BatchWriteItemCommand({ RequestItems: pending }))
-        pending = UnprocessedItems ?? {}
-      }
-    }
+    await deleteItems(page.Items ?? [])
     startKey = page.LastEvaluatedKey
   } while (startKey)
 }
