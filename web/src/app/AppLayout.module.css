@@ -8,8 +8,8 @@
   composes: watermark from './decor.module.css';
   width: 232px;
   height: 440px;
-  right: -40px;
-  bottom: -120px;
+  right: -30px;
+  bottom: -30px;
   rotate: 12deg;
   opacity: 0.05;
   color: var(--mantine-primary-color-filled);

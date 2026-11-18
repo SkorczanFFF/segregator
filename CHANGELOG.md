@@ -2,6 +2,14 @@
 
 The minor version marks a stage of the build plan and the patch version each step or fix within it, as [Semantic Versioning](https://semver.org/spec/v2.0.0.html) allows before 1.0.0. Each entry starts with the version and its commit message, followed by a description of what changed.
 
+## 0.14.2 - fix: give the file's buttons room and the version switch the card's width
+
+Released 2026-11-18.
+
+- The switch between the processed version and the original spans the top of the file's card, edge to edge.
+- Use this version and Open file stand further apart under the image.
+- The binder's spine behind the pages sits higher, so more of it shows.
+
 ## 0.14.1 - feat: show what each confirmation applies to
 
 Released 2026-11-18.

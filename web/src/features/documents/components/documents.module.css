@@ -128,6 +128,11 @@
   border-bottom: 1px solid var(--mantine-color-default-border);
 }
 
+/* A switch in the card's top fills it to the card's edges, so it takes no rounding of its own. */
+.top :global(.mantine-SegmentedControl-root) {
+  border-radius: 0;
+}
+
 /* Covers the fields while they wait for the photo: visible, but out of reach. */
 .lock {
   position: absolute;

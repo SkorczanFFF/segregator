@@ -15,7 +15,7 @@ type FilePreviewProps = {
   // The first page as an image. Without it an icon stands in its place.
   image?: string
   pages?: number
-  // Above the image, e.g. a switch between versions of the file. The viewer shows it too.
+  // Above the image, edge to edge across the card's top, e.g. a switch between versions. The viewer shows it too.
   header?: ReactNode
   // In place of the file's format and size, e.g. which version is shown.
   caption?: ReactNode
@@ -46,11 +46,7 @@ export default function FilePreview({ file, image, pages = 1, header, caption, c
   return (
     // Grows to the height of its column, so the image gets the room the fields beside it take.
     <Paper className={classes.card} flex={1}>
-      {header && (
-        <Box p={6} className={classes.top}>
-          {header}
-        </Box>
-      )}
+      {header && <Box className={classes.top}>{header}</Box>}
       <Box className={classes.ground} flex={1}>
         <div className={classes.fit}>
           {image ? (
@@ -99,7 +95,7 @@ export default function FilePreview({ file, image, pages = 1, header, caption, c
             </Text>
           )}
         </Stack>
-        <Group gap={4}>{children}</Group>
+        <Group gap="md">{children}</Group>
       </Group>
       {image && pointer && (
         <div className={classes.loupe} style={{ left: pointer.x, top: pointer.y }} aria-hidden>
