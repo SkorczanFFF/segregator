@@ -59,7 +59,7 @@ const dark: MantineColorsTuple = [
 const typeColors = [...new Set(Object.values(TYPE_LOOKS).map(({ color }) => color))]
 
 // The light variant of the document type colors, used by their tiles, chosen buttons and the card's top:
-// a stronger tint than Mantine's on the dark surface, a pastel on white, and text that keeps WCAG AA on it.
+// a strong tint on the dark surface, a pastel on white, and text that keeps WCAG AA on it.
 const typeTints = (scheme: 'light' | 'dark') =>
   Object.fromEntries(
     typeColors.flatMap((color) => {
@@ -79,10 +79,10 @@ const typeTints = (scheme: 'light' | 'dark') =>
     }),
   )
 
-// Mantine's orange-9 still misses WCAG AA as text on white.
+// Orange text that keeps WCAG AA on white.
 const ORANGE_TEXT = '#a8380a'
 
-// Mantine's default text, border and status colors miss WCAG contrast here, so they get darker shades that pass.
+// Text, border and status colors in shades that keep WCAG contrast on the app's grounds.
 export const cssVariablesResolver: CSSVariablesResolver = (theme) => ({
   variables: {},
   light: {
@@ -112,8 +112,8 @@ export const theme = createTheme({
   primaryColor: 'brand',
   primaryShade: { light: 6, dark: 5 },
   colors: { brand, saffron, dark },
-  // Dark text and icons on light fills such as saffron, white on dark ones. The threshold is below
-  // Mantine's 0.3, so mid fills like blue, pink and gray get dark text, which keeps WCAG AA contrast.
+  // Dark text and icons on light fills such as saffron, white on dark ones. Mid fills such as blue, pink and gray
+  // count as light, so their text keeps WCAG AA contrast.
   autoContrast: true,
   luminanceThreshold: 0.2,
   defaultGradient: { from: 'brand.5', to: 'brand.7', deg: 135 },
@@ -136,7 +136,7 @@ export const theme = createTheme({
       defaultProps: { variant: 'gradient', size: 'md' },
     }),
     DatePickerInput: DatePickerInput.extend({ defaultProps: { size: 'md' } }),
-    // Bright saffron with a dark brown mark in both schemes, since the light scheme's shade 6 turns muddy.
+    // Bright saffron with a dark brown mark in both schemes.
     // Above what it marks, yet under the app shell, so the open menu on a phone covers it.
     Indicator: Indicator.extend({
       defaultProps: { color: 'saffron.5', zIndex: 1 },

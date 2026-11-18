@@ -63,8 +63,7 @@ export default function NewDocumentPage() {
     : processing && kind
       ? { label: t(`documents.busy.${kind}`), scan: true }
       : undefined
-  // The stage the file is at, a failed check included. Each new one starts at the top of the page, since on a
-  // phone the one before leaves it scrolled down to its buttons.
+  // The stage the file is at, a failed check included. Each new one starts at the top of the page.
   const stage = sending ? 'sending' : draft?.status === 'done' ? (ready ? 'fields' : 'choice') : draft?.status
   const shownStage = useRef(stage)
   const reduceMotion = useReducedMotion()
@@ -133,7 +132,6 @@ export default function NewDocumentPage() {
     else await api.post('/documents', input)
     await refreshDocuments(queryClient)
     navigate('/documents')
-    // Otherwise the document would open later as the draft it was.
     if (draftId) queryClient.removeQueries({ queryKey: documentKey(draftId), exact: true })
   }
 

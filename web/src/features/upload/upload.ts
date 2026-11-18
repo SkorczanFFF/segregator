@@ -22,7 +22,7 @@ export async function uploadDraft({ file, hash }: FileToSend, { onCreated, onPro
     onCreated(id)
     await sendFile(file, { url, fields }, onProgress, signal)
   } catch (err) {
-    // Without its file the draft would only wait to expire, so a retry starts clean.
+    // A failed upload deletes its draft, so a retry starts clean.
     await api.delete(`/documents/${id}`).catch(() => undefined)
     throw err
   }

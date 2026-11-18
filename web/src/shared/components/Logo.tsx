@@ -8,11 +8,11 @@ type LogoProps = {
   to: string
   // The name's color, when the ground calls for another than the brand's.
   c?: MantineColor
-  // On the brand's own ground the mark turns saffron, since purple would sink into it.
+  // On the brand's own ground the mark turns saffron.
   onBrand?: boolean
 }
 
-// The mark stands on the name's baseline as tall as its capitals, so it reads as the word's first letter.
+// The brand's mark and name, as one link.
 export default function Logo({ to, c, onBrand = false }: LogoProps) {
   return (
     <Anchor component={Link} to={to} ff="heading" fw={650} fz={24} c={c} underline="never" className={classes.logo}>

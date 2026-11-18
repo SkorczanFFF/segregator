@@ -43,7 +43,7 @@ google.get('/callback', async (c) => {
     console.error(err)
     return backToSignIn(c, 'google_failed')
   }
-  // Cognito keeps a session of its own, which would skip Google on the next sign-in in this browser,
-  // even after signing out of the app. The app has its own session, so Cognito's ends right away.
+  // While Cognito's own session lasts, the next sign-in in this browser skips Google, even after signing out of
+  // the app. The app has its own session, so Cognito's ends right away.
   return c.redirect(cognitoSignOutUrl(AFTER_SIGN_IN))
 })

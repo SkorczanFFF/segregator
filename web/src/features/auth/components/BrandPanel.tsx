@@ -58,7 +58,7 @@ export default function BrandPanel() {
       <Stack justify="space-between" gap="xl" h="100%" pos="relative">
         <Group justify="space-between" wrap="nowrap">
           <Logo to="/" c="brand.2" onBrand />
-          {/* A phone has no room for both controls beside the logo, so one button opens them. */}
+          {/* On a phone one button beside the logo opens both controls. */}
           <Popover position="bottom-end" width={260} shadow="md">
             <Popover.Target>
               <ActionIcon variant="light" color="saffron" hiddenFrom="sm" aria-label={t('common.preferences')}>

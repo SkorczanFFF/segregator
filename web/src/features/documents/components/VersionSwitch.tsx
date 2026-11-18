@@ -2,7 +2,6 @@ import { SegmentedControl } from '@mantine/core'
 import { useTranslation } from 'react-i18next'
 import type { FileVersion } from 'shared'
 
-// The processed copy comes first, since it is the one to check.
 const ORDER: FileVersion[] = ['processed', 'raw']
 
 // Switches the preview between the version after processing and the photo as it was sent.

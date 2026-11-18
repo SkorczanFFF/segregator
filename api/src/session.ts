@@ -48,7 +48,6 @@ export async function createSession(c: Context, session: Session) {
         createdAt: { N: String(createdAt) },
         GSI1PK: userSessions(session.sub),
         GSI1SK: { S: String(createdAt) },
-        // DynamoDB removes expired sessions for free.
         [TTL_ATTRIBUTE]: { N: String(createdAt + IDLE_LIMIT) },
       },
     }),
@@ -70,8 +69,8 @@ export async function readSession(c: Context): Promise<Session | undefined> {
   const time = now()
   if (!sub || !email || !(expiresAt > time)) return undefined
 
-  // Extend the idle limit at most once a day, which saves a write on most requests. A session ended
-  // meanwhile, by signing out or a new password, stays ended.
+  // The idle limit is extended at most once a day. A session ended meanwhile, by signing out or a new password,
+  // stays ended.
   if (expiresAt - time < IDLE_LIMIT - DAY) {
     const extended = Math.min(Number(Item?.createdAt?.N) + ABSOLUTE_LIMIT, time + IDLE_LIMIT)
     const updated = await ifConditionMet(

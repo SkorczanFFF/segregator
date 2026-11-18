@@ -1,6 +1,6 @@
 import { PASSWORD_MIN_LENGTH } from 'shared'
 
-// Length matters more than character types (NIST SP 800-63B). Cognito also rejects spaces at either end.
+// Cognito rejects spaces at either end of a password.
 export function passwordChecks(password: string, email: string) {
   const local = email.trim().split('@')[0].toLowerCase()
   return {

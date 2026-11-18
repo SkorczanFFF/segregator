@@ -10,7 +10,7 @@ export type PreparedFile = {
   // What goes to S3: a photo as a new JPEG, a PDF as it came.
   file: Blob
   // SHA-256 of the file as picked, in hex. Taken before preparing, so the same file is found again whatever
-  // a browser makes of it. The API can't check it, and needn't: it compares only the account's own files.
+  // a browser makes of it. The API takes it as sent and compares it only with the account's own files.
   hash: string
   // The first page as an image. A photo is its own preview.
   preview: Blob
@@ -47,7 +47,7 @@ async function preparePhoto(photo: File, quarterTurns: number): Promise<Omit<Pre
   canvas.height = sideways ? width : height
 
   const context = canvas.getContext('2d')!
-  // JPEG has no transparency, so a PNG gets white behind it instead of black.
+  // JPEG has no transparency, so a PNG gets a white ground.
   context.fillStyle = 'white'
   context.fillRect(0, 0, canvas.width, canvas.height)
   context.translate(canvas.width / 2, canvas.height / 2)

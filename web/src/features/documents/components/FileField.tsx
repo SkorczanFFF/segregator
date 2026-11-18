@@ -47,8 +47,7 @@ type FileError = 'fileSize' | 'fileUnreadable'
 export default function FileField({ onChange, onPreparing, disabled, busy }: FileFieldProps) {
   const { t } = useTranslation()
   const maxSize = formatFileSize(FILE_MAX_SIZE)
-  // On a phone the camera comes first, so picking a file steps back. Read at once, so a computer
-  // doesn't show the phone's variant first.
+  // On a phone the camera comes first, so picking a file steps back.
   const chooseVariant = useMatches({ base: 'default', sm: 'filled' }, { getInitialValueInEffect: false })
   const [source, setSource] = useState<File | null>(null)
   const [turns, setTurns] = useState(0)

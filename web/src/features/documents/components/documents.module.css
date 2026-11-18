@@ -113,7 +113,7 @@
   color: var(--mantine-color-saffron-5);
 }
 
-/* With a mouse the loupe marks the spot, so the cursor would only cover it. */
+/* With a mouse the loupe marks the spot, in place of the cursor. */
 @media (pointer: fine) {
   .image {
     cursor: none;

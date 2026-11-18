@@ -15,7 +15,7 @@
   color: var(--mantine-primary-color-filled);
 }
 
-/* The page open in the side menu looks like the amount's tag. The others keep a clear border, so nothing shifts. */
+/* The page open in the side menu looks like the amount's tag. */
 .link {
   border: 1px solid transparent;
   border-radius: var(--mantine-radius-sm);

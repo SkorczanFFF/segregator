@@ -18,7 +18,6 @@ import { formatDate } from '~/shared/lib/format.ts'
 export const TYPE_LOOKS = {
   receipt: { icon: IconReceipt, color: 'brand', strong: 'brand.7' },
   invoice: { icon: IconFileInvoice, color: 'saffron', strong: 'saffron.8' },
-  // Mantine's darkest green leaves white text at 4.4:1, so a shade deeper.
   warranty: { icon: IconCertificate, color: 'green', strong: '#237032' },
   policy: { icon: IconShieldCheck, color: 'cyan', strong: 'cyan.9' },
   contract: { icon: IconSignature, color: 'pink', strong: 'pink.8' },

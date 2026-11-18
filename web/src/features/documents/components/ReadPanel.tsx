@@ -32,8 +32,7 @@ export default function ReadPanel({ doc, outcome }: ReadPanelProps) {
     confirm.close()
   })
   const reading = isReading(doc)
-  // Why no reading can start, which takes the place of the hint. The API keeps the limits anyway, so the button
-  // needn't wait for the counter.
+  // Why no reading can start, which takes the place of the hint.
   const blocked =
     doc.file?.pages !== 1
       ? t('documents.read.pages')
@@ -75,7 +74,6 @@ export default function ReadPanel({ doc, outcome }: ReadPanelProps) {
             <Text size="sm">{t('documents.read.wait')}</Text>
           </Stack>
         ) : outcome === 'done' ? (
-          // On a phone the button goes under the message, which would otherwise wrap into a narrow column.
           <Flex
             direction={{ base: 'column', sm: 'row' }}
             align={{ base: 'flex-start', sm: 'center' }}

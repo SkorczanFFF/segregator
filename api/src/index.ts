@@ -26,7 +26,7 @@ const PUBLIC_PATHS = new Set([
 ])
 
 // Rejects writes that a page on another site can send without CORS, such as a form post.
-// Browsers mark those with Sec-Fetch-Site; the SameSite=Strict cookie already stops most of them.
+// Browsers mark those with Sec-Fetch-Site.
 app.use(csrf())
 
 app.use(async (c, next) => {

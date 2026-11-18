@@ -109,7 +109,7 @@ def sheets(gray: np.ndarray, patch: np.ndarray, edge: np.ndarray) -> Iterator[Pa
     """Four-sided patches that may be the sheet, with their sides fitted to the edge mask."""
     height, width = gray.shape
     # The core leaves out patches of the background stuck to the sheet, at the cost of blunt corners, which the
-    # edge gives back. A square opens many times faster than a disk.
+    # edge gives back.
     square = cv2.getStructuringElement(cv2.MORPH_RECT, (CORE_SIDE, CORE_SIDE))
     core_mask = cv2.morphologyEx(patch, cv2.MORPH_OPEN, square)
     cores, _ = cv2.findContours(core_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
@@ -205,9 +205,8 @@ def text_lines(gray: np.ndarray) -> list[Line]:
         if max(sides) < 0.08 * width or max(sides) < 4 * min(sides):
             continue
         points = contour.reshape(-1, 2).astype(np.float32)
-        # The lowest point of each column traces the baseline, where letters, digits and dots all sit. Through
-        # the whole shape, tall letters and low dots would tip the line. Descenders hang below the baseline,
-        # so a robust fit leaves them out.
+        # The lowest point of each column traces the baseline, where letters, digits and dots all sit. Descenders
+        # hang below the baseline, so a robust fit leaves them out.
         by_column = points[np.lexsort((-points[:, 1], points[:, 0]))]
         _, lowest = np.unique(by_column[:, 0], return_index=True)
         dx, dy, x, y = cv2.fitLine(by_column[lowest], cv2.DIST_HUBER, 0, 0.01, 0.01).ravel()
@@ -274,8 +273,7 @@ def untilt(image: np.ndarray, tilt: Tilt) -> np.ndarray:
     low, high = corners.min(axis=0), corners.max(axis=0)
     matrix = np.hstack([linear, -low.reshape(2, 1)])
     size = (int(np.ceil(high[0] - low[0])), int(np.ceil(high[1] - low[1])))
-    # The new corners take the colour along the photo's edges, mostly the paper. Stretching the edge pixels
-    # instead would smear any letter that touches the edge across them.
+    # The new corners take the colour along the photo's edges, mostly the paper.
     edges = np.concatenate([image[0], image[-1], image[:, 0], image[:, -1]])
     fill = tuple(int(channel) for channel in np.median(edges, axis=0))
     return cv2.warpAffine(image, matrix, size, flags=cv2.INTER_CUBIC, borderValue=fill)

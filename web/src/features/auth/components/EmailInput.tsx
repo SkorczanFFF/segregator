@@ -5,7 +5,7 @@ const DOMAINS = ['gmail.com', 'wp.pl', 'o2.pl', 'onet.pl', 'interia.pl', 'outloo
 
 type EmailInputProps = Omit<AutocompleteProps, 'data' | 'value'> & { value?: string }
 
-// Suggests common domains as the address is typed, which saves typing and catches typos early.
+// Suggests common domains as the address is typed.
 export default function EmailInput({ value = '', ...props }: EmailInputProps) {
   const [local, domain = ''] = value.trim().split('@')
   const data = local

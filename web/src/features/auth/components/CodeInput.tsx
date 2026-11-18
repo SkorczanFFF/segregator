@@ -5,8 +5,7 @@ import { CODE_LENGTH } from 'shared'
 
 type CodeInputProps = Omit<PinInputProps, 'error'> & { error?: ReactNode }
 
-// The code from the email, one box per digit. A phone can fill it in from the message. Input.Wrapper
-// would give every box the same id, so the label and the error belong to the group of boxes instead.
+// The code from the email, one box per digit. A phone can fill it in from the message.
 export default function CodeInput({ error, ...props }: CodeInputProps) {
   const { t } = useTranslation()
   const id = useId()

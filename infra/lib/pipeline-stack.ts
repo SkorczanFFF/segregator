@@ -19,7 +19,6 @@ class AppStage extends Stage {
 }
 
 // AWS pulls the code through a GitHub app connection, so GitHub holds no AWS credentials.
-// The account's managed SCP blocks IAM identity providers, which rules out GitHub OIDC.
 export class PipelineStack extends Stack {
   constructor(scope: Construct, id: string, props?: StackProps) {
     super(scope, id, props)
@@ -47,7 +46,6 @@ export class PipelineStack extends Stack {
       }),
       cliVersion: version('aws-cdk'),
       cdkAssetsCliVersion: version('cdk-assets'),
-      // Fewer actions per run means fewer billed minutes.
       publishAssetsInParallel: false,
       useChangeSets: false,
       codeBuildDefaults: {

@@ -56,7 +56,7 @@ export default function ConfirmPage() {
 
   const apiError = error ?? resend.error
 
-  // The last digit sends the form, so a code pasted or filled in by the phone needs no extra tap.
+  // The last digit sends the form.
   const completeCode = (code: string) => {
     if (!form.validateField('email').hasError) void submit({ email: form.getValues().email, code })
   }

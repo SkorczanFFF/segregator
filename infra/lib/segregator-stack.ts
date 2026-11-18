@@ -53,8 +53,8 @@ export const runtimeVersion = (runtime: lambda.Runtime) => runtime.name.replace(
 const NODE_FUNCTION = {
   runtime: NODE,
   architecture: lambda.Architecture.ARM_64,
-  // The runtime ships the SDK clients, but not helpers such as s3-presigned-post, so those are bundled.
-  // Their ESM build imports the clients; the CommonJS one would require them, which an ES module can't.
+  // The runtime ships the SDK clients, but not helpers such as s3-presigned-post, so those are bundled from
+  // their ESM build, which imports the clients.
   bundling: {
     format: nodejs.OutputFormat.ESM,
     minify: true,
@@ -105,8 +105,8 @@ const READ_MODEL = 'eu.amazon.nova-2-lite-v1:0'
 // Readings a month, as set on the first deploy. Like the sign-up list, a change in Parameter Store stays until
 // this value changes in the template.
 const READ_LIMITS = { account: 100, app: 2000 }
-// After this long a file is opened rarely, so it moves to a class about a fifth of the price that still opens
-// at once. S3 leaves files under 128 kB where they are, since the class bills each file as at least that.
+// After this long a file moves to the class for files opened rarely, which still opens them at once. S3 leaves
+// files under 128 kB where they are.
 const ARCHIVE_AFTER = Duration.days(90)
 
 // Well above a photo the browser prepares (PHOTO_MAX_SIDE in web/src/features/upload/prepare.ts). The cap
@@ -153,14 +153,12 @@ export class SegregatorStack extends Stack {
     const appUrl = `https://${props.domain}`
     const appUrls = [appUrl, ...(props.localDevelopment ? ['http://localhost:5173'] : [])]
 
-    // Documents are personal data, so they get a key of their own. Rotation is off,
-    // because each of its first two rounds adds 1 USD a month to the key's 1 USD.
+    // Documents are personal data, so they get a key of their own.
     const documentsKey = new kms.Key(this, 'DocumentsKey')
     const documentsBucket = new s3.Bucket(this, 'DocumentsBucket', {
       blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
       enforceSSL: true,
       encryptionKey: documentsKey,
-      // One data key for the bucket instead of a KMS request for every file.
       bucketKeyEnabled: true,
       // The browser posts files here directly, past the API.
       cors: [{ allowedOrigins: appUrls, allowedMethods: [s3.HttpMethods.POST] }],
@@ -199,7 +197,6 @@ export class SegregatorStack extends Stack {
     })
 
     const userPool = new cognito.UserPool(this, 'Users', {
-      // Lite covers password and Google sign-in; Essentials adds passkeys and email MFA.
       featurePlan: cognito.FeaturePlan.LITE,
       selfSignUpEnabled: true,
       signInAliases: { email: true },
@@ -210,7 +207,6 @@ export class SegregatorStack extends Stack {
         emailSubject: 'Segregator: kod weryfikacyjny / verification code',
         emailBody: 'Kod weryfikacyjny / Verification code: {####}',
       },
-      // Length over character classes, as NIST SP 800-63B recommends.
       passwordPolicy: {
         minLength: PASSWORD_MIN_LENGTH,
         requireLowercase: false,
@@ -277,7 +273,6 @@ export class SegregatorStack extends Stack {
       logGroup: monthOfLogs('PreSignUpLogs'),
     })
     signUpAllowlist.grantRead(preSignUpFunction)
-    // A policy of its own: in the function's default policy the pool would end up depending on itself.
     preSignUpFunction.role?.attachInlinePolicy(
       new iam.Policy(this, 'PreSignUpUsers', {
         statements: [
@@ -485,7 +480,7 @@ export class SegregatorStack extends Stack {
         // that fails.
         batchSize: 10,
         bisectBatchOnError: true,
-        // As many tries as a queue gives a message. Without a limit a failing batch would hold up the stream.
+        // As many tries as a queue gives a message.
         retryAttempts: MAX_RECEIVES - 1,
         // A failed batch leaves where its records are in the stream, which keeps them for 24 hours.
         onFailure: new SqsDlq(deadLetterQueue('DraftCleanup')),
@@ -572,8 +567,7 @@ export class SegregatorStack extends Stack {
     })
 
     // index.html and the files from web/public, such as the logo, keep their names on every deploy, so the browser
-    // must revalidate them each time. One wildcard path clears them all from CloudFront; the hashed assets it also
-    // clears are only fetched from the bucket again.
+    // must revalidate them each time.
     const index = new s3deploy.BucketDeployment(this, 'DeployIndex', {
       sources: [s3deploy.Source.asset(WEB_DIST)],
       destinationBucket: bucket,

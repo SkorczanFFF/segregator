@@ -14,8 +14,7 @@
   color: var(--mantine-color-brand-2);
 }
 
-/* As tall as Fraunces' flat capitals such as H, as a flat top should be; round letters such as S overshoot both
-   lines only to look that tall. With a spine's proportions. */
+/* As tall as Fraunces' flat capitals, such as H, with a spine's proportions. */
 .mark {
   flex: none;
   height: 0.7em;

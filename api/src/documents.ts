@@ -64,7 +64,7 @@ documents.post(`${BY_ID}/read`, async (c) => {
   try {
     await queueRead({ sub, id, readId: started.readId })
   } catch (err) {
-    // Without its message the reading would wait for nothing.
+    // A reading that never reached the queue ends as failed.
     await finishRead(sub, id, started.readId)
     throw err
   }

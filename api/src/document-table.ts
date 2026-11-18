@@ -115,7 +115,7 @@ function fromItem(item: Item): Document | Draft {
   }
 }
 
-// A document without a file, done at once. ULIDs need no counter and sort by creation time.
+// A document without a file, done at once.
 export async function createDocument(sub: string, input: DocumentInput) {
   const doc: Document = { ...input, id: ulid(), createdAt: new Date().toISOString(), status: 'done' }
   const fields = Object.entries(fieldAttributes(sub, doc.id, input)).filter(([, value]) => value !== undefined)
@@ -353,8 +353,7 @@ export async function chooseVersion(sub: string, id: string, use: FileVersion) {
 }
 
 // The bytes of every file the account keeps, drafts included from the moment their upload is signed, but not
-// an expired draft. Summed on each upload: an account's items fit in a page or two, which costs less than
-// keeping a counter right.
+// an expired draft.
 export async function storageUsed(sub: string) {
   let used = 0
   let startKey: Item | undefined

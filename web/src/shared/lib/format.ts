@@ -35,7 +35,6 @@ export const formatMonthName = (isoMonth: string) => documentDate({ month: 'long
 
 const MEGABYTE = 1024 * 1024
 
-// Below 1 MB in kB, so a small file doesn't show as 0 MB.
 export const formatFileSize = (bytes: number) =>
   new Intl.NumberFormat(i18n.language, {
     style: 'unit',
