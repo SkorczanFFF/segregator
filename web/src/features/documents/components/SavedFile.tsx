@@ -3,6 +3,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { isPdf, usedVersion, type DocumentFile, type FileVersion } from 'shared'
+import { useSession } from '~/features/auth/session.ts'
 import FilePreview from '~/features/documents/components/FilePreview.tsx'
 import VersionSwitch from '~/features/documents/components/VersionSwitch.tsx'
 import { readingBusy } from '~/features/documents/look.ts'
@@ -16,6 +17,7 @@ export default function SavedFile({ id, file, reading }: { id: string; file: Doc
   const { t } = useTranslation()
   const queryClient = useQueryClient()
   const used = usedVersion(file)
+  const demo = useSession().user?.demo
   const [shown, setShown] = useState<FileVersion>(used)
   const keep = useApiSubmit(() => chooseVersion(queryClient, id, shown))
   const url = fileUrl(id, shown)
@@ -30,7 +32,7 @@ export default function SavedFile({ id, file, reading }: { id: string; file: Doc
         header={file.change && <VersionSwitch value={shown} onChange={setShown} />}
         caption={file.change && t(shown === used ? 'documents.inUse' : 'documents.notInUse')}
       >
-        {file.change && shown !== used && (
+        {file.change && shown !== used && !demo && (
           <Button variant="default" size="compact-md" loading={keep.pending} onClick={() => void keep.submit(undefined)}>
             {t('documents.useThis')}
           </Button>

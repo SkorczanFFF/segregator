@@ -2,6 +2,14 @@
 
 The minor version marks a stage of the build plan and the patch version each step or fix within it, as [Semantic Versioning](https://semver.org/spec/v2.0.0.html) allows before 1.0.0. Each entry starts with the version and its commit message, followed by a description of what changed.
 
+## 0.14.3 - feat: show a read-only demo account
+
+Released 2026-11-18.
+
+- Try the demo on the entry page opens an account of made-up receipts, invoices and other documents, without signing up.
+- The demo shows everything but changes nothing: adding, saving, deleting, reading with AI and the account's own actions are hidden, and the API refuses any change.
+- The header marks the demo and ends it.
+
 ## 0.14.2 - fix: give the file's buttons room and the version switch the card's width
 
 Released 2026-11-18.

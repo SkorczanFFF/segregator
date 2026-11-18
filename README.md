@@ -2,7 +2,7 @@
 
 Segregator takes a photo or PDF of a document, finds the document in the photo, cuts it out and straightens it. On request AI reads its type, issuer, amount and dates, which you check before saving. Documents are kept by type and month, with their due dates. Reminders of deadlines by email come next. Work in progress.
 
-Live at [segregator.skoftware.pl](https://segregator.skoftware.pl).
+Live at [segregator.skoftware.pl](https://segregator.skoftware.pl), with a read-only demo account.
 
 ## Repository
 
@@ -59,6 +59,17 @@ You need Node.js 24, pnpm (the version in `packageManager`), uv (the version `pr
 - Files go straight from the browser to the dev documents bucket, which accepts uploads from `http://localhost:5173`. The dev stack's queues and functions then straighten and check them, so a document added locally shows its status changing like on dev.
 - The session cookie is `__Host-session` with `Secure`. Chrome and Firefox accept it on `http://localhost`.
 - When the dev stack is recreated, its outputs change, so `api/.env` needs the new values.
+
+### Demo documents
+
+The demo account shows the documents `demo/generate.py` draws. This draws them and puts them on dev through the dev stack's own pipeline, in place of whatever the demo account held:
+
+```sh
+uv run --directory demo python generate.py
+pnpm --filter api seed:demo
+```
+
+For prod, run `node --env-file=<file with the prod stack's outputs> src/seed-demo.ts` in `api/`.
 
 ## Tests
 

@@ -32,4 +32,4 @@ export const GOOGLE_CALLBACK_PATH = '/api/auth/google/callback'
 // Where a Google sign-in lands, also listed in the stack as Cognito's sign-out address.
 export const AFTER_SIGN_IN_PATH = '/documents'
 
-export type User = { email: string }
+export type User = { email: string; demo?: boolean }

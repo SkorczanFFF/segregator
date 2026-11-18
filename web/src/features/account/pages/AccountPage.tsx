@@ -62,7 +62,7 @@ export default function AccountPage() {
   return (
     <Page title={t('account.title')} width={480}>
       <Stack gap="xl">
-        <Text>{t('account.signedInAs', { email: user?.email ?? '' })}</Text>
+        <Text>{user?.demo ? t('account.demo') : t('account.signedInAs', { email: user?.email ?? '' })}</Text>
         <Meter
           label={t('account.storage')}
           value={
@@ -88,35 +88,39 @@ export default function AccountPage() {
             <AppControls withLabels />
           </Paper>
         </Stack>
-        <Stack gap="sm">
-          <Title order={2} size="h4">
-            {t('account.session')}
-          </Title>
-          <ApiErrorAlert code={signOut.error ?? signOutEverywhere.error} />
-          <Button
-            variant="default"
-            fullWidth
-            hiddenFrom="sm"
-            leftSection={<IconLogout size={18} aria-hidden />}
-            loading={signOut.pending}
-            onClick={() => void signOut.submit(undefined)}
-          >
-            {t('app.signOut')}
-          </Button>
-          <Button
-            variant="light"
-            color="red"
-            fullWidth
-            loading={signOutEverywhere.pending}
-            onClick={() => void signOutEverywhere.submit(undefined)}
-          >
-            {t('account.signOutEverywhere')}
-          </Button>
-          <Text size="sm" c="dimmed">
-            {t('account.signOutEverywhereHint')}
-          </Text>
-        </Stack>
-        <DeleteAccount />
+        {!user?.demo && (
+          <>
+            <Stack gap="sm">
+              <Title order={2} size="h4">
+                {t('account.session')}
+              </Title>
+              <ApiErrorAlert code={signOut.error ?? signOutEverywhere.error} />
+              <Button
+                variant="default"
+                fullWidth
+                hiddenFrom="sm"
+                leftSection={<IconLogout size={18} aria-hidden />}
+                loading={signOut.pending}
+                onClick={() => void signOut.submit(undefined)}
+              >
+                {t('app.signOut')}
+              </Button>
+              <Button
+                variant="light"
+                color="red"
+                fullWidth
+                loading={signOutEverywhere.pending}
+                onClick={() => void signOutEverywhere.submit(undefined)}
+              >
+                {t('account.signOutEverywhere')}
+              </Button>
+              <Text size="sm" c="dimmed">
+                {t('account.signOutEverywhereHint')}
+              </Text>
+            </Stack>
+            <DeleteAccount />
+          </>
+        )}
       </Stack>
     </Page>
   )

@@ -12,8 +12,11 @@ import { deleteCookie, getCookie, setCookie } from 'hono/cookie'
 import { TTL_ATTRIBUTE } from 'shared'
 import { DAY, TABLE, db, deleteItems, ifConditionMet, now } from './table.ts'
 
-export type Session = { sub: string; email: string }
+export type Session = { sub: string; email: string; demo?: boolean }
 export type Env = { Variables: { session: Session } }
+
+// The made-up account the demo shows. Cognito's subs are UUIDs, so no real account shares its keys.
+export const DEMO: Session = { sub: 'demo', email: 'demo@example.com', demo: true }
 
 const COOKIE = 'session'
 const COOKIE_OPTIONS = { prefix: 'host', httpOnly: true, sameSite: 'Strict' } as const
@@ -48,6 +51,7 @@ export async function createSession(c: Context, session: Session) {
         createdAt: { N: String(createdAt) },
         GSI1PK: userSessions(session.sub),
         GSI1SK: { S: String(createdAt) },
+        ...(session.demo ? { demo: { BOOL: true } } : {}),
         [TTL_ATTRIBUTE]: { N: String(createdAt + IDLE_LIMIT) },
       },
     }),
@@ -87,7 +91,7 @@ export async function readSession(c: Context): Promise<Session | undefined> {
     )
     if (!updated) return undefined
   }
-  return { sub, email }
+  return { sub, email, ...(Item?.demo?.BOOL ? { demo: true } : {}) }
 }
 
 export async function deleteSession(c: Context) {

@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router'
 import type { Document } from 'shared'
 import decor from '~/app/decor.module.css'
+import { useSession } from '~/features/auth/session.ts'
 import DocumentSummary from '~/features/documents/components/DocumentSummary.tsx'
 import classes from '~/features/documents/components/documents.module.css'
 import { CARD_INSET } from '~/features/documents/look.ts'
@@ -46,21 +47,24 @@ function DocumentRow({ doc }: { doc: Document }) {
 export default function DocumentsPage() {
   const { t } = useTranslation()
   const { items, error, hasMore, loadMore, loadingMore } = useDocuments()
+  const { user } = useSession()
 
   return (
     <Page
       title={t('documents.title')}
       // On a phone adding a document is in the menu at the bottom.
       actions={
-        <Button
-          component={Link}
-          to="/documents/new"
-          leftSection={<IconPlus size={18} aria-hidden />}
-          visibleFrom="sm"
-          className={decor.stamp}
-        >
-          {t('documents.add')}
-        </Button>
+        !user?.demo && (
+          <Button
+            component={Link}
+            to="/documents/new"
+            leftSection={<IconPlus size={18} aria-hidden />}
+            visibleFrom="sm"
+            className={decor.stamp}
+          >
+            {t('documents.add')}
+          </Button>
+        )
       }
     >
       <ApiErrorAlert code={error} />

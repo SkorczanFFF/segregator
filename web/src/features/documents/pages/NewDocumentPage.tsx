@@ -7,6 +7,7 @@ import { useTranslation } from 'react-i18next'
 import { Link, Navigate, useNavigate, useSearchParams } from 'react-router'
 import { isPdf, needsChoice, type Document, type DocumentInput } from 'shared'
 import decor from '~/app/decor.module.css'
+import { useSession } from '~/features/auth/session.ts'
 import DocumentForm from '~/features/documents/components/DocumentForm.tsx'
 import DocumentSteps from '~/features/documents/components/DocumentSteps.tsx'
 import DraftFile from '~/features/documents/components/DraftFile.tsx'
@@ -30,6 +31,7 @@ const SLOW_AFTER = 20_000
 // The fields open once the processed photo is approved. A document without a file needs only its fields.
 export default function NewDocumentPage() {
   const { t } = useTranslation()
+  const { user } = useSession()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const [params, setParams] = useSearchParams()
@@ -135,6 +137,7 @@ export default function NewDocumentPage() {
     if (draftId) queryClient.removeQueries({ queryKey: documentKey(draftId), exact: true })
   }
 
+  if (user?.demo) return <Navigate to="/documents" replace />
   // A saved document opens on its own page.
   if (data && !data.draft) return <Navigate to={`/documents/${data.id}`} replace />
 

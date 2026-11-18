@@ -39,6 +39,10 @@
   padding-inline: var(--mantine-spacing-xs);
 }
 
+.bar > :last-child {
+  grid-column: 3;
+}
+
 .tab {
   justify-self: center;
   min-width: 88px;

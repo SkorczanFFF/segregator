@@ -4,6 +4,7 @@
   "type": "module",
   "scripts": {
     "dev": "node --watch --env-file=.env src/dev.ts",
+    "seed:demo": "node --env-file=.env src/seed-demo.ts",
     "build": "tsc",
     "test": "node --test"
   },

@@ -10,7 +10,7 @@ import {
   signUp,
 } from './cognito.ts'
 import { apiError } from './errors.ts'
-import { createSession, deleteAllSessions, deleteSession, type Env } from './session.ts'
+import { createSession, DEMO, deleteAllSessions, deleteSession, type Env, type Session } from './session.ts'
 import { triggerErrorIn } from './trigger-errors.ts'
 import { jsonBody } from './validate.ts'
 
@@ -152,4 +152,11 @@ auth.post('/logout-all', async (c) => {
   return c.body(null, 204)
 })
 
-auth.get('/me', (c) => c.json({ email: c.get('session').email } satisfies User))
+const userOf = ({ email, demo }: Session): User => ({ email, demo })
+
+auth.post('/demo', async (c) => {
+  await createSession(c, DEMO)
+  return c.json(userOf(DEMO))
+})
+
+auth.get('/me', (c) => c.json(userOf(c.get('session'))))

@@ -53,6 +53,31 @@ test('rejects a form post from another site, even with a session cookie', async 
   }
 })
 
+test('lets a demo session read and sign out, but change nothing', async () => {
+  const started = await app.request('/api/auth/demo', { method: 'POST', headers: json('') })
+  const demo = { email: 'demo@example.com', demo: true }
+  assert.deepEqual(await started.json(), demo)
+  const cookie = started.headers.get('set-cookie')?.split(';')[0] ?? ''
+  assert.deepEqual(await (await app.request('/api/auth/me', { headers: { Cookie: cookie } })).json(), demo)
+  assert.equal((await app.request('/api/documents', { headers: { Cookie: cookie } })).status, 200)
+
+  const writes = [
+    ['POST', '/api/documents'],
+    ['PUT', '/api/documents/01J00000000000000000000000'],
+    ['POST', '/api/documents/01J00000000000000000000000/read'],
+    ['DELETE', '/api/account'],
+    ['POST', '/api/auth/logout-all'],
+  ]
+  for (const [method, path] of writes) {
+    const response = await app.request(path, { method, headers: json(cookie), body: '{}' })
+    assert.equal(response.status, 403, `${method} ${path}`)
+    assert.deepEqual(await response.json(), { error: 'demo_read_only' })
+  }
+
+  assert.equal((await app.request('/api/auth/logout', { method: 'POST', headers: json(cookie) })).status, 204)
+  assert.equal((await app.request('/api/auth/me', { headers: { Cookie: cookie } })).status, 401)
+})
+
 test('answers invalid_input to a body that is not valid JSON', async () => {
   const response = await app.request('/api/auth/login', { method: 'POST', headers: json(''), body: '{' })
   assert.equal(response.status, 400)

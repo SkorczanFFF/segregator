@@ -500,8 +500,10 @@ export class SegregatorStack extends Stack {
     const integration = new HttpLambdaIntegration('ApiIntegration', apiFunction)
     const api = new HttpApi(this, 'Api', { defaultIntegration: integration, createDefaultStage: false })
     // Sign-in, sign-up and code requests get a stricter limit of their own against password guessing
-    // and email floods. GET /api/auth/me stays outside it, because every page load calls it.
+    // and email floods. GET /api/auth/me stays outside it, because every page load calls it, and so does
+    // starting the demo, on a route of its own.
     const [authRoute] = api.addRoutes({ path: '/api/auth/{proxy+}', methods: [HttpMethod.POST], integration })
+    api.addRoutes({ path: '/api/auth/demo', methods: [HttpMethod.POST], integration })
     const stage = api.addStage('DefaultStage', {
       stageName: '$default',
       autoDeploy: true,

@@ -11,6 +11,7 @@ export const ERROR_CODES = [
   'too_many_requests',
   'unauthorized',
   'forbidden',
+  'demo_read_only',
   'not_found',
   'duplicate',
   'storage_full',

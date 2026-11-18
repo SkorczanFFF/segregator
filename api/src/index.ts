@@ -21,6 +21,7 @@ const PUBLIC_PATHS = new Set([
   '/api/auth/forgot-password',
   '/api/auth/reset-password',
   '/api/auth/logout',
+  '/api/auth/demo',
   '/api/auth/google',
   '/api/auth/google/callback',
 ])
@@ -33,6 +34,7 @@ app.use(async (c, next) => {
   if (PUBLIC_PATHS.has(c.req.path)) return next()
   const session = await readSession(c)
   if (!session) return apiError(c, 'unauthorized', 401)
+  if (session.demo && c.req.method !== 'GET') return apiError(c, 'demo_read_only', 403)
   c.set('session', session)
   return next()
 })

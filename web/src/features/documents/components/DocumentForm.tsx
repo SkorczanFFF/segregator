@@ -128,7 +128,8 @@ type DocumentFormProps = {
   // A reading's result to fill the fields with, once per reading. Each field it fills is marked until changed;
   // on a saved document only the fields it changes, with the value they had.
   suggestion?: { id: string; result: ReadResult }
-  onSave: (input: DocumentInput) => Promise<void>
+  // Without it the form has no Save button.
+  onSave?: (input: DocumentInput) => Promise<void>
   // With it the bar gets a delete button, which only a saved document has.
   onDelete?: () => void
   // Without it Cancel goes back to the list.
@@ -149,7 +150,7 @@ export default function DocumentForm({ doc, aside, top, lock, suggestion, onSave
     validate: (values) =>
       Object.fromEntries(Object.keys(checkInput(toInput(values))).map((field) => [field, `documents.errors.${field}`])),
   })
-  const { submit, pending, error } = useApiSubmit((values: DocumentValues) => onSave(toInput(values)))
+  const { submit, pending, error } = useApiSubmit(async (values: DocumentValues) => onSave?.(toInput(values)))
   const input = toInput(form.values)
   const name = documentName(input).trim()
   const { icon: TypeIcon, color, strong } = TYPE_LOOKS[input.type]
@@ -414,17 +415,19 @@ export default function DocumentForm({ doc, aside, top, lock, suggestion, onSave
             </Button>
           )}
           {/* Saving takes the color of the chosen type, like the card's top. */}
-          <Button
-            type="submit"
-            variant="filled"
-            color={strong}
-            px="xl"
-            loading={pending}
-            disabled={locked}
-            className={decor.stamp}
-          >
-            {t('documents.save')}
-          </Button>
+          {onSave && (
+            <Button
+              type="submit"
+              variant="filled"
+              color={strong}
+              px="xl"
+              loading={pending}
+              disabled={locked}
+              className={decor.stamp}
+            >
+              {t('documents.save')}
+            </Button>
+          )}
         </Group>
       </Paper>
     </SimpleGrid>

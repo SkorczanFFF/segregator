@@ -21,6 +21,8 @@ export const en: Translation = {
     lead: 'Create an account, or sign in if you already have one.',
     accountDeleted: 'The account and all its documents have been deleted.',
     signUpEmail: 'Sign up with email',
+    demo: 'Try the demo',
+    demoHint: 'Made-up documents, no account needed.',
   },
   brand: {
     headline: 'Every receipt in its place, every deadline <accent>at hand.</accent>',
@@ -95,6 +97,7 @@ export const en: Translation = {
   account: {
     title: 'Your account',
     signedInAs: 'Signed in as {{email}}',
+    demo: "You're looking at a demo account with made-up documents.",
     signOutEverywhere: 'Sign out on all devices',
     signOutEverywhereHint: "Ends the sessions on every device, this one included. Useful after signing in on someone else's computer.",
     storage: 'Storage for files',
@@ -117,6 +120,10 @@ export const en: Translation = {
   app: {
     menu: 'Menu',
     signOut: 'Sign out',
+    demo: 'Demo',
+    demoHint: "View only, changes aren't saved",
+    demoAccount: 'Demo account',
+    demoEnd: 'End demo',
     nav: {
       documents: 'Documents',
       add: 'Add',
@@ -303,6 +310,7 @@ export const en: Translation = {
     too_many_requests: 'Too many attempts. Try again in a moment.',
     unauthorized: 'Your session has expired. Sign in again.',
     forbidden: 'Access denied.',
+    demo_read_only: "The demo can't change anything.",
     not_found: 'Not found.',
     duplicate: 'This file is already among your documents.',
     read_limit: "This month's AI readings are used up. Enter the fields yourself.",

@@ -1,4 +1,4 @@
-import { AppShell, Button, Divider, Group, NavLink, Stack, Text, UnstyledButton } from '@mantine/core'
+import { AppShell, Badge, Button, Divider, Group, NavLink, Stack, Text, UnstyledButton } from '@mantine/core'
 import { IconFileText, IconLogout, IconPlus, IconUser } from '@tabler/icons-react'
 import { useTranslation } from 'react-i18next'
 import { Link, Outlet, useLocation } from 'react-router'
@@ -54,8 +54,26 @@ export default function AppLayout() {
       padding="lg"
     >
       <AppShell.Header>
-        <Group h="100%" px="md">
+        <Group h="100%" px="md" justify="space-between" wrap="nowrap">
           <Logo to="/documents" />
+          {user?.demo && (
+            <Group gap="sm" wrap="nowrap">
+              <Badge color="saffron" radius="sm" size="lg">
+                {t('app.demo')}
+              </Badge>
+              <Text size="sm" c="dimmed" visibleFrom="md">
+                {t('app.demoHint')}
+              </Text>
+              <Button
+                variant="default"
+                size="compact-sm"
+                loading={signOut.pending}
+                onClick={() => void signOut.submit(undefined)}
+              >
+                {t('app.demoEnd')}
+              </Button>
+            </Group>
+          )}
         </Group>
       </AppShell.Header>
       <AppShell.Navbar p="md">
@@ -83,7 +101,7 @@ export default function AppLayout() {
             <Divider />
             <Stack gap="xs">
               <Text size="sm" c="dimmed" truncate>
-                {user?.email}
+                {user?.demo ? t('app.demoAccount') : user?.email}
               </Text>
               <Button
                 variant="default"
@@ -107,15 +125,17 @@ export default function AppLayout() {
         <AppShell.Footer hiddenFrom="sm">
           <nav aria-label={t('app.menu')} className={classes.bar}>
             <Tab {...documents} active={isActive(documents.to)} />
-            <Button
-              component={Link}
-              to="/documents/new"
-              size="lg"
-              leftSection={<IconPlus size={20} aria-hidden />}
-              className={`${decor.stamp} ${classes.add}`}
-            >
-              {t('app.nav.add')}
-            </Button>
+            {!user?.demo && (
+              <Button
+                component={Link}
+                to="/documents/new"
+                size="lg"
+                leftSection={<IconPlus size={20} aria-hidden />}
+                className={`${decor.stamp} ${classes.add}`}
+              >
+                {t('app.nav.add')}
+              </Button>
+            )}
             <Tab {...account} active={isActive(account.to)} />
           </nav>
         </AppShell.Footer>

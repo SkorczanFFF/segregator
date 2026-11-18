@@ -21,6 +21,8 @@ export const pl = {
     title: 'Zacznij porządkować dokumenty',
     lead: 'Załóż konto albo zaloguj się, jeśli już je masz.',
     signUpEmail: 'Załóż konto e-mailem',
+    demo: 'Zobacz demo',
+    demoHint: 'Fikcyjne dokumenty, bez zakładania konta.',
     accountDeleted: 'Konto i wszystkie dokumenty zostały usunięte.',
   },
   brand: {
@@ -96,6 +98,7 @@ export const pl = {
   account: {
     title: 'Twoje konto',
     signedInAs: 'Zalogowano jako {{email}}',
+    demo: 'Przeglądasz konto demo z fikcyjnymi dokumentami.',
     signOutEverywhere: 'Wyloguj ze wszystkich urządzeń',
     signOutEverywhereHint: 'Kończy sesje na wszystkich urządzeniach, także na tym. Przydaje się po zalogowaniu na cudzym komputerze.',
     storage: 'Miejsce na pliki',
@@ -118,6 +121,10 @@ export const pl = {
   app: {
     menu: 'Menu',
     signOut: 'Wyloguj',
+    demo: 'Demo',
+    demoHint: 'Tylko podgląd, zmiany się nie zapisują',
+    demoAccount: 'Konto demo',
+    demoEnd: 'Zakończ demo',
     nav: {
       documents: 'Dokumenty',
       add: 'Dodaj',
@@ -305,6 +312,7 @@ export const pl = {
     too_many_requests: 'Za dużo prób. Spróbuj ponownie za chwilę.',
     unauthorized: 'Sesja wygasła. Zaloguj się ponownie.',
     forbidden: 'Brak dostępu.',
+    demo_read_only: 'W demo nie można niczego zmieniać.',
     not_found: 'Nie znaleziono.',
     duplicate: 'Ten plik już jest w Twoich dokumentach.',
     read_limit: 'Limit odczytów z AI na ten miesiąc jest wykorzystany. Pola wpisz sam.',

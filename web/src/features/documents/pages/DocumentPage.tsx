@@ -4,6 +4,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { Navigate, useNavigate, useParams } from 'react-router'
 import type { Document, DocumentInput } from 'shared'
+import { useSession } from '~/features/auth/session.ts'
 import DocumentForm from '~/features/documents/components/DocumentForm.tsx'
 import DocumentSummary from '~/features/documents/components/DocumentSummary.tsx'
 import ReadPanel from '~/features/documents/components/ReadPanel.tsx'
@@ -24,6 +25,7 @@ export default function DocumentPage() {
   const queryClient = useQueryClient()
   const [confirming, { open, close }] = useDisclosure()
   const { data: doc, error } = useDocument(id)
+  const demo = useSession().user?.demo
   const reading = isReading(doc)
   // Files saved before pages were counted can't be read.
   const readable = doc?.file?.pages !== undefined
@@ -69,11 +71,11 @@ export default function DocumentPage() {
           key={doc.id}
           doc={doc}
           aside={doc.file && <SavedFile id={doc.id} file={doc.file} reading={reading} />}
-          top={readable && <ReadPanel doc={doc} outcome={outcome} />}
+          top={readable && !demo && <ReadPanel doc={doc} outcome={outcome} />}
           lock={reading ? 'reading' : undefined}
           suggestion={suggestion}
-          onSave={save}
-          onDelete={open}
+          onSave={demo ? undefined : save}
+          onDelete={demo ? undefined : open}
         />
       )}
       <ConfirmModal
