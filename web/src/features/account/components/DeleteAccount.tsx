@@ -1,19 +1,23 @@
-import { Button, Group, Modal, Stack, Text, TextInput, Title } from '@mantine/core'
+import { Button, Group, Stack, Text, TextInput, ThemeIcon, Title } from '@mantine/core'
 import { useDisclosure } from '@mantine/hooks'
+import { IconUser } from '@tabler/icons-react'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router'
 import { RESTORE_DAYS } from 'shared'
 import { useSession } from '~/features/auth/session.ts'
-import ApiErrorAlert from '~/shared/components/ApiErrorAlert.tsx'
+import { useStorageUse } from '~/features/documents/useDocuments.ts'
+import ConfirmModal from '~/shared/components/ConfirmModal.tsx'
 import { useApiSubmit } from '~/shared/hooks/useApiSubmit.ts'
 import { api } from '~/shared/lib/api.ts'
+import { formatFileSize } from '~/shared/lib/format.ts'
 
 // Deletes the account for good, once its address is typed again. The entry page then says it is gone.
 export default function DeleteAccount() {
   const { t } = useTranslation()
   const navigate = useNavigate()
   const { user, setUser } = useSession()
+  const storage = useStorageUse()
   const [confirming, { open, close }] = useDisclosure()
   const [typed, setTyped] = useState('')
   const matches = typed.trim().toLowerCase() === user?.email.toLowerCase()
@@ -34,34 +38,45 @@ export default function DeleteAccount() {
       <Button variant="outline" color="red" fullWidth onClick={open}>
         {t('account.deleteOpen')}
       </Button>
-      <Modal opened={confirming} onClose={close} title={t('account.deleteConfirmTitle')} centered>
-        <Stack gap="md">
-          <Text>{t('account.deleteConfirmText', { days: RESTORE_DAYS })}</Text>
-          <TextInput
-            label={t('account.deleteEmailLabel')}
-            value={typed}
-            onChange={(event) => setTyped(event.currentTarget.value)}
-            type="email"
-            autoComplete="off"
-            data-autofocus
-          />
-          <ApiErrorAlert code={remove.error} />
-          <Group justify="flex-end">
-            <Button variant="default" onClick={close}>
-              {t('documents.cancel')}
-            </Button>
-            <Button
-              variant="filled"
-              color="red.9"
-              disabled={!matches}
-              loading={remove.pending}
-              onClick={() => void remove.submit(undefined)}
-            >
-              {t('account.deleteConfirm')}
-            </Button>
+      <ConfirmModal
+        opened={confirming}
+        onClose={() => {
+          close()
+          setTyped('')
+        }}
+        title={t('account.deleteConfirmTitle')}
+        subject={
+          <Group wrap="nowrap" gap="md">
+            <ThemeIcon variant="light" size={44} radius="md">
+              <IconUser size={26} stroke={1.5} aria-hidden />
+            </ThemeIcon>
+            <Stack gap={2} miw={0}>
+              <Text fw={600} truncate>
+                {user?.email}
+              </Text>
+              {storage.data && (
+                <Text size="sm" c="dimmed">
+                  {t('account.deleteFiles', { size: formatFileSize(storage.data.used) })}
+                </Text>
+              )}
+            </Stack>
           </Group>
-        </Stack>
-      </Modal>
+        }
+        confirm={{ label: t('account.deleteConfirm'), color: 'red.9', disabled: !matches }}
+        pending={remove.pending}
+        error={remove.error}
+        onConfirm={() => void remove.submit(undefined)}
+      >
+        <Text>{t('account.deleteConfirmText', { days: RESTORE_DAYS })}</Text>
+        <TextInput
+          label={t('account.deleteEmailLabel')}
+          value={typed}
+          onChange={(event) => setTyped(event.currentTarget.value)}
+          type="email"
+          autoComplete="off"
+          data-autofocus
+        />
+      </ConfirmModal>
     </Stack>
   )
 }

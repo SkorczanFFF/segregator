@@ -1,15 +1,17 @@
-import { Button, Group, Modal, Paper, Skeleton, Stack, Text } from '@mantine/core'
+import { Paper, Skeleton, Text } from '@mantine/core'
 import { useDisclosure } from '@mantine/hooks'
 import { useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { Navigate, useNavigate, useParams } from 'react-router'
 import type { Document, DocumentInput } from 'shared'
 import DocumentForm from '~/features/documents/components/DocumentForm.tsx'
+import DocumentSummary from '~/features/documents/components/DocumentSummary.tsx'
 import ReadPanel from '~/features/documents/components/ReadPanel.tsx'
 import SavedFile from '~/features/documents/components/SavedFile.tsx'
 import { documentName, PAGE_WIDTH } from '~/features/documents/look.ts'
 import { documentKey, isReading, refreshDocuments, useDocument, useReadOutcome } from '~/features/documents/useDocuments.ts'
 import ApiErrorAlert from '~/shared/components/ApiErrorAlert.tsx'
+import ConfirmModal from '~/shared/components/ConfirmModal.tsx'
 import Page from '~/shared/components/Page.tsx'
 import { useApiSubmit } from '~/shared/hooks/useApiSubmit.ts'
 import { api, errorCode } from '~/shared/lib/api.ts'
@@ -74,20 +76,18 @@ export default function DocumentPage() {
           onDelete={open}
         />
       )}
-      <Modal opened={confirming} onClose={close} title={t('documents.deleteTitle')} centered>
-        <Stack gap="md">
-          <Text>{t('documents.deleteText')}</Text>
-          <ApiErrorAlert code={remove.error} />
-          <Group justify="flex-end">
-            <Button variant="default" onClick={close}>
-              {t('documents.cancel')}
-            </Button>
-            <Button variant="filled" color="red.9" loading={remove.pending} onClick={() => void remove.submit(undefined)}>
-              {t('documents.deleteConfirm')}
-            </Button>
-          </Group>
-        </Stack>
-      </Modal>
+      <ConfirmModal
+        opened={confirming}
+        onClose={close}
+        title={t('documents.deleteTitle')}
+        subject={doc && <DocumentSummary doc={doc} />}
+        confirm={{ label: t('documents.deleteConfirm'), color: 'red.9' }}
+        pending={remove.pending}
+        error={remove.error}
+        onConfirm={() => void remove.submit(undefined)}
+      >
+        <Text>{t(doc?.file ? 'documents.deleteTextFile' : 'documents.deleteText')}</Text>
+      </ConfirmModal>
     </Page>
   )
 }

@@ -406,11 +406,11 @@ export default function DocumentForm({ doc, aside, top, lock, suggestion, onSave
           )}
           {onCancel ? (
             <Button variant="subtle" color="gray" ml="auto" onClick={onCancel}>
-              {t('documents.cancel')}
+              {t('common.cancel')}
             </Button>
           ) : (
             <Button component={Link} to="/documents" variant="subtle" color="gray" ml="auto">
-              {t('documents.cancel')}
+              {t('common.cancel')}
             </Button>
           )}
           {/* Saving takes the color of the chosen type, like the card's top. */}

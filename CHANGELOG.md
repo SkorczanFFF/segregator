@@ -2,6 +2,16 @@
 
 The minor version marks a stage of the build plan and the patch version each step or fix within it, as [Semantic Versioning](https://semver.org/spec/v2.0.0.html) allows before 1.0.0. Each entry starts with the version and its commit message, followed by a description of what changed.
 
+## 0.14.1 - feat: show what each confirmation applies to
+
+Released 2026-11-18.
+
+- Deleting a document shows the document first, as in the list: its type, name, issuer, amount and date, and says whether its file goes too.
+- Reading a file again asks first, since another reading uses one up and writes over the fields, corrections included. It shows how many readings are left.
+- Deleting the account shows its address and how much its files take. Closing it clears the address typed so far.
+- Every confirmation has the same layout: what it applies to, what follows, then the buttons.
+- The account page keeps placeholders where the storage and the readings left will show, so nothing jumps when they load.
+
 ## 0.14.0 - feat: delete an account with all its data
 
 Released 2026-11-18.

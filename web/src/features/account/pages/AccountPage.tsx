@@ -27,10 +27,12 @@ function Meter({ label, value, percent, error, hint }: MeterProps) {
     <Stack gap={6}>
       <Group justify="space-between">
         <Text fw={600}>{label}</Text>
-        {value && (
+        {value ? (
           <Text size="sm" ff="monospace">
             {value}
           </Text>
+        ) : (
+          !error && <Skeleton h={14} w={110} />
         )}
       </Group>
       {percent !== undefined ? (

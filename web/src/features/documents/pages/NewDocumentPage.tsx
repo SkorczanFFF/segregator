@@ -195,7 +195,7 @@ export default function NewDocumentPage() {
       {/* On a phone the fields, and their Cancel, stay hidden until the photo is approved. */}
       {(tracked || sending) && locked && (
         <Button variant="default" hiddenFrom="md" onClick={() => void cancel()}>
-          {t('documents.cancel')}
+          {t('common.cancel')}
         </Button>
       )}
     </Stack>

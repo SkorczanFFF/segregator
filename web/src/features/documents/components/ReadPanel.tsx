@@ -1,4 +1,5 @@
 import { Box, Button, Divider, Flex, Group, Loader, Progress, Stack, Text } from '@mantine/core'
+import { useDisclosure } from '@mantine/hooks'
 import { IconCheck, IconSparkles } from '@tabler/icons-react'
 import { useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
@@ -7,6 +8,7 @@ import decor from '~/app/decor.module.css'
 import { CARD_INSET } from '~/features/documents/look.ts'
 import { isReading, readDocument, useReadUse } from '~/features/documents/useDocuments.ts'
 import ApiErrorAlert from '~/shared/components/ApiErrorAlert.tsx'
+import ConfirmModal from '~/shared/components/ConfirmModal.tsx'
 import StatusAlert from '~/shared/components/StatusAlert.tsx'
 import { useApiSubmit } from '~/shared/hooks/useApiSubmit.ts'
 import { errorCode } from '~/shared/lib/api.ts'
@@ -23,7 +25,11 @@ export default function ReadPanel({ doc, outcome }: ReadPanelProps) {
   const { t } = useTranslation()
   const queryClient = useQueryClient()
   const use = useReadUse()
-  const read = useApiSubmit(() => readDocument(queryClient, doc.id))
+  const [confirming, confirm] = useDisclosure()
+  const read = useApiSubmit(async () => {
+    await readDocument(queryClient, doc.id)
+    confirm.close()
+  })
   const reading = isReading(doc)
   // Why no reading can start, which takes the place of the hint. The API keeps the limits anyway, so the button
   // needn't wait for the counter.
@@ -49,7 +55,7 @@ export default function ReadPanel({ doc, outcome }: ReadPanelProps) {
       disabled={Boolean(blocked)}
       // The reading offered first is the panel's main action.
       className={variant === 'filled' ? `${decor.stamp} ${decor.stampOnSaffron}` : undefined}
-      onClick={() => void read.submit(undefined)}
+      onClick={() => (doc.read?.status === 'done' ? confirm.open() : void read.submit(undefined))}
     >
       {label}
     </Button>
@@ -96,6 +102,23 @@ export default function ReadPanel({ doc, outcome }: ReadPanelProps) {
         <ApiErrorAlert code={read.error ?? (use.error ? errorCode(use.error) : undefined)} />
       </Stack>
       <Divider variant="dashed" color="saffron" />
+      <ConfirmModal
+        opened={confirming}
+        onClose={confirm.close}
+        title={t('documents.read.againTitle')}
+        subject={
+          <Group gap="sm" wrap="nowrap">
+            <IconSparkles size={22} color="var(--mantine-color-saffron-filled)" aria-hidden style={{ flex: 'none' }} />
+            <Text size="sm">{use.data ? t('documents.read.left', use.data) : t('documents.read.hint')}</Text>
+          </Group>
+        }
+        confirm={{ label: t('documents.read.again'), color: 'saffron' }}
+        pending={read.pending}
+        error={read.error}
+        onConfirm={() => void read.submit(undefined)}
+      >
+        <Text>{t('documents.read.againText')}</Text>
+      </ConfirmModal>
     </Box>
   )
 }
