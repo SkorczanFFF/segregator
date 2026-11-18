@@ -6,11 +6,12 @@ import { useTranslation } from 'react-i18next'
 import type { Document, DocumentRead, Draft } from 'shared'
 import decor from '~/app/decor.module.css'
 import { CARD_INSET } from '~/features/documents/look.ts'
-import { isReading, readDocument, useReadUse } from '~/features/documents/useDocuments.ts'
+import { isReading, readDocument } from '~/features/documents/useDocuments.ts'
 import ApiErrorAlert from '~/shared/components/ApiErrorAlert.tsx'
 import ConfirmModal from '~/shared/components/ConfirmModal.tsx'
 import StatusAlert from '~/shared/components/StatusAlert.tsx'
 import { useApiSubmit } from '~/shared/hooks/useApiSubmit.ts'
+import { useReadUse } from '~/shared/hooks/useUsage.ts'
 import { errorCode } from '~/shared/lib/api.ts'
 
 type ReadPanelProps = {

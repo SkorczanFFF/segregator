@@ -3,28 +3,26 @@ import { useDisclosure } from '@mantine/hooks'
 import { IconUser } from '@tabler/icons-react'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useNavigate } from 'react-router'
 import { RESTORE_DAYS } from 'shared'
-import { useSession } from '~/features/auth/session.ts'
-import { useStorageUse } from '~/features/documents/useDocuments.ts'
+import { useEndSession, useSession } from '~/features/auth/session.ts'
 import ConfirmModal from '~/shared/components/ConfirmModal.tsx'
 import { useApiSubmit } from '~/shared/hooks/useApiSubmit.ts'
+import { useStorageUse } from '~/shared/hooks/useUsage.ts'
 import { api } from '~/shared/lib/api.ts'
 import { formatFileSize } from '~/shared/lib/format.ts'
 
 // Deletes the account for good, once its address is typed again. The entry page then says it is gone.
 export default function DeleteAccount() {
   const { t } = useTranslation()
-  const navigate = useNavigate()
-  const { user, setUser } = useSession()
+  const { user } = useSession()
+  const endSession = useEndSession()
   const storage = useStorageUse()
   const [confirming, { open, close }] = useDisclosure()
   const [typed, setTyped] = useState('')
   const matches = typed.trim().toLowerCase() === user?.email.toLowerCase()
   const remove = useApiSubmit(async () => {
     await api.delete('/account', { email: typed })
-    setUser(null)
-    navigate('/', { replace: true, state: { accountDeleted: true } })
+    endSession({ accountDeleted: true })
   })
 
   return (

@@ -18,14 +18,25 @@ export function useSession() {
   return value
 }
 
-// Ends this session, or every session of the account, and goes back to the entry page.
-export function useSignOut(path: '/auth/logout' | '/auth/logout-all') {
+// What the entry page says about how the session ended.
+export type EntryState = { accountDeleted?: boolean }
+
+// Forgets the session in the page, once the API has ended it, and goes back to the entry page.
+export function useEndSession() {
   const navigate = useNavigate()
   const { setUser } = useSession()
-  return useApiSubmit(async () => {
-    await api.post(path)
+  return (state?: EntryState) => {
     // Both updates land in one render, so the session gate lets the entry page through.
     setUser(null)
-    navigate('/', { replace: true })
+    navigate('/', { replace: true, state })
+  }
+}
+
+// Ends this session, or every session of the account, and goes back to the entry page.
+export function useSignOut(path: '/auth/logout' | '/auth/logout-all') {
+  const endSession = useEndSession()
+  return useApiSubmit(async () => {
+    await api.post(path)
+    endSession()
   })
 }

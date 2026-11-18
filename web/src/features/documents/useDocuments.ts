@@ -1,13 +1,12 @@
 import { useInfiniteQuery, useQuery, type QueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
-import type { Document, DocumentList, Draft, FileChoice, FileVersion, ReadUse, StorageUse } from 'shared'
+import type { Document, DocumentList, Draft, FileChoice, FileVersion } from 'shared'
+import { readsKey } from '~/shared/hooks/useUsage.ts'
 import { api, API_BASE, errorCode } from '~/shared/lib/api.ts'
 
 const documentsKey = ['documents']
 
 export const documentKey = (id: string) => [...documentsKey, id]
-
-const readsKey = ['reads']
 
 // How often a document whose file is processed or read is asked for again.
 const PENDING_REFRESH = 1000
@@ -46,14 +45,6 @@ export function useDocument(id: string | undefined) {
   })
 }
 
-// The account's readings this month against its limit, with how many are left.
-export const useReadUse = () =>
-  useQuery({
-    queryKey: readsKey,
-    queryFn: () => api.get<ReadUse>('/documents/reads'),
-    select: (use) => ({ ...use, left: Math.max(0, use.limit - use.used) }),
-  })
-
 // How a reading watched from this page ended: one started here, or under way when the page opened. A reading
 // that ended before is left alone, so its result never overwrites fields saved since.
 export function useReadOutcome(doc?: Document | Draft) {
@@ -66,10 +57,6 @@ export function useReadOutcome(doc?: Document | Draft) {
     suggestion: read.status === 'done' && read.result ? { id: read.id, result: read.result } : undefined,
   }
 }
-
-// How much of the account's storage its files take.
-export const useStorageUse = () =>
-  useQuery({ queryKey: ['storage'], queryFn: () => api.get<StorageUse>('/documents/storage') })
 
 // The account's documents, newest first, fetched one page at a time.
 export function useDocuments() {

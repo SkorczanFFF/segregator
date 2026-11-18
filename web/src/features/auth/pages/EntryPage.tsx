@@ -3,12 +3,12 @@ import { useTranslation } from 'react-i18next'
 import { Link, useLocation } from 'react-router'
 import AuthLayout from '~/features/auth/components/AuthLayout.tsx'
 import GoogleButton from '~/features/auth/components/GoogleButton.tsx'
+import type { EntryState } from '~/features/auth/session.ts'
 import StatusAlert from '~/shared/components/StatusAlert.tsx'
 
 export default function EntryPage() {
   const { t } = useTranslation()
-  // Set by the account page after it deleted the account.
-  const accountDeleted = (useLocation().state as { accountDeleted?: boolean } | null)?.accountDeleted
+  const accountDeleted = (useLocation().state as EntryState | null)?.accountDeleted
 
   return (
     <AuthLayout>
