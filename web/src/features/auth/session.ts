@@ -1,4 +1,4 @@
-import { createContext, use } from 'react'
+import { createContext, startTransition, use } from 'react'
 import { useNavigate } from 'react-router'
 import type { User } from 'shared'
 import { useApiSubmit } from '~/shared/hooks/useApiSubmit.ts'
@@ -26,9 +26,12 @@ export function useEndSession() {
   const navigate = useNavigate()
   const { setUser } = useSession()
   return (state?: EntryState) => {
-    // Both updates land in one render, so the session gate lets the entry page through.
-    setUser(null)
-    navigate('/', { replace: true, state })
+    // React Router changes the address in a transition. The session ends in the same one, so the session gate
+    // sees the entry page and no session in one render and lets the page through.
+    startTransition(() => {
+      setUser(null)
+      void navigate('/', { replace: true, state })
+    })
   }
 }
 

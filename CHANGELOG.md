@@ -2,6 +2,12 @@
 
 The minor version marks a stage of the build plan and the patch version each step or fix within it, as [Semantic Versioning](https://semver.org/spec/v2.0.0.html) allows before 1.0.0. Each entry starts with the version and its commit message, followed by a description of what changed.
 
+## 0.14.4 - fix: open the entry page when a session ends
+
+Released 2026-11-18.
+
+- Signing out, ending the demo and deleting the account open the entry page again instead of the sign-in page, so the entry page can say that the account is gone. It says so once, not again after a reload.
+
 ## 0.14.3 - feat: show a read-only demo account
 
 Released 2026-11-18.

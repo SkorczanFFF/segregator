@@ -1,7 +1,8 @@
 import { Button, Divider, Stack, Text, Title } from '@mantine/core'
 import { IconEye } from '@tabler/icons-react'
 import { useTranslation } from 'react-i18next'
-import { Link, useLocation } from 'react-router'
+import { useEffect, useState } from 'react'
+import { Link, useLocation, useNavigate } from 'react-router'
 import type { User } from 'shared'
 import AuthLayout from '~/features/auth/components/AuthLayout.tsx'
 import GoogleButton from '~/features/auth/components/GoogleButton.tsx'
@@ -13,7 +14,13 @@ import { api } from '~/shared/lib/api.ts'
 
 export default function EntryPage() {
   const { t } = useTranslation()
-  const accountDeleted = (useLocation().state as EntryState | null)?.accountDeleted
+  const location = useLocation()
+  const navigate = useNavigate()
+  // The message shows once, then its state leaves the history entry.
+  const [accountDeleted] = useState(() => (location.state as EntryState | null)?.accountDeleted)
+  useEffect(() => {
+    if (location.state) void navigate(location.pathname, { replace: true, state: null })
+  }, [location, navigate])
   const { setUser } = useSession()
   const demo = useApiSubmit(async () => setUser(await api.post<User>('/auth/demo')))
 

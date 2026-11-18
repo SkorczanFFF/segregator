@@ -15,7 +15,7 @@ export default function SessionProvider({ children }: { children: ReactNode }) {
   }
 
   // The session cookie is HttpOnly, so only the API can tell who is signed in. A request it turns away
-  // later signs the app out, and the session gate goes back to the entry page.
+  // later signs the app out, and the session gate goes to the sign-in page.
   useEffect(() => {
     onSessionEnded(() => {
       queryClient.clear()
