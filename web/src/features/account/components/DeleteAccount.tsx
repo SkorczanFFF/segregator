@@ -3,7 +3,7 @@ import { useDisclosure } from '@mantine/hooks'
 import { IconUser } from '@tabler/icons-react'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { RESTORE_DAYS } from 'shared'
+import type { DeleteAccountInput } from 'shared'
 import { useEndSession, useSession } from '~/features/auth/session.ts'
 import ConfirmModal from '~/shared/components/ConfirmModal.tsx'
 import { useApiSubmit } from '~/shared/hooks/useApiSubmit.ts'
@@ -21,7 +21,7 @@ export default function DeleteAccount() {
   const [typed, setTyped] = useState('')
   const matches = typed.trim().toLowerCase() === user?.email.toLowerCase()
   const remove = useApiSubmit(async () => {
-    await api.delete('/account', { email: typed })
+    await api.delete('/account', { email: typed } satisfies DeleteAccountInput)
     endSession({ accountDeleted: true })
   })
 
@@ -65,7 +65,7 @@ export default function DeleteAccount() {
         error={remove.error}
         onConfirm={() => void remove.submit(undefined)}
       >
-        <Text>{t('account.deleteConfirmText', { days: RESTORE_DAYS })}</Text>
+        <Text>{t('account.deleteConfirmText')}</Text>
         <TextInput
           label={t('account.deleteEmailLabel')}
           value={typed}

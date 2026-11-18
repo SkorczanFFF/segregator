@@ -106,14 +106,14 @@ export const pl = {
     storageHint: 'Liczą się pliki takie, jak je wysłano. Usunięcie dokumentu zwalnia jego miejsce.',
     reads: 'Zostało odczytów z AI',
     readsLeft: '{{left}} z {{limit}}',
-    readsHint: 'Każde kliknięcie „Odczytaj z AI” zużywa jeden odczyt, także nieudane. Pula odnawia się pierwszego dnia miesiąca.',
+    readsHint: 'Każde kliknięcie „$t(documents.read.start)” zużywa jeden odczyt, także nieudane. Pula odnawia się pierwszego dnia miesiąca.',
     settings: 'Ustawienia',
     session: 'Sesja',
     deleteTitle: 'Usuwanie konta',
     deleteHint: 'Usuwa konto ze wszystkimi dokumentami i plikami oraz wylogowuje ze wszystkich urządzeń.',
     deleteOpen: 'Usuń konto',
     deleteConfirmTitle: 'Usunąć konto?',
-    deleteConfirmText: 'Konto, dokumenty i pliki znikną od razu i nie da się ich przywrócić. W kopiach zapasowych zostają jeszcze do {{days}} dni, potem znikają same.',
+    deleteConfirmText: 'Konto, dokumenty i pliki znikną od razu i nie da się ich przywrócić. W kopiach zapasowych zostają jeszcze do {{restoreDays}} dni, potem znikają same.',
     deleteEmailLabel: 'Wpisz adres e-mail tego konta, żeby potwierdzić',
     deleteConfirm: 'Usuń konto na zawsze',
     deleteFiles: '{{size}} w plikach',
@@ -169,7 +169,7 @@ export const pl = {
       start: 'Odczytaj z AI',
       again: 'Odczytaj ponownie',
       againTitle: 'Odczytać ponownie?',
-      againText: 'Ten plik był już odczytany. Nowy odczyt zużyje jeden z pozostałych i wpisze do pól to, co odczyta model, także w miejsce Twoich poprawek. Zmienione pola dostaną znaczek „z AI”.',
+      againText: 'Ten plik był już odczytany. Nowy odczyt zużyje jeden z pozostałych i wpisze do pól to, co odczyta model, także w miejsce Twoich poprawek. Zmienione pola dostaną znaczek „$t(documents.read.mark)”.',
       retry: 'Spróbuj ponownie',
       reading: 'Odczytuję…',
       hint: 'Wypełni pola na podstawie zatwierdzonego pliku. Sprawdzisz je przed zapisem.',
@@ -299,6 +299,94 @@ export const pl = {
       water: 'Woda',
       other: 'Inne',
     } satisfies Record<Subtype, string>,
+  },
+  privacy: {
+    title: 'Polityka prywatności',
+    inForce: 'Obowiązuje od {{date}}.',
+    lead: 'Segregator to niekomercyjny projekt, który trzyma paragony, faktury i inne dokumenty w jednym miejscu. Tu jest opisane, jakie dane przetwarza, po co, gdzie i jak długo oraz jakie prawa Ci przysługują.',
+    sections: [
+      {
+        title: 'Administrator danych',
+        text: ['Administratorem Twoich danych osobowych jest {{name}}. W sprawach danych osobowych napisz na adres {{email}}.'],
+      },
+      {
+        title: 'Jakie dane są przetwarzane',
+        list: [
+          'Adres e-mail i hasło, gdy zakładasz konto e-mailem. Hasło przechowuje usługa Amazon Cognito w postaci, z której nie da się go odczytać. Segregator go nie zapisuje.',
+          'Adres e-mail i identyfikator konta Google, gdy logujesz się przez Google. Hasło do Google zostaje w Google.',
+          'Dokumenty, które dodajesz: zdjęcia i pliki PDF, ich wersje po obróbce oraz pola, które wpisujesz albo zatwierdzasz, np. wystawca, kwota i daty.',
+          'Dane potrzebne do działania usługi: sesja logowania, liczba odczytów z AI w miesiącu i miejsce zajęte przez pliki.',
+          'Logi błędów serwera. Nie zawierają treści dokumentów.',
+        ],
+      },
+      {
+        title: 'Cel i podstawa prawna',
+        list: [
+          'Prowadzenie konta i przechowywanie dokumentów, o które prosisz, zakładając konto. Podstawą jest umowa o świadczenie usługi (art. 6 ust. 1 lit. b RODO).',
+          'Ochrona usługi przed nadużyciami, np. limity prób logowania, i szukanie przyczyn błędów w logach. Podstawą jest prawnie uzasadniony interes administratora (art. 6 ust. 1 lit. f RODO).',
+          'Podanie danych jest dobrowolne, ale bez adresu e-mail nie da się założyć konta.',
+        ],
+      },
+      {
+        title: 'Odczyt przez AI',
+        text: [
+          'Plik trafia do modelu AI tylko wtedy, gdy klikniesz „$t(documents.read.start)”. Odczytuje go model Amazon Nova w usłudze Amazon Bedrock, w regionach Unii Europejskiej. Amazon Bedrock nie zapisuje treści zapytań i odpowiedzi ani nie uczy na nich modeli.',
+          'Model tylko podpowiada pola. Każde z nich sprawdzasz i zapisujesz sam, więc nie zapadają wobec Ciebie zautomatyzowane decyzje.',
+        ],
+      },
+      {
+        title: 'Kto jeszcze przetwarza dane',
+        list: [
+          'Amazon Web Services EMEA SARL (Luksemburg): serwery, baza danych, przechowywanie plików, logowanie (Amazon Cognito), wysyłka kodów e-mail i odczyt AI. Dane są przechowywane w regionie AWS eu-north-1 w Sztokholmie.',
+          'Google Ireland Limited: tylko logowanie przez Google, jeśli je wybierzesz, według polityki prywatności Google.',
+        ],
+      },
+      {
+        title: 'Jak długo dane są przechowywane',
+        list: [
+          'Konto i dokumenty: dopóki ich nie usuniesz. Konto usuniesz sam na stronie konta, razem ze wszystkimi dokumentami i plikami.',
+          'Kopie zapasowe: usunięte dane i pliki zostają w nich jeszcze do {{restoreDays}} dni, potem znikają same.',
+          'Szkic dokumentu, którego nie zapiszesz: doba, potem znika razem z plikiem.',
+          'Sesja logowania: wygasa po {{idleDays}} dniach bez używania, najpóźniej po {{maxDays}} dniach.',
+          'Logi serwera: miesiąc.',
+        ],
+      },
+      {
+        title: 'Ciasteczka i pamięć przeglądarki',
+        text: ['Segregator używa tylko tego, bez czego nie działa, więc nie prosi o zgodę na ciasteczka.'],
+        list: [
+          '__Host-session utrzymuje zalogowanie, najdłużej {{maxDays}} dni.',
+          '__Host-google zabezpiecza logowanie przez Google na czas jego trwania.',
+          'Pamięć przeglądarki (localStorage) przechowuje wybrany język i motyw.',
+        ],
+      },
+      {
+        title: 'Twoje prawa',
+        text: [
+          'Masz prawo dostępu do swoich danych, ich sprostowania, usunięcia, ograniczenia przetwarzania i przeniesienia oraz prawo sprzeciwu. Dokumenty poprawisz i usuniesz w aplikacji, a na stronie konta usuniesz całe konto. W pozostałych sprawach napisz na adres podany wyżej.',
+          'Masz też prawo złożyć skargę do Prezesa Urzędu Ochrony Danych Osobowych (ul. Stawki 2, 00-193 Warszawa, uodo.gov.pl).',
+        ],
+      },
+      {
+        title: 'Czego Segregator nie robi',
+        list: [
+          'Nie sprzedaje danych i nie przekazuje ich nikomu poza firmami wymienionymi wyżej.',
+          'Nie używa analityki, reklam ani narzędzi śledzących.',
+          'Nie zbiera lokalizacji: zdjęcie traci metadane EXIF jeszcze w przeglądarce, przed wysyłką.',
+          'Konto demo zawiera tylko fikcyjne dokumenty i nie zapisuje niczego o osobie, która je ogląda, poza sesją.',
+        ],
+      },
+      {
+        title: 'Zabezpieczenia',
+        text: [
+          'Połączenia są szyfrowane (HTTPS), pliki są szyfrowane osobnym kluczem, a każdy dokument jest dostępny tylko z konta, które go dodało. Kod aplikacji jest publiczny.',
+        ],
+      },
+      {
+        title: 'Zmiany polityki',
+        text: ['Nowa wersja polityki pojawi się na tej stronie z nową datą obowiązywania.'],
+      },
+    ],
   },
   errors: {
     invalid_input: 'Sprawdź wpisane dane.',

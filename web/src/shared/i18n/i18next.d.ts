@@ -5,6 +5,6 @@ declare module 'i18next' {
   interface CustomTypeOptions {
     defaultNS: 'translation'
     resources: { translation: Translation }
-    defaultVariables: { codeLength: number }
+    defaultVariables: { codeLength: number; restoreDays: number; idleDays: number; maxDays: number }
   }
 }

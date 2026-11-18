@@ -1,7 +1,8 @@
-import { Button, Group, Paper, Progress, Skeleton, Stack, Text, Title } from '@mantine/core'
+import { Anchor, Button, Group, Paper, Progress, Skeleton, Stack, Text, Title } from '@mantine/core'
 import { IconLogout } from '@tabler/icons-react'
 import type { ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
+import { Link } from 'react-router'
 import { STORAGE_LIMIT } from 'shared'
 import DeleteAccount from '~/features/account/components/DeleteAccount.tsx'
 import { useSession, useSignOut } from '~/features/auth/session.ts'
@@ -121,6 +122,9 @@ export default function AccountPage() {
             <DeleteAccount />
           </>
         )}
+        <Anchor component={Link} to="/privacy" size="sm" ta="center">
+          {t('privacy.title')}
+        </Anchor>
       </Stack>
     </Page>
   )

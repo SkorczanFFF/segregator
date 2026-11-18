@@ -1,10 +1,10 @@
-import { ActionIcon, Badge, Box, Group, Image, List, Paper, Popover, Stack, Text, ThemeIcon, Title } from '@mantine/core'
-import { IconAdjustmentsHorizontal, IconSparkles } from '@tabler/icons-react'
+import { Badge, Box, Group, Image, List, Paper, Stack, Text, ThemeIcon, Title } from '@mantine/core'
+import { IconSparkles } from '@tabler/icons-react'
 import { Trans, useTranslation } from 'react-i18next'
 import classes from '~/features/auth/components/BrandPanel.module.css'
 import sampleReceipt from '~/features/auth/components/sample-receipt.svg'
-import AppControls from '~/shared/components/AppControls.tsx'
 import Logo from '~/shared/components/Logo.tsx'
+import PreferencesMenu from '~/shared/components/PreferencesMenu.tsx'
 import SpineMark from '~/shared/components/SpineMark.tsx'
 import { formatDate, formatMoney } from '~/shared/lib/format.ts'
 
@@ -58,17 +58,7 @@ export default function BrandPanel() {
       <Stack justify="space-between" gap="xl" h="100%" pos="relative">
         <Group justify="space-between" wrap="nowrap">
           <Logo to="/" c="brand.2" onBrand />
-          {/* On a phone one button beside the logo opens both controls. */}
-          <Popover position="bottom-end" width={260} shadow="md">
-            <Popover.Target>
-              <ActionIcon variant="light" color="saffron" hiddenFrom="sm" aria-label={t('common.preferences')}>
-                <IconAdjustmentsHorizontal size={18} />
-              </ActionIcon>
-            </Popover.Target>
-            <Popover.Dropdown>
-              <AppControls withLabels />
-            </Popover.Dropdown>
-          </Popover>
+          <PreferencesMenu />
         </Group>
         <Stack gap="md" maw={460}>
           <Title order={2} c="brand.0" fz={{ base: 28, sm: 44 }} lh={1.1}>

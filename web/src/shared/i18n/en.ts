@@ -105,14 +105,14 @@ export const en: Translation = {
     storageHint: 'Files count as they were sent. Deleting a document frees its space.',
     reads: 'AI readings left',
     readsLeft: '{{left}} of {{limit}}',
-    readsHint: 'Each Read with AI uses one reading, a failed one too. They renew on the first day of each month.',
+    readsHint: 'Each $t(documents.read.start) uses one reading, a failed one too. They renew on the first day of each month.',
     settings: 'Settings',
     session: 'Session',
     deleteTitle: 'Deleting the account',
     deleteHint: 'Deletes the account with all its documents and files, and signs out on every device.',
     deleteOpen: 'Delete account',
     deleteConfirmTitle: 'Delete the account?',
-    deleteConfirmText: "The account, its documents and files go at once and can't be brought back. Backups keep them for up to {{days}} days, then they go too.",
+    deleteConfirmText: "The account, its documents and files go at once and can't be brought back. Backups keep them for up to {{restoreDays}} days, then they go too.",
     deleteEmailLabel: 'Type the email address of this account to confirm',
     deleteConfirm: 'Delete the account for good',
     deleteFiles: '{{size}} of files',
@@ -168,7 +168,7 @@ export const en: Translation = {
       start: 'Read with AI',
       again: 'Read again',
       againTitle: 'Read it again?',
-      againText: 'This file has been read already. Another reading uses up one of those left and puts what the model reads into the fields, over your corrections too. The fields it changes get the AI mark.',
+      againText: 'This file has been read already. Another reading uses up one of those left and puts what the model reads into the fields, over your corrections too. The fields it changes get the $t(documents.read.mark) mark.',
       retry: 'Try again',
       reading: 'Reading…',
       hint: 'Fills in the fields from the approved file. You check them before saving.',
@@ -297,6 +297,94 @@ export const en: Translation = {
       water: 'Water',
       other: 'Other',
     },
+  },
+  privacy: {
+    title: 'Privacy policy',
+    inForce: 'In force since {{date}}.',
+    lead: 'Segregator is a non-commercial project that keeps receipts, invoices and other documents in one place. This page describes what data it processes, why, where and for how long, and what rights you have.',
+    sections: [
+      {
+        title: 'Data controller',
+        text: ['The controller of your personal data is {{name}}. For anything about your personal data, write to {{email}}.'],
+      },
+      {
+        title: 'What data is processed',
+        list: [
+          'Your email address and password when you sign up with email. Amazon Cognito stores the password in a form it cannot be read back from. Segregator does not store it.',
+          'Your email address and Google account ID when you sign in with Google. Your Google password stays with Google.',
+          'The documents you add: photos and PDF files, their processed versions and the fields you type or approve, such as the issuer, amount and dates.',
+          'Data the service needs to work: your sign-in session, the number of AI readings this month and the storage your files take.',
+          "Server error logs. They don't contain the contents of documents.",
+        ],
+      },
+      {
+        title: 'Purpose and legal basis',
+        list: [
+          'Running your account and keeping the documents you ask it to keep by signing up. The legal basis is the contract for the service (Art. 6(1)(b) GDPR).',
+          "Protecting the service from abuse, such as limits on sign-in attempts, and finding the causes of errors in the logs. The legal basis is the controller's legitimate interest (Art. 6(1)(f) GDPR).",
+          "Giving your data is voluntary, but you can't sign up without an email address.",
+        ],
+      },
+      {
+        title: 'Reading with AI',
+        text: [
+          'A file goes to the AI model only when you click $t(documents.read.start). The Amazon Nova model in Amazon Bedrock reads it, in regions of the European Union. Amazon Bedrock does not store prompts and responses or use them to train models.',
+          'The model only suggests the fields. You check and save each of them yourself, so no automated decisions are made about you.',
+        ],
+      },
+      {
+        title: 'Who else processes the data',
+        list: [
+          'Amazon Web Services EMEA SARL (Luxembourg): servers, database, file storage, sign-in (Amazon Cognito), sending email codes and AI reading. The data is stored in the AWS eu-north-1 region in Stockholm.',
+          "Google Ireland Limited: only signing in with Google, if you choose it, under Google's privacy policy.",
+        ],
+      },
+      {
+        title: 'How long data is kept',
+        list: [
+          'Your account and documents: until you delete them. You can delete the account yourself on the account page, with all its documents and files.',
+          'Backups: deleted data and files stay in them for up to {{restoreDays}} more days, then go on their own.',
+          "A document draft you don't save: one day, then it goes with its file.",
+          'Your sign-in session: it expires after {{idleDays}} days unused, and after {{maxDays}} days at most.',
+          'Server logs: one month.',
+        ],
+      },
+      {
+        title: 'Cookies and browser storage',
+        text: ["Segregator only uses what it can't work without, so it doesn't ask for cookie consent."],
+        list: [
+          '__Host-session keeps you signed in, for {{maxDays}} days at most.',
+          '__Host-google protects signing in with Google while it lasts.',
+          'Browser storage (localStorage) keeps your chosen language and color scheme.',
+        ],
+      },
+      {
+        title: 'Your rights',
+        text: [
+          'You have the right to access your data, to have it corrected or erased, to restrict its processing, to data portability and to object. You can correct and delete documents in the app and delete the whole account on the account page. For anything else, write to the address above.',
+          'You also have the right to lodge a complaint with the supervisory authority, in Poland the President of the Personal Data Protection Office (ul. Stawki 2, 00-193 Warsaw, uodo.gov.pl).',
+        ],
+      },
+      {
+        title: "What Segregator doesn't do",
+        list: [
+          "It doesn't sell data or pass it to anyone beyond the companies named above.",
+          "It doesn't use analytics, ads or tracking tools.",
+          "It doesn't collect location: a photo loses its EXIF metadata in the browser, before it is sent.",
+          "The demo account holds only made-up documents and records nothing about the person viewing it beyond the session.",
+        ],
+      },
+      {
+        title: 'Security',
+        text: [
+          'Connections are encrypted (HTTPS), files are encrypted with a key of their own, and each document is available only to the account that added it. The code of the app is public.',
+        ],
+      },
+      {
+        title: 'Changes to this policy',
+        text: ['A new version of the policy will appear on this page with a new date it takes effect.'],
+      },
+    ],
   },
   errors: {
     invalid_input: 'Check the details you entered.',

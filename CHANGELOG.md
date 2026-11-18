@@ -2,6 +2,13 @@
 
 The minor version marks a stage of the build plan and the patch version each step or fix within it, as [Semantic Versioning](https://semver.org/spec/v2.0.0.html) allows before 1.0.0. Each entry starts with the version and its commit message, followed by a description of what changed.
 
+## 0.14.5 - feat: add a privacy policy
+
+Released 2026-11-18.
+
+- A privacy policy at /privacy says who looks after the data and how to reach them, what Segregator keeps, why, where and for how long, what reading with AI does with a file, which cookies it sets and what rights you have. It is in Polish and English, and open without signing in.
+- The entry pages link to it under their card, and the account page at its end.
+
 ## 0.14.4 - fix: open the entry page when a session ends
 
 Released 2026-11-18.

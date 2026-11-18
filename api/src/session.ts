@@ -9,7 +9,7 @@ import {
 } from '@aws-sdk/client-dynamodb'
 import type { Context } from 'hono'
 import { deleteCookie, getCookie, setCookie } from 'hono/cookie'
-import { TTL_ATTRIBUTE } from 'shared'
+import { SESSION_IDLE_DAYS, SESSION_MAX_DAYS, TTL_ATTRIBUTE } from 'shared'
 import { DAY, TABLE, db, deleteItems, ifConditionMet, now } from './table.ts'
 
 export type Session = { sub: string; email: string; demo?: boolean }
@@ -20,8 +20,8 @@ export const DEMO: Session = { sub: 'demo', email: 'demo@example.com', demo: tru
 
 const COOKIE = 'session'
 const COOKIE_OPTIONS = { prefix: 'host', httpOnly: true, sameSite: 'Strict' } as const
-const IDLE_LIMIT = 7 * DAY
-const ABSOLUTE_LIMIT = 30 * DAY
+const IDLE_LIMIT = SESSION_IDLE_DAYS * DAY
+const ABSOLUTE_LIMIT = SESSION_MAX_DAYS * DAY
 
 // The table keeps only a hash, so a leaked table can't be turned into working cookies.
 const key = (id: string) => ({

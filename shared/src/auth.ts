@@ -4,6 +4,10 @@ import * as z from 'zod'
 export const PASSWORD_MIN_LENGTH = 12
 const PASSWORD_MAX_LENGTH = 256
 
+// How long a session lasts unused, and at most, in days.
+export const SESSION_IDLE_DAYS = 7
+export const SESSION_MAX_DAYS = 30
+
 // Cognito's confirmation and reset codes.
 export const CODE_LENGTH = 6
 export const CODE_PATTERN = new RegExp(String.raw`^\d{${CODE_LENGTH}}$`)

@@ -1,6 +1,6 @@
 import i18n from 'i18next'
 import { initReactI18next } from 'react-i18next'
-import { CODE_LENGTH, STORAGE_LIMIT } from 'shared'
+import { CODE_LENGTH, RESTORE_DAYS, SESSION_IDLE_DAYS, SESSION_MAX_DAYS, STORAGE_LIMIT } from 'shared'
 import { en } from '~/shared/i18n/en.ts'
 import { pl } from '~/shared/i18n/pl.ts'
 
@@ -32,7 +32,13 @@ void i18n.use(initReactI18next).init({
   // Every text can use these, so each value is written in one place.
   interpolation: {
     escapeValue: false,
-    defaultVariables: { codeLength: CODE_LENGTH, storageLimit: `${STORAGE_LIMIT / 1024 / 1024} MB` },
+    defaultVariables: {
+      codeLength: CODE_LENGTH,
+      storageLimit: `${STORAGE_LIMIT / 1024 / 1024} MB`,
+      restoreDays: RESTORE_DAYS,
+      idleDays: SESSION_IDLE_DAYS,
+      maxDays: SESSION_MAX_DAYS,
+    },
   },
   initAsync: false,
 })

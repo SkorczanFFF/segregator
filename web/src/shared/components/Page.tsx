@@ -12,7 +12,7 @@ type PageProps = {
   children: ReactNode
 }
 
-// A signed-in page, centered in the main area, with its title and actions on top.
+// A page centered in the main area, with its title and actions on top.
 // Positioned, so it stays above the layout's watermark.
 export default function Page({ title, actions, back, width = 880, children }: PageProps) {
   return (

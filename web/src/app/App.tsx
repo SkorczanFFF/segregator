@@ -12,6 +12,7 @@ import SignUpPage from '~/features/auth/pages/SignUpPage.tsx'
 import DocumentPage from '~/features/documents/pages/DocumentPage.tsx'
 import DocumentsPage from '~/features/documents/pages/DocumentsPage.tsx'
 import NewDocumentPage from '~/features/documents/pages/NewDocumentPage.tsx'
+import PrivacyPage from '~/features/privacy/pages/PrivacyPage.tsx'
 
 export default function App() {
   return (
@@ -34,6 +35,7 @@ export default function App() {
               <Route path="/account" element={<AccountPage />} />
             </Route>
           </Route>
+          <Route path="/privacy" element={<PrivacyPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </SessionProvider>
