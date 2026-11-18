@@ -6,13 +6,13 @@
     "build": "tsc"
   },
   "dependencies": {
-    "aws-cdk-lib": "^2.275.0",
+    "aws-cdk-lib": "^2.276.0",
     "constructs": "^10.5.0",
     "shared": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "catalog:",
-    "aws-cdk": "^2.1147.0",
+    "aws-cdk": "^2.1148.1",
     "cdk-assets": "^4.8.0",
     "typescript": "catalog:"
   }
