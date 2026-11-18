@@ -9,6 +9,7 @@ Live at [segregator.skoftware.pl](https://segregator.skoftware.pl).
 - `web/`: React front end (Vite, Mantine)
 - `api/`: Hono API, the worker that checks uploaded files, the reader that fills a document's fields with a model on Amazon Bedrock, the cleanup of abandoned drafts and the Cognito trigger that guards sign-up, each deployed as an AWS Lambda function
 - `preprocess/`: Python function that straightens photos of documents with OpenCV, managed with uv
+- `demo/`: Python script that draws the read-only demo's fictional documents as phone photos and straightens them with `preprocess/`, also with uv
 - `shared/`: Zod schemas, the category list and the file, auth and table constants used by the API, the web app and the stack
 - `infra/`: AWS CDK app stack and the CodePipeline that deploys it to `dev` and `prod`
 

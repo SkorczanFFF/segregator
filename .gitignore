@@ -9,3 +9,6 @@ example_receipts/
 __pycache__/
 .pytest_cache/
 .ruff_cache/
+demo/out/
+demo/.cache/
+demo/.venv/

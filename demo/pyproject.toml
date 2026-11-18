@@ -1,0 +1,17 @@
+[project]
+name = "demo"
+version = "0.0.0"
+description = "Draws the fictional documents of the read-only demo as photos, and straightens them as the app does."
+requires-python = "==3.14.*"
+dependencies = ["brotli", "fonttools", "numpy", "opencv-python-headless", "pillow"]
+
+[dependency-groups]
+dev = ["ruff"]
+
+[tool.uv]
+# The same rule as in preprocess: nothing younger than a week. The uv version is set there.
+exclude-newer = "1 week"
+package = false
+
+[tool.ruff]
+line-length = 120

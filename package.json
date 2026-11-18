@@ -10,7 +10,7 @@
     "dev": "pnpm -r --parallel dev",
     "build": "pnpm -r build",
     "lint": "oxlint && pnpm run lint:python",
-    "lint:python": "uv run --locked --directory preprocess ruff check && uv run --locked --directory preprocess ruff format --check",
+    "lint:python": "uv run --locked --only-group dev --directory preprocess ruff check && uv run --locked --only-group dev --directory preprocess ruff format --check && uv run --locked --only-group dev --directory demo ruff check && uv run --locked --only-group dev --directory demo ruff format --check",
     "test": "pnpm -r test && uv run --locked --directory preprocess pytest -q",
     "cdk": "pnpm --filter infra exec cdk"
   },
