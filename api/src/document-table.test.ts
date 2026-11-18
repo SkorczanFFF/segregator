@@ -15,16 +15,14 @@ const {
   deleteDocument,
   DuplicateFile,
   findByHash,
-  finishRead,
   getDocument,
   listDocuments,
   markSent,
-  readUse,
   settleDocument,
-  startRead,
   storageUsed,
   updateDocument,
 } = await import('./document-table.ts')
+const { finishRead, readUse, startRead } = await import('./read-table.ts')
 
 // A saved document, or undefined for a draft or no document.
 const saved = async (sub: string, id: string) => {

@@ -11,7 +11,8 @@ import {
 } from 'shared'
 import * as z from 'zod'
 import { readFile } from './document-files.ts'
-import { finishRead, getDocument } from './document-table.ts'
+import { getDocument } from './document-table.ts'
+import { finishRead } from './read-table.ts'
 import { ReadJob } from './read-jobs.ts'
 
 type SqsMessage = { messageId: string; body: string; attributes: { ApproximateReceiveCount: string } }

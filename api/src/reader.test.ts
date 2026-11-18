@@ -10,9 +10,8 @@ process.env.MAX_RECEIVES = '3'
 process.env.READ_MODEL = 'model-under-test'
 
 const { handler } = await import('./reader.ts')
-const { chooseVersion, claimDocument, createDraft, getDocument, settleDocument, startRead } = await import(
-  './document-table.ts'
-)
+const { chooseVersion, claimDocument, createDraft, getDocument, settleDocument } = await import('./document-table.ts')
+const { startRead } = await import('./read-table.ts')
 
 const LIMITS = { account: 100, app: 1_000_000 }
 const photo = new Uint8Array([0xff, 0xd8, 0xff, 0xe0])

@@ -8,18 +8,16 @@ import {
   deleteDocument,
   DuplicateFile,
   findByHash,
-  finishRead,
   getDocument,
   listDocuments,
   markSent,
-  readUse,
-  startRead,
   storageUsed,
   updateDocument,
 } from './document-table.ts'
 import { apiError, duplicateError } from './errors.ts'
 import { queueRead } from './read-jobs.ts'
 import { readLimits } from './read-limits.ts'
+import { finishRead, readUse, startRead } from './read-table.ts'
 import type { Env } from './session.ts'
 import { jsonBody } from './validate.ts'
 

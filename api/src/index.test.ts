@@ -16,7 +16,8 @@ process.env.APP_URL = 'https://app.example.com'
 
 const { app } = await import('./index.ts')
 const { createSession } = await import('./session.ts')
-const { claimDocument, createDraft, finishRead, settleDocument, startRead } = await import('./document-table.ts')
+const { claimDocument, createDraft, settleDocument } = await import('./document-table.ts')
+const { finishRead, startRead } = await import('./read-table.ts')
 const { db, TABLE } = await import('./table.ts')
 
 // Starts a session through the real session code and returns the cookie a browser would send back.

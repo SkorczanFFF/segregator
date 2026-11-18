@@ -13,8 +13,10 @@ export const DAY = 24 * 60 * 60
 
 export const now = () => Math.floor(Date.now() / 1000)
 
+export type Item = Record<string, AttributeValue>
+
 // Deletes the items with these keys. BatchWriteItem takes 25 at a time and may hand some back to retry.
-export async function deleteItems(keys: Record<string, AttributeValue>[]) {
+export async function deleteItems(keys: Item[]) {
   for (let i = 0; i < keys.length; i += 25) {
     let pending: Record<string, WriteRequest[]> = {
       [TABLE]: keys.slice(i, i + 25).map((Key) => ({ DeleteRequest: { Key } })),
