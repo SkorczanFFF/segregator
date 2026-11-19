@@ -2,6 +2,16 @@
 
 The minor version marks a stage of the build plan and the patch version each step or fix within it, as [Semantic Versioning](https://semver.org/spec/v2.0.0.html) allows before 1.0.0. Each entry starts with the version and its commit message, followed by a description of what changed.
 
+## 0.15.0 - feat: read Polish dates, issuers and amounts more reliably
+
+Released 2026-11-19.
+
+- Reading with AI takes dates on Polish documents day first, so 03.11.2026 is the 3rd of November.
+- The issuer is the name on the document's header, in the nominative and without a legal form: the insurer on a policy, the other party on a contract.
+- The amount is also the premium of a policy or the monthly fee of a contract, and the end date is the end of cover, of the warranty or of the term, never one worked out from a length.
+- Household appliances are named as AGD, so a washing machine or a coffee machine gets that subtype.
+- On twenty fictional documents 87% of the fields are read right, on photos as taken and straightened alike.
+
 ## 0.14.6 - feat: keep the AI marks on a saved document
 
 Released 2026-11-19.
