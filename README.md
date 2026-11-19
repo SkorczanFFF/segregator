@@ -21,7 +21,7 @@ The web app runs on Vite and the API runs as a plain Node.js process. There is n
 browser → Vite (localhost:5173) ── /api ──▶ Hono on Node.js (127.0.0.1:3000) ──▶ Cognito + DynamoDB + S3 (dev stack)
 ```
 
-You need Node.js 24, pnpm (the version in `packageManager`), uv (the version `preprocess/pyproject.toml` requires), AWS CLI v2 and access to the AWS account with the dev stack. uv brings its own Python, and `pnpm cdk synth` uses it to bundle the Python function for Linux on arm64 without Docker.
+You need Node.js 24, pnpm (the version in `packageManager`), uv (at least the version `preprocess/pyproject.toml` requires), AWS CLI v2 and access to the AWS account with the dev stack. uv brings its own Python, and `pnpm cdk synth` uses it to bundle the Python function for Linux on arm64 without Docker.
 
 1. Install dependencies and sign in to AWS. The local API uses these credentials.
 

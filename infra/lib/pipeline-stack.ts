@@ -38,8 +38,8 @@ export class PipelineStack extends Stack {
         env: { COREPACK_ENABLE_DOWNLOAD_PROMPT: '0' },
         installCommands: [
           'corepack enable',
-          // uv bundles the Python function, at the version preprocess/pyproject.toml requires.
-          `pip3 install "uv$(sed -n 's/^required-version = "\\(.*\\)"$/\\1/p' preprocess/pyproject.toml)"`,
+          // uv bundles the Python function, at the lowest version preprocess/pyproject.toml allows.
+          `pip3 install "uv==$(sed -n 's/^required-version = ">=\\(.*\\)"$/\\1/p' preprocess/pyproject.toml)"`,
         ],
         commands: ['pnpm install --frozen-lockfile', 'pnpm build', 'pnpm cdk synth'],
         primaryOutputDirectory: 'infra/cdk.out',
