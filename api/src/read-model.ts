@@ -1,5 +1,14 @@
 import { BedrockRuntimeClient, ConverseCommand, type ContentBlock } from '@aws-sdk/client-bedrock-runtime'
-import { CATEGORIES, DOCUMENT_TYPES, DocumentInput, hasDueDate, isPdf, READ_MODEL, type ReadResult } from 'shared'
+import {
+  CATEGORIES,
+  DOCUMENT_TYPES,
+  DocumentInput,
+  hasDueDate,
+  isPdf,
+  isSubtypeOf,
+  READ_MODEL,
+  type ReadResult,
+} from 'shared'
 import * as z from 'zod'
 
 const bedrock = new BedrockRuntimeClient({})
@@ -57,7 +66,7 @@ function toResult(answer: z.infer<typeof Answer>): ReadResult | undefined {
   const { type } = answer
   const result: ReadResult = {
     type,
-    subtype: (CATEGORIES[type] as readonly string[]).includes(answer.subtype ?? '') ? answer.subtype : undefined,
+    subtype: isSubtypeOf(type, answer.subtype ?? '') ? answer.subtype : undefined,
     issuer: valid(fields.issuer, answer.issuer),
     amount: answer.amount === undefined ? undefined : valid(fields.amount, Math.round(answer.amount * 100)),
     docDate: valid(fields.docDate, answer.docDate),

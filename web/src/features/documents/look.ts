@@ -25,6 +25,15 @@ export const TYPE_LOOKS = {
   other: { icon: IconFileText, color: 'gray', strong: 'gray.7' },
 } satisfies Record<DocumentType, { icon: Icon; color: MantineColor; strong: MantineColor }>
 
+// A button that stays pressed while chosen, tinted in the given color.
+export const toggle = (chosen: boolean, color: MantineColor) =>
+  ({
+    variant: chosen ? 'light' : 'default',
+    color,
+    bd: chosen ? `1px solid var(--mantine-color-${color}-outline)` : undefined,
+    'aria-pressed': chosen,
+  }) as const
+
 // How far a card's content sits from its edges, in the list and in the form: less on a phone.
 export const CARD_INSET = { base: 'md', sm: 'xl' } as const
 

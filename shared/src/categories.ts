@@ -18,5 +18,9 @@ export type Subtype = (typeof CATEGORIES)[DocumentType][number]
 
 export const DOCUMENT_TYPES = Object.keys(CATEGORIES) as [DocumentType, ...DocumentType[]]
 
+// Whether a subcategory is one of the type's, e.g. fuel of a receipt.
+export const isSubtypeOf = (type: DocumentType, subtype: string): subtype is Subtype =>
+  (CATEGORIES[type] as readonly string[]).includes(subtype)
+
 // A receipt has no printed deadline, unlike the rest: pay by, valid until, warranty until or in force until.
 export const hasDueDate = (type: DocumentType) => type !== 'receipt'

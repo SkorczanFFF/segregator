@@ -1,6 +1,8 @@
+/* Clips the watermark without turning into a scroll container, so the list's filters can stick under the
+   header. */
 .main {
   position: relative;
-  overflow: hidden;
+  overflow: clip;
 }
 
 /* The logo's spine, large and faint in the corner, behind the page. */

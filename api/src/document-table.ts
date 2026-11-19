@@ -8,12 +8,14 @@ import {
   TransactWriteItemsCommand,
   UpdateItemCommand,
   type AttributeValue,
+  type QueryCommandInput,
 } from '@aws-sdk/client-dynamodb'
 import {
   DOC_PREFIX,
   TTL_ATTRIBUTE,
   type Document,
   type DocumentFile,
+  type DocumentFilter,
   type DocumentInput,
   type DocumentList,
   type DocumentRead,
@@ -393,36 +395,89 @@ export async function deleteAccountItems(sub: string) {
   } while (startKey)
 }
 
-// The cursor is the last key of a page. One that points outside the caller's list is rejected.
-function readCursor(sub: string, cursor: string): Item | undefined {
+// The list's sort key is the date, # and the id, so a period runs from its first day to every id of its last.
+const periodKeys = ({ from, to }: DocumentFilter) => ({ from, to: to && `${to}#~` })
+
+// The cursor is the last key of a page. One that points outside the caller's list or the period is rejected.
+function readCursor(sub: string, cursor: string, filter: DocumentFilter): Item | undefined {
+  const { from, to } = periodKeys(filter)
   try {
     const key = JSON.parse(Buffer.from(cursor, 'base64url').toString()) as Item
-    return key.GSI1PK?.S === listKey(sub) ? key : undefined
+    const sort = key.GSI1SK?.S ?? ''
+    return key.GSI1PK?.S === listKey(sub) && (!from || sort >= from) && (!to || sort <= to) ? key : undefined
   } catch {
     return undefined
   }
 }
 
-// Newest first by the date on the document. Drafts have no list keys, so they never show. Undefined means
-// the cursor is invalid.
-export async function listDocuments(sub: string, cursor?: string): Promise<DocumentList | undefined> {
-  const startKey = cursor === undefined ? undefined : readCursor(sub, cursor)
+const toCursor = ({ PK, SK, GSI1PK, GSI1SK }: Item) =>
+  Buffer.from(JSON.stringify({ PK, SK, GSI1PK, GSI1SK })).toString('base64url')
+
+// The account's list, newest first by the date on the document, over the period's range of the sort key. The
+// types and the subcategory are checked only after reading.
+function listQuery(sub: string, filter: DocumentFilter): QueryCommandInput {
+  const { from, to } = periodKeys(filter)
+  const { types, subtype } = filter
+  const values: Record<string, AttributeValue> = { ':pk': { S: listKey(sub) } }
+  if (from) values[':from'] = { S: from }
+  if (to) values[':to'] = { S: to }
+  const period = from && to ? ' AND GSI1SK BETWEEN :from AND :to' : from ? ' AND GSI1SK >= :from' : to ? ' AND GSI1SK <= :to' : ''
+
+  // Both names are reserved words in DynamoDB.
+  const names: Record<string, string> = {}
+  const filters: string[] = []
+  if (types?.length) {
+    names['#type'] = 'type'
+    types.forEach((type, index) => (values[`:type${index}`] = { S: type }))
+    filters.push(`#type IN (${types.map((_, index) => `:type${index}`).join(', ')})`)
+  }
+  if (subtype) {
+    names['#subtype'] = 'subtype'
+    values[':subtype'] = { S: subtype }
+    filters.push('#subtype = :subtype')
+  }
+  return {
+    TableName: TABLE,
+    IndexName: 'GSI1',
+    KeyConditionExpression: `GSI1PK = :pk${period}`,
+    FilterExpression: filters.join(' AND ') || undefined,
+    ExpressionAttributeNames: filters.length ? names : undefined,
+    ExpressionAttributeValues: values,
+    ScanIndexForward: false,
+  }
+}
+
+// Drafts have no list keys, so they never show. A filtered read can come back short, so a page is read until
+// it fills up. The first page reads the whole list to count it and add up its amounts. Undefined means the
+// cursor is invalid.
+export async function listDocuments(
+  sub: string,
+  filter: DocumentFilter = {},
+  cursor?: string,
+): Promise<DocumentList | undefined> {
+  const startKey = cursor === undefined ? undefined : readCursor(sub, cursor, filter)
   if (cursor !== undefined && !startKey) return undefined
 
-  const { Items, LastEvaluatedKey } = await db.send(
-    new QueryCommand({
-      TableName: TABLE,
-      IndexName: 'GSI1',
-      KeyConditionExpression: 'GSI1PK = :pk',
-      ExpressionAttributeValues: { ':pk': { S: listKey(sub) } },
-      ScanIndexForward: false,
-      Limit: PAGE_SIZE,
-      ExclusiveStartKey: startKey,
-    }),
-  )
+  const whole = cursor === undefined
+  const query = listQuery(sub, filter)
+  const items: Item[] = []
+  let key = startKey
+  do {
+    const page = await db.send(
+      new QueryCommand({ ...query, ExclusiveStartKey: key, ...(whole ? {} : { Limit: PAGE_SIZE }) }),
+    )
+    items.push(...(page.Items ?? []))
+    key = page.LastEvaluatedKey
+  } while (key && (whole || items.length < PAGE_SIZE))
+
+  const shown = items.slice(0, PAGE_SIZE)
+  const last = shown.at(-1)
   return {
     // The filter only tells TypeScript what the list keys already guarantee.
-    items: (Items ?? []).map(fromItem).filter((doc): doc is Document => !doc.draft),
-    cursor: LastEvaluatedKey && Buffer.from(JSON.stringify(LastEvaluatedKey)).toString('base64url'),
+    items: shown.map(fromItem).filter((doc): doc is Document => !doc.draft),
+    cursor: last && (key || items.length > PAGE_SIZE) ? toCursor(last) : undefined,
+    ...(whole && {
+      summary: { count: items.length, total: items.reduce((sum, item) => sum + Number(item.amount?.N ?? 0), 0) },
+    }),
   }
 }

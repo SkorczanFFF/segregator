@@ -1,5 +1,5 @@
 import * as z from 'zod'
-import { CATEGORIES, DOCUMENT_TYPES, hasDueDate } from './categories.ts'
+import { DOCUMENT_TYPES, hasDueDate, isSubtypeOf } from './categories.ts'
 import { FILE_MAX_SIZE, FILE_TYPES, FILE_VERSIONS, type DocumentFile } from './file.ts'
 
 export const TEXT_MAX_LENGTH = 120
@@ -20,9 +20,7 @@ export const DocumentInput = z
     docDate: z.iso.date(),
     dueDate: z.iso.date().optional(),
   })
-  .refine((doc) => doc.subtype === undefined || (CATEGORIES[doc.type] as readonly string[]).includes(doc.subtype), {
-    path: ['subtype'],
-  })
+  .refine((doc) => doc.subtype === undefined || isSubtypeOf(doc.type, doc.subtype), { path: ['subtype'] })
   .refine((doc) => doc.dueDate === undefined || hasDueDate(doc.type), { path: ['dueDate'] })
 
 export type DocumentInput = z.infer<typeof DocumentInput>
@@ -66,5 +64,25 @@ export type Document = DocumentInput & Stored & { draft?: never }
 // A document whose file came first. It has no fields until they are saved, and the list doesn't show it.
 export type Draft = Stored & { draft: true }
 
-// One page of the list, newest first. The cursor fetches the next one.
-export type DocumentList = { items: Document[]; cursor?: string }
+// What the list is narrowed to: documents dated from and to, both days included, of some types, and of one
+// subcategory when one type is chosen. Nothing set lists every document.
+export const DocumentFilter = z
+  .object({
+    from: z.iso.date().optional(),
+    to: z.iso.date().optional(),
+    types: z.array(z.enum(DOCUMENT_TYPES)).optional(),
+    subtype: z.string().optional(),
+  })
+  .refine((filter) => !filter.from || !filter.to || filter.from <= filter.to, { path: ['to'] })
+  .refine(({ types, subtype }) => subtype === undefined || (types?.length === 1 && isSubtypeOf(types[0]!, subtype)), {
+    path: ['subtype'],
+  })
+
+export type DocumentFilter = z.infer<typeof DocumentFilter>
+
+// How many documents the whole filtered list has and their amounts added up, in grosze.
+export type ListSummary = { count: number; total: number }
+
+// One page of the list, newest first. The cursor fetches the next one. The first page also sums up the
+// whole list.
+export type DocumentList = { items: Document[]; cursor?: string; summary?: ListSummary }

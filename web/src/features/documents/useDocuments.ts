@@ -1,4 +1,4 @@
-import { useInfiniteQuery, useQuery, type QueryClient } from '@tanstack/react-query'
+import { keepPreviousData, useInfiniteQuery, useQuery, type QueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import type { Document, DocumentList, Draft, FileChoice, FileVersion } from 'shared'
 import { readsKey } from '~/shared/hooks/useUsage.ts'
@@ -7,6 +7,17 @@ import { api, API_BASE, errorCode } from '~/shared/lib/api.ts'
 const documentsKey = ['documents']
 
 export const documentKey = (id: string) => [...documentsKey, id]
+
+// Every filtered list sits under this key, beside the documents' ids.
+const listsKey = [...documentsKey, 'list']
+
+// A page of the list a filter in the API's terms lets through, after the cursor when there is one.
+function listPath(query: string, cursor?: string) {
+  const params = new URLSearchParams(query)
+  if (cursor) params.set('cursor', cursor)
+  const search = params.toString()
+  return search ? `/documents?${search}` : '/documents'
+}
 
 // How often a document whose file is processed or read is asked for again.
 const PENDING_REFRESH = 1000
@@ -18,9 +29,9 @@ export const isReading = (doc?: Document | Draft) => doc?.read?.status === 'read
 export const fileUrl = (id: string, version: FileVersion) =>
   `${API_BASE}/documents/${id}/file${version === 'processed' ? '?version=processed' : ''}`
 
-// Reloads the list before the app returns to it, so a saved or deleted document shows at once.
+// Reloads the lists before the app returns to them, so a saved or deleted document shows at once.
 export const refreshDocuments = (queryClient: QueryClient) =>
-  queryClient.invalidateQueries({ queryKey: documentsKey, exact: true, refetchType: 'all' })
+  queryClient.invalidateQueries({ queryKey: listsKey, refetchType: 'all' })
 
 // Keeps one version of a photo preprocessing changed, and the document as the API returns it.
 export async function chooseVersion(queryClient: QueryClient, id: string, use: FileVersion) {
@@ -58,21 +69,36 @@ export function useReadOutcome(doc?: Document | Draft) {
   }
 }
 
-// The account's documents, newest first, fetched one page at a time.
-export function useDocuments() {
+// The documents a filter in the API's terms lets through, newest first, fetched one page at a time, with the
+// whole list summed up. Under a new filter the previous list stays on screen until the new one comes.
+export function useDocuments(filter: string) {
   const query = useInfiniteQuery({
-    queryKey: documentsKey,
-    queryFn: ({ pageParam }) =>
-      api.get<DocumentList>(pageParam ? `/documents?cursor=${encodeURIComponent(pageParam)}` : '/documents'),
+    queryKey: [...listsKey, filter],
+    queryFn: ({ pageParam }) => api.get<DocumentList>(listPath(filter, pageParam)),
     initialPageParam: '',
     getNextPageParam: (page) => page.cursor,
+    placeholderData: keepPreviousData,
   })
 
   return {
     items: query.data?.pages.flatMap((page) => page.items),
+    summary: query.data?.pages[0]?.summary,
     error: query.error ? errorCode(query.error) : undefined,
     hasMore: query.hasNextPage,
     loadMore: query.fetchNextPage,
     loadingMore: query.isFetchingNextPage,
+    updating: query.isPlaceholderData,
   }
+}
+
+// Every document a filter in the API's terms lets through, page after page.
+export async function fetchAllDocuments(filter: string) {
+  const items: Document[] = []
+  let cursor: string | undefined
+  do {
+    const page = await api.get<DocumentList>(listPath(filter, cursor))
+    items.push(...page.items)
+    cursor = page.cursor
+  } while (cursor)
+  return items
 }

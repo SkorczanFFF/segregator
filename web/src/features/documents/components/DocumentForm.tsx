@@ -14,13 +14,11 @@ import {
   TextInput,
   Tooltip,
   VisuallyHidden,
-  type MantineColor,
 } from '@mantine/core'
 import { DatePickerInput } from '@mantine/dates'
 import { schemaResolver, useForm } from '@mantine/form'
 import { IconBuildingStore, IconCalendar, IconCalendarDue, IconLock, IconTag, IconTrash } from '@tabler/icons-react'
 import dayjs from 'dayjs'
-import 'dayjs/locale/pl'
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router'
@@ -39,7 +37,14 @@ import {
 import decor from '~/app/decor.module.css'
 import AiMark from '~/features/documents/components/AiMark.tsx'
 import classes from '~/features/documents/components/documents.module.css'
-import { CARD_INSET, describeDocument, documentName, dueDateLabel, TYPE_LOOKS } from '~/features/documents/look.ts'
+import {
+  CARD_INSET,
+  describeDocument,
+  documentName,
+  dueDateLabel,
+  toggle,
+  TYPE_LOOKS,
+} from '~/features/documents/look.ts'
 import ApiErrorAlert from '~/shared/components/ApiErrorAlert.tsx'
 import { useApiSubmit } from '~/shared/hooks/useApiSubmit.ts'
 import { useFormError } from '~/shared/hooks/useFormError.ts'
@@ -94,15 +99,6 @@ const readValues = (result: ReadResult): Partial<DocumentValues> =>
       dueDate: result.dueDate,
     }).filter(([, value]) => value !== undefined),
   )
-
-// A button that stays pressed while chosen, tinted in the given color.
-const toggle = (chosen: boolean, color: MantineColor) =>
-  ({
-    variant: chosen ? 'light' : 'default',
-    color,
-    bd: chosen ? `1px solid var(--mantine-color-${color}-outline)` : undefined,
-    'aria-pressed': chosen,
-  }) as const
 
 function Section({ title, children }: { title: ReactNode; children: ReactNode }) {
   return (

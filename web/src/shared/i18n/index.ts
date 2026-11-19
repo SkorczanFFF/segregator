@@ -1,3 +1,5 @@
+// Mantine's date pickers name months and days through dayjs, in the language they are given.
+import 'dayjs/locale/pl'
 import i18n from 'i18next'
 import { initReactI18next } from 'react-i18next'
 import { CODE_LENGTH, RESTORE_DAYS, SESSION_IDLE_DAYS, SESSION_MAX_DAYS, STORAGE_LIMIT } from 'shared'

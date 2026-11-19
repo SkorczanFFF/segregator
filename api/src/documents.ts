@@ -1,5 +1,13 @@
 import { Hono } from 'hono'
-import { DocumentInput, FileChoice, STORAGE_LIMIT, UploadInput, type ReadUse, type StorageUse } from 'shared'
+import {
+  DocumentFilter,
+  DocumentInput,
+  FileChoice,
+  STORAGE_LIMIT,
+  UploadInput,
+  type ReadUse,
+  type StorageUse,
+} from 'shared'
 import { deleteFiles, FILE_URL_SECONDS, fileUrl, ID_PATTERN, signUpload } from './document-files.ts'
 import {
   chooseVersion,
@@ -26,8 +34,12 @@ export const documents = new Hono<Env>()
 // Any other id falls through to the app's 404.
 const BY_ID = `/:id{${ID_PATTERN}}`
 
+// The list, narrowed by the address, e.g. ?from=2026-09-01&to=2026-11-30&types=receipt,invoice, or
+// ?types=receipt&subtype=fuel.
 documents.get('/', async (c) => {
-  const page = await listDocuments(c.get('session').sub, c.req.query('cursor'))
+  const { from, to, types, subtype, cursor } = c.req.query()
+  const filter = DocumentFilter.safeParse({ from, to, types: types?.split(','), subtype })
+  const page = filter.success && (await listDocuments(c.get('session').sub, filter.data, cursor))
   if (!page) return apiError(c, 'invalid_input', 400)
   return c.json(page)
 })

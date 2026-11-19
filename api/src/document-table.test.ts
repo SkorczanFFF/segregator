@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { randomUUID } from 'node:crypto'
 import { test } from 'node:test'
-import type { DocumentInput } from 'shared'
+import type { DocumentFilter, DocumentInput } from 'shared'
 import type { CheckResult } from './document-table.ts'
 import { randomHash, setUpLocalTable } from './local-table.ts'
 
@@ -60,18 +60,72 @@ test("never reaches another account's documents", async () => {
   assert.equal((await saved(owner, id))?.docDate, '2026-11-10')
 })
 
-test('pages with a cursor that only works for its own account', async () => {
+test('pages with a cursor that only works for its own account and period', async () => {
   const [owner, other] = [randomUUID(), randomUUID()]
   await Promise.all(Array.from({ length: 53 }, () => createDocument(owner, doc('2026-01-01'))))
 
   const first = await listDocuments(owner)
   assert.equal(first?.items.length, 50)
   assert.ok(first?.cursor)
-  const second = await listDocuments(owner, first.cursor)
+  const second = await listDocuments(owner, {}, first.cursor)
   assert.equal(second?.items.length, 3)
   assert.equal(second?.cursor, undefined)
-  assert.equal(await listDocuments(other, first.cursor), undefined)
-  assert.equal(await listDocuments(owner, 'not-a-cursor'), undefined)
+  assert.equal(await listDocuments(other, {}, first.cursor), undefined)
+  assert.equal(await listDocuments(owner, {}, 'not-a-cursor'), undefined)
+  assert.equal(await listDocuments(owner, { from: '2027-01-01' }, first.cursor), undefined)
+})
+
+test('narrows the list to a period, both days included', async () => {
+  const sub = randomUUID()
+  for (const date of ['2026-08-31', '2026-09-01', '2026-11-30', '2026-12-01']) await createDocument(sub, doc(date))
+  const dates = async (filter: DocumentFilter) => (await listDocuments(sub, filter))?.items.map((item) => item.docDate)
+
+  assert.deepEqual(await dates({ from: '2026-09-01', to: '2026-11-30' }), ['2026-11-30', '2026-09-01'])
+  assert.deepEqual(await dates({ from: '2026-11-30' }), ['2026-12-01', '2026-11-30'])
+  assert.deepEqual(await dates({ to: '2026-08-31' }), ['2026-08-31'])
+})
+
+test('narrows the list to types and a subcategory', async () => {
+  const sub = randomUUID()
+  await createDocument(sub, doc('2026-11-01', { subtype: 'fuel' }))
+  await createDocument(sub, doc('2026-11-02', { subtype: 'groceries' }))
+  await createDocument(sub, doc('2026-11-03', { type: 'invoice' }))
+  await createDocument(sub, doc('2026-11-04', { type: 'warranty' }))
+  const types = async (filter: DocumentFilter) =>
+    (await listDocuments(sub, filter))?.items.map((item) => item.subtype ?? item.type)
+
+  assert.deepEqual(await types({ types: ['receipt', 'invoice'] }), ['invoice', 'groceries', 'fuel'])
+  assert.deepEqual(await types({ types: ['receipt'], subtype: 'fuel' }), ['fuel'])
+})
+
+test('sums up the whole filtered list on its first page only', async () => {
+  const sub = randomUUID()
+  await Promise.all(Array.from({ length: 53 }, () => createDocument(sub, doc('2026-10-01', { amount: 150 }))))
+  await createDocument(sub, doc('2026-10-02', { type: 'invoice', amount: 99_900 }))
+  await createDocument(sub, doc('2026-10-03'))
+
+  const first = await listDocuments(sub, { types: ['receipt'] })
+  assert.deepEqual(first?.summary, { count: 54, total: 53 * 150 })
+  assert.equal((await listDocuments(sub, { types: ['receipt'] }, first?.cursor))?.summary, undefined)
+})
+
+test('reads on until a filtered page fills up', async () => {
+  const sub = randomUUID()
+  // Newest first: 50 receipts, then 60 invoices, then 10 more receipts.
+  await Promise.all([
+    ...Array.from({ length: 50 }, () => createDocument(sub, doc('2026-03-01'))),
+    ...Array.from({ length: 60 }, () => createDocument(sub, doc('2026-02-01', { type: 'invoice' }))),
+    ...Array.from({ length: 10 }, () => createDocument(sub, doc('2026-01-01'))),
+  ])
+
+  const first = await listDocuments(sub, { types: ['receipt'] })
+  assert.equal(first?.items.length, 50)
+  const second = await listDocuments(sub, { types: ['receipt'] }, first?.cursor)
+  assert.deepEqual(
+    second?.items.map((item) => item.docDate),
+    Array.from({ length: 10 }, () => '2026-01-01'),
+  )
+  assert.equal(second?.cursor, undefined)
 })
 
 test('updates what a person entered and keeps the id and creation time', async () => {

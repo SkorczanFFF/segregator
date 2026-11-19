@@ -39,6 +39,17 @@ test('answers 401 without a valid session', async () => {
   }
 })
 
+test('takes the filter of the list from the address and turns away one that does not hold up', async () => {
+  const headers = { Cookie: await signIn() }
+  const status = async (query: string) => (await app.request(`/api/documents?${query}`, { headers })).status
+
+  assert.equal(await status('from=2026-09-01&to=2026-11-30&types=receipt,invoice'), 200)
+  assert.equal(await status('types=receipt&subtype=fuel'), 200)
+  for (const query of ['types=paper', 'from=2026-11-30&to=2026-09-01', 'types=receipt,invoice&subtype=fuel', 'from=today']) {
+    assert.equal(await status(query), 400, query)
+  }
+})
+
 test('rejects a form post from another site, even with a session cookie', async () => {
   const headers = {
     Cookie: await signIn(),

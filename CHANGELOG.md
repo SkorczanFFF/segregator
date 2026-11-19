@@ -2,6 +2,16 @@
 
 The minor version marks a stage of the build plan and the patch version each step or fix within it, as [Semantic Versioning](https://semver.org/spec/v2.0.0.html) allows before 1.0.0. Each entry starts with the version and its commit message, followed by a description of what changed.
 
+## 0.16.0 - feat: filter the document list by period and type
+
+Released 2026-11-19.
+
+- The list of documents narrows to a period and to one or more types, and with a single type to one of its subcategories. A period is whole months or days from and to, picked in a calendar or with a shortcut such as this month or last year.
+- Above the list it says how many documents match and what their amounts add up to. A longer list says how many of them it shows, 50 at a time.
+- The filters are part of the page's address, so a filtered list can be refreshed or shared, and Back undoes a change. When nothing matches, the list says so and offers to clear the filters.
+- The filtered list downloads as a CSV file for a spreadsheet: semicolons, UTF-8, ISO dates and amounts with the language's decimal separator.
+- The filters stay under the header as the list scrolls. On a phone the period and the types are one row that scrolls sideways, and the period opens from the bottom of the screen.
+
 ## 0.15.1 - feat: color the scrollbars with the brand
 
 Released 2026-11-19.

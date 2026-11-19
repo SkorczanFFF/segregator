@@ -1,13 +1,15 @@
 import { Button, Divider, Group, Paper, Skeleton, Stack, Text, Title, UnstyledButton } from '@mantine/core'
-import { IconChevronRight, IconFileText, IconPlus } from '@tabler/icons-react'
+import { IconChevronRight, IconFileText, IconFilterOff, IconPlus } from '@tabler/icons-react'
 import { Fragment } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Link } from 'react-router'
+import { Link, useSearchParams } from 'react-router'
 import type { Document } from 'shared'
 import decor from '~/app/decor.module.css'
 import { useSession } from '~/features/auth/session.ts'
+import DocumentFilters from '~/features/documents/components/DocumentFilters.tsx'
 import DocumentSummary from '~/features/documents/components/DocumentSummary.tsx'
 import classes from '~/features/documents/components/documents.module.css'
+import { apiQuery, hasFilter, readFilter, writeFilter } from '~/features/documents/filters.ts'
 import { CARD_INSET } from '~/features/documents/look.ts'
 import { useDocuments } from '~/features/documents/useDocuments.ts'
 import Page from '~/shared/components/Page.tsx'
@@ -46,8 +48,13 @@ function DocumentRow({ doc }: { doc: Document }) {
 
 export default function DocumentsPage() {
   const { t } = useTranslation()
-  const { items, error, hasMore, loadMore, loadingMore } = useDocuments()
+  // The filter lives in the address, so a filtered list can be refreshed or shared, and going back undoes a change.
+  const [params, setParams] = useSearchParams()
+  const filter = readFilter(params)
+  const filtered = hasFilter(filter)
+  const { items, summary, error, hasMore, loadMore, loadingMore, updating } = useDocuments(apiQuery(filter))
   const { user } = useSession()
+  const clear = () => setParams(new URLSearchParams())
 
   return (
     <Page
@@ -68,6 +75,10 @@ export default function DocumentsPage() {
       }
     >
       <ApiErrorAlert code={error} />
+      {/* An account without documents has nothing to filter yet. */}
+      {(filtered || items?.length !== 0) && (
+        <DocumentFilters filter={filter} onChange={(next) => setParams(writeFilter(next))} summary={summary} />
+      )}
       {!items && !error && (
         <Paper p="xl" aria-busy>
           {[0, 1, 2].map((row) => (
@@ -78,39 +89,55 @@ export default function DocumentsPage() {
       {items?.length === 0 && (
         <Paper p="xl">
           <Stack align="center" gap="xs" ta="center">
-            <IconFileText size={32} stroke={1.5} aria-hidden />
-            <Text fw={600}>{t('documents.empty')}</Text>
+            {filtered ? <IconFilterOff size={32} stroke={1.5} aria-hidden /> : <IconFileText size={32} stroke={1.5} aria-hidden />}
+            <Text fw={600}>{filtered ? t('documents.filters.none') : t('documents.empty')}</Text>
             <Text size="sm" c="dimmed">
-              {t('documents.emptyHint')}
+              {filtered ? t('documents.filters.noneHint') : t('documents.emptyHint')}
             </Text>
+            {filtered && (
+              <Button variant="light" mt="xs" onClick={clear}>
+                {t('documents.filters.clear')}
+              </Button>
+            )}
           </Stack>
         </Paper>
       )}
-      {items &&
-        byMonth(items).map(({ month, docs }) => (
-          <Stack key={month} gap={0}>
-            <Title order={2} size="h4" className={classes.monthTab}>
-              <Text span inherit tt="capitalize">
-                {formatMonthName(month)}
-              </Text>{' '}
-              <Text span ff="monospace" fz="xs" fw={500} c="dimmed">
-                {month.slice(0, 4)}
-              </Text>
-            </Title>
-            <Paper className={`${classes.card} ${classes.underTab}`}>
-              {docs.map((doc, index) => (
-                <Fragment key={doc.id}>
-                  {index > 0 && <Divider />}
-                  <DocumentRow doc={doc} />
-                </Fragment>
-              ))}
-            </Paper>
-          </Stack>
-        ))}
-      {hasMore && (
-        <Button variant="light" loading={loadingMore} onClick={() => void loadMore()}>
-          {t('documents.loadMore')}
-        </Button>
+      {items && items.length > 0 && (
+        // Under a new filter the previous list fades until the new one comes.
+        <Stack gap="lg" opacity={updating ? 0.5 : 1} aria-busy={updating}>
+          {byMonth(items).map(({ month, docs }) => (
+            <Stack key={month} gap={0}>
+              <Title order={2} size="h4" className={classes.monthTab}>
+                <Text span inherit tt="capitalize">
+                  {formatMonthName(month)}
+                </Text>{' '}
+                <Text span ff="monospace" fz="xs" fw={500} c="dimmed">
+                  {month.slice(0, 4)}
+                </Text>
+              </Title>
+              <Paper className={`${classes.card} ${classes.underTab}`}>
+                {docs.map((doc, index) => (
+                  <Fragment key={doc.id}>
+                    {index > 0 && <Divider />}
+                    <DocumentRow doc={doc} />
+                  </Fragment>
+                ))}
+              </Paper>
+            </Stack>
+          ))}
+        </Stack>
+      )}
+      {items && hasMore && (
+        <Stack gap="xs">
+          {summary && (
+            <Text size="sm" c="dimmed" ta="center">
+              {t('documents.filters.shown', { shown: items.length, count: summary.count })}
+            </Text>
+          )}
+          <Button variant="light" loading={loadingMore} onClick={() => void loadMore()}>
+            {t('documents.loadMore')}
+          </Button>
+        </Stack>
       )}
     </Page>
   )
