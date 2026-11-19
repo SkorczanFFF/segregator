@@ -2,12 +2,12 @@ import assert from 'node:assert/strict'
 import { randomUUID } from 'node:crypto'
 import { test, type TestContext } from 'node:test'
 import { BedrockRuntimeClient } from '@aws-sdk/client-bedrock-runtime'
+import { READ_MODEL } from 'shared'
 import { fakeS3 } from './fake-s3.ts'
 import { randomHash, setUpLocalTable } from './local-table.ts'
 
 setUpLocalTable('reader-test')
 process.env.MAX_RECEIVES = '3'
-process.env.READ_MODEL = 'model-under-test'
 
 const { handler } = await import('./reader.ts')
 const { chooseVersion, claimDocument, createDraft, getDocument, settleDocument } = await import('./document-table.ts')
@@ -71,7 +71,7 @@ test('keeps the fields of an answer that hold up, in grosze', async (t) => {
     dueDate: '2026-11-26',
   })
   assert.deepEqual(sent, [`GetObjectCommand processed/${sub}/${id}`], 'the version chosen')
-  assert.equal(requests[0]?.modelId, 'model-under-test')
+  assert.equal(requests[0]?.modelId, READ_MODEL)
 })
 
 test("leaves out what doesn't fit the document's rules", async (t) => {

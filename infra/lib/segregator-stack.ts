@@ -29,6 +29,7 @@ import {
   FILE_VERSIONS,
   GOOGLE_CALLBACK_PATH,
   PASSWORD_MIN_LENGTH,
+  READ_MODEL,
   RESTORE_DAYS,
   TTL_ATTRIBUTE,
   type FileVersion,
@@ -100,8 +101,6 @@ const PREPROCESS_TIMEOUT = Duration.seconds(30)
 const WORKER_TIMEOUT = Duration.seconds(15)
 // The model takes up to half a minute on a PDF.
 const READER_TIMEOUT = Duration.seconds(60)
-// The model that reads documents, through its EU inference profile. The reader may call this one and no other.
-const READ_MODEL = 'eu.amazon.nova-2-lite-v1:0'
 // Readings a month, as set on the first deploy. Like the sign-up list, a change in Parameter Store stays until
 // this value changes in the template.
 const READ_LIMITS = { account: 100, app: 2000 }
@@ -440,7 +439,6 @@ export class SegregatorStack extends Stack {
         TABLE_NAME: table.tableName,
         DOCUMENTS_BUCKET: documentsBucket.bucketName,
         MAX_RECEIVES: String(MAX_RECEIVES),
-        READ_MODEL,
       },
       logGroup: monthOfLogs('ReaderLogs'),
     })

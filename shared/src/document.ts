@@ -46,6 +46,9 @@ export type FileChoice = z.infer<typeof FileChoice>
 // A document with a file waits for it, then the worker checks it. One without a file is done at once.
 export type DocumentStatus = 'uploading' | 'processing' | 'done' | 'failed'
 
+// The model that reads documents, through its EU inference profile. The reader may call this one and no other.
+export const READ_MODEL = 'eu.amazon.nova-2-lite-v1:0'
+
 // The fields a reading of the file by the model can fill. The person checks them before saving.
 export type ReadResult = Partial<Pick<DocumentInput, 'type' | 'subtype' | 'issuer' | 'amount' | 'docDate' | 'dueDate'>>
 
