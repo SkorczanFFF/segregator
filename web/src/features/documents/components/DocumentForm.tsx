@@ -126,7 +126,7 @@ type DocumentFormProps = {
   // wider screen, or for a reading, shown everywhere.
   lock?: 'photo' | 'reading'
   // A reading's result to fill the fields with, once per reading. Each field it fills is marked until changed;
-  // on a saved document only the fields it changes, with the value they had.
+  // on a saved document the fields it changes also show the value they had.
   suggestion?: { id: string; result: ReadResult }
   // Without it the form has no Save button.
   onSave?: (input: DocumentInput) => Promise<void>
@@ -186,9 +186,12 @@ export default function DocumentForm({ doc, aside, top, lock, suggestion, onSave
     )
   }, [suggestion, form, doc, t])
 
+  // What the saved document's latest reading found, kept with the document.
+  const stored: Partial<DocumentValues> = doc?.read?.status === 'done' && doc.read.result ? readValues(doc.read.result) : {}
+
   // A mark lasts while the field holds what the reading put there.
   const marked = (field: ReadField) => {
-    const mark = marks[field]
+    const mark = marks[field] ?? (field in stored ? { value: stored[field] } : undefined)
     return mark && mark.value === form.values[field] ? mark : undefined
   }
   const labelOf = (field: ReadField, label: ReactNode) => (

@@ -2,6 +2,13 @@
 
 The minor version marks a stage of the build plan and the patch version each step or fix within it, as [Semantic Versioning](https://semver.org/spec/v2.0.0.html) allows before 1.0.0. Each entry starts with the version and its commit message, followed by a description of what changed.
 
+## 0.14.6 - feat: keep the AI marks on a saved document
+
+Released 2026-11-19.
+
+- A saved document marks each field that still holds what its latest reading by the model found, also after the page is opened again.
+- The demo account's documents are seeded the way a person adds them: about two thirds are read by the model first, so the fields it got right carry its mark.
+
 ## 0.14.5 - feat: add a privacy policy
 
 Released 2026-11-18.

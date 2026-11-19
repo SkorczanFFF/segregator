@@ -62,7 +62,7 @@ You need Node.js 24, pnpm (the version in `packageManager`), uv (at least the ve
 
 ### Demo documents
 
-The demo account shows the documents `demo/generate.py` draws. This draws them and puts them on dev through the dev stack's own pipeline, in place of whatever the demo account held:
+The demo account shows the documents `demo/generate.py` draws. This draws them and puts them on dev through the dev stack's own pipeline, with about two thirds read by the model first, in place of whatever the demo account held:
 
 ```sh
 uv run --directory demo python generate.py
