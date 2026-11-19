@@ -9,7 +9,7 @@ Live at [segregator.skoftware.pl](https://segregator.skoftware.pl), with a read-
 - `web/`: React front end (Vite, Mantine)
 - `api/`: Hono API, the worker that checks uploaded files, the reader that fills a document's fields with a model on Amazon Bedrock, the cleanup of abandoned drafts and the Cognito trigger that guards sign-up, each deployed as an AWS Lambda function
 - `preprocess/`: Python function that straightens photos of documents with OpenCV, managed with uv
-- `demo/`: Python script that draws the read-only demo's fictional documents as phone photos and straightens them with `preprocess/`, also with uv
+- `demo/`: Python script that draws fictional documents as phone photos, for the read-only demo and for the reading check, and straightens them with `preprocess/`, also with uv
 - `shared/`: Zod schemas, the category list and the file, auth and table constants used by the API, the web app and the stack
 - `infra/`: AWS CDK app stack and the CodePipeline that deploys it to `dev` and `prod`
 
@@ -70,6 +70,15 @@ pnpm --filter api seed:demo
 ```
 
 For prod, run `node --env-file=<file with the prod stack's outputs> src/seed-demo.ts` in `api/`.
+
+### Reading check
+
+How well the model reads is measured on twenty fictional documents: the demo's nine and eleven aimed at weak spots, such as a faded receipt, a warranty without an end date or dates written out in words. The check reads each photo as taken and as straightened three times with the reader's own prompt, compares every field with what is printed and writes the result to `demo/out/eval/report.md`. It calls the model straight, outside the app's limits, and takes about six minutes:
+
+```sh
+uv run --directory demo python generate.py eval
+cd api && node --env-file=.env src/evaluate-reading.ts
+```
 
 ## Tests
 

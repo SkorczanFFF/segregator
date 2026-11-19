@@ -1,6 +1,7 @@
-"""Draws the demo's documents into out/: each as a phone photo, straightened as the app does it, with its fields.
+"""Draws documents as phone photos, straightens them as the app does and writes their fields to a manifest.
 
-uv run python generate.py
+uv run python generate.py       the demo's, into out/
+uv run python generate.py eval  those the reading is measured on, into out/eval/
 
 The same seed gives the same files, so the demo can be drawn again on any machine with the web app's packages
 installed, which hold the typefaces.
@@ -14,6 +15,7 @@ import cv2
 import numpy as np
 
 from documents import DOCUMENTS
+from evaluation import EVALUATION
 from photo import photograph
 
 HERE = Path(__file__).resolve().parent
@@ -24,6 +26,7 @@ from document import straighten
 
 SEED = 2026
 QUALITY = 90
+SETS = {"demo": (DOCUMENTS, OUT), "eval": (EVALUATION, OUT / "eval")}
 
 
 def jpeg(image_rgb: np.ndarray) -> bytes:
@@ -33,14 +36,15 @@ def jpeg(image_rgb: np.ndarray) -> bytes:
     return data.tobytes()
 
 
-def main():
-    OUT.mkdir(exist_ok=True)
+def main(name: str):
+    documents, out = SETS[name]
+    out.mkdir(parents=True, exist_ok=True)
     manifest = []
-    for index, document in enumerate(DOCUMENTS):
+    for index, document in enumerate(documents):
         rng = np.random.default_rng(SEED + index)
         photo = photograph(document.draw(rng), document.mm, document.ground, rng, document.turn, document.crease)
         raw = jpeg(photo)
-        (OUT / f"{document.slug}.jpg").write_bytes(raw)
+        (out / f"{document.slug}.jpg").write_bytes(raw)
         straightened = straighten(cv2.cvtColor(photo, cv2.COLOR_RGB2BGR))
         entry = {
             "slug": document.slug,
@@ -49,12 +53,12 @@ def main():
         }
         if straightened:
             processed = jpeg(cv2.cvtColor(straightened.image, cv2.COLOR_BGR2RGB))
-            (OUT / f"{document.slug}.processed.jpg").write_bytes(processed)
+            (out / f"{document.slug}.processed.jpg").write_bytes(processed)
             entry["processed"] = {"file": f"{document.slug}.processed.jpg", "change": straightened.change}
         manifest.append(entry)
         print(document.slug, straightened.change if straightened else "unchanged")
-    (OUT / "manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8")
+    (out / "manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8")
 
 
 if __name__ == "__main__":
-    main()
+    main(sys.argv[1] if len(sys.argv) > 1 else "demo")

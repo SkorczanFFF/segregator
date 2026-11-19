@@ -1,7 +1,8 @@
 import { createHash } from 'node:crypto'
 import { readFile } from 'node:fs/promises'
 import { join } from 'node:path'
-import { DocumentInput, type Document, type Draft, type FileChange } from 'shared'
+import { DocumentInput, type Document, type Draft } from 'shared'
+import { DEMO_OUT, PHOTO_TYPE, readManifest } from './demo-manifest.ts'
 import { deleteAccountFiles, signUpload } from './document-files.ts'
 import { chooseVersion, createDraft, deleteAccountItems, getDocument, updateDocument } from './document-table.ts'
 import { queueRead } from './read-jobs.ts'
@@ -13,11 +14,8 @@ import { DEMO } from './session.ts'
 // own pipeline, as an upload does, and about two thirds of them are read by the model before their true fields
 // are saved, so the fields it got right keep its mark. For another stage: node --env-file=<its env file> src/seed-demo.ts
 
-type Entry = { slug: string; fields: unknown; raw: { file: string }; processed?: { change?: FileChange } }
 type State = 'waiting' | 'done' | 'failed'
 
-const DIR = '../demo/out'
-const TYPE = 'image/jpeg'
 const CHECK_TRIES = 60
 const CHECK_PAUSE = 2000
 // The same documents on every stage and every run.
@@ -49,18 +47,18 @@ async function read(id: string, fields: DocumentInput) {
   return `read ${right.length} of ${found.length} right`
 }
 
-const manifest: Entry[] = JSON.parse(await readFile(join(DIR, 'manifest.json'), 'utf8'))
+const manifest = await readManifest(DEMO_OUT)
 await deleteAccountItems(DEMO.sub)
 await deleteAccountFiles(DEMO.sub)
 
 for (const entry of manifest) {
   const fields = DocumentInput.parse(entry.fields)
-  const bytes = await readFile(join(DIR, entry.raw.file))
+  const bytes = await readFile(join(DEMO_OUT, entry.raw.file))
   const draft = await createDraft(DEMO.sub, createHash('sha256').update(bytes).digest('hex'), bytes.length)
-  const { url, fields: post } = await signUpload(DEMO.sub, draft.id, TYPE, bytes.length)
+  const { url, fields: post } = await signUpload(DEMO.sub, draft.id, PHOTO_TYPE, bytes.length)
   const form = new FormData()
   for (const [name, value] of Object.entries(post)) form.append(name, value)
-  form.append('file', new Blob([bytes], { type: TYPE }))
+  form.append('file', new Blob([bytes], { type: PHOTO_TYPE }))
   const sent = await fetch(url, { method: 'POST', body: form })
   if (!sent.ok) throw new Error(`${entry.slug}: S3 answered ${sent.status}`)
 
