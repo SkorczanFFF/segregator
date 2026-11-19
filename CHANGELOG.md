@@ -2,6 +2,12 @@
 
 The minor version marks a stage of the build plan and the patch version each step or fix within it, as [Semantic Versioning](https://semver.org/spec/v2.0.0.html) allows before 1.0.0. Each entry starts with the version and its commit message, followed by a description of what changed.
 
+## 0.15.1 - feat: color the scrollbars with the brand
+
+Released 2026-11-19.
+
+- The page's scrollbars and those of scrolling boxes, such as a list of suggestions, are the brand's purple on a clear track, in the light and the dark theme.
+
 ## 0.15.0 - feat: read Polish dates, issuers and amounts more reliably
 
 Released 2026-11-19.

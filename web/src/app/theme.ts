@@ -8,6 +8,7 @@ import {
   Paper,
   PasswordInput,
   rgba,
+  ScrollArea,
   TextInput,
   Tooltip,
   type CSSVariablesResolver,
@@ -97,10 +98,12 @@ export const cssVariablesResolver: CSSVariablesResolver = (theme) => ({
     '--mantine-color-orange-text': ORANGE_TEXT,
     '--mantine-color-orange-light-color': ORANGE_TEXT,
     '--mantine-color-green-text': '#1f6b30',
+    '--app-scrollbar': theme.colors.brand[4],
   },
   dark: {
     ...typeTints('dark'),
     '--app-page-bg': theme.colors.dark[8],
+    '--app-scrollbar': theme.colors.brand[7],
     '--mantine-color-default-border': theme.colors.dark[3],
     '--mantine-color-error': theme.colors.red[4],
     '--mantine-color-red-light-color': theme.colors.red[4],
@@ -148,6 +151,8 @@ export const theme = createTheme({
       defaultProps: { radius: 'md', shadow: 'md', withBorder: true },
     }),
     PasswordInput: PasswordInput.extend({ defaultProps: { size: 'md' } }),
+    // The thumb of Mantine's own scrollbars, such as in a list of suggestions, matches the page's.
+    ScrollArea: ScrollArea.extend({ styles: { thumb: { backgroundColor: 'var(--app-scrollbar)' } } }),
     TextInput: TextInput.extend({ defaultProps: { size: 'md' } }),
     Tooltip: Tooltip.extend({
       defaultProps: { withArrow: true, openDelay: 300 },

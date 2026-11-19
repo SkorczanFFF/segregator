@@ -5,6 +5,12 @@
   --app-tag-offset: 3px;
 }
 
+/* Scrollbars in the brand's color on a clear track, the page's and every scrolling box's, as the property is
+   inherited. */
+:root {
+  scrollbar-color: var(--app-scrollbar) transparent;
+}
+
 /* Colors only, so reduced motion is respected. */
 .mantine-Button-root,
 .mantine-ActionIcon-root,
