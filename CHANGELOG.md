@@ -2,6 +2,16 @@
 
 The minor version marks a stage of the build plan and the patch version each step or fix within it, as [Semantic Versioning](https://semver.org/spec/v2.0.0.html) allows before 1.0.0. Each entry starts with the version and its commit message, followed by a description of what changed.
 
+## 0.16.1 - feat: open each category of documents from the menu
+
+Released 2026-11-20.
+
+- The side menu lists all the documents and each category under Documents: receipts, invoices, warranties, policies, contracts, bills and other. A click on Documents hides or shows them, and the browser remembers the choice.
+- A category's list has the category's name as its title, and its filters are the period and the category's subcategories. While the menu hides the categories, and always on a phone, the types stay in the filters with the category's type chosen, and choosing another type shows both in the whole list.
+- A document opened from a list goes back to it with its filters, from Back, Cancel, saving and deleting. A new document added from a list goes back there too.
+- An empty category says it has no documents yet.
+- The privacy policy says that the browser's storage also keeps view settings, in force from 20 November 2026.
+
 ## 0.16.0 - feat: filter the document list by period and type
 
 Released 2026-11-19.

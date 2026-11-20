@@ -2,14 +2,15 @@ import { Paper, Skeleton, Text } from '@mantine/core'
 import { useDisclosure } from '@mantine/hooks'
 import { useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
-import { Navigate, useNavigate, useParams } from 'react-router'
+import { Navigate, useLocation, useNavigate, useParams } from 'react-router'
 import type { Document, DocumentInput } from 'shared'
 import { useSession } from '~/features/auth/session.ts'
 import DocumentForm from '~/features/documents/components/DocumentForm.tsx'
 import DocumentSummary from '~/features/documents/components/DocumentSummary.tsx'
 import ReadPanel from '~/features/documents/components/ReadPanel.tsx'
 import SavedFile from '~/features/documents/components/SavedFile.tsx'
-import { documentName, PAGE_WIDTH } from '~/features/documents/look.ts'
+import { categoryOf, fromList, listOf } from '~/features/documents/filters.ts'
+import { documentName, listName, PAGE_WIDTH } from '~/features/documents/look.ts'
 import { documentKey, isReading, refreshDocuments, useDocument, useReadOutcome } from '~/features/documents/useDocuments.ts'
 import ApiErrorAlert from '~/shared/components/ApiErrorAlert.tsx'
 import ConfirmModal from '~/shared/components/ConfirmModal.tsx'
@@ -22,6 +23,8 @@ export default function DocumentPage() {
   const { t } = useTranslation()
   const { id = '' } = useParams()
   const navigate = useNavigate()
+  const location = useLocation()
+  const list = listOf(location)
   const queryClient = useQueryClient()
   const [confirming, { open, close }] = useDisclosure()
   const { data: doc, error } = useDocument(id)
@@ -34,23 +37,23 @@ export default function DocumentPage() {
   async function save(input: DocumentInput) {
     queryClient.setQueryData(documentKey(id), await api.put<Document>(`/documents/${id}`, input))
     await refreshDocuments(queryClient)
-    navigate('/documents')
+    navigate(list)
   }
 
   const remove = useApiSubmit(async () => {
     await api.delete(`/documents/${id}`)
     await refreshDocuments(queryClient)
-    navigate('/documents')
+    navigate(list)
     queryClient.removeQueries({ queryKey: documentKey(id), exact: true })
   })
 
   // A draft goes on where new documents are made.
-  if (doc?.draft) return <Navigate to={`/documents/new?draft=${doc.id}`} replace />
+  if (doc?.draft) return <Navigate to={`/documents/new?draft=${doc.id}`} state={fromList(location)} replace />
 
   return (
     <Page
       title={doc ? documentName(doc) : t('documents.document')}
-      back={{ to: '/documents', label: t('documents.title') }}
+      back={{ to: list, label: listName(t, categoryOf(list)) }}
       actions={
         doc && (
           <Text size="sm" c="dimmed">

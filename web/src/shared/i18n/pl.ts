@@ -129,12 +129,15 @@ export const pl = {
       documents: 'Dokumenty',
       add: 'Dodaj',
       account: 'Konto',
+      all: 'Wszystkie',
     },
   },
   documents: {
     title: 'Dokumenty',
     empty: 'Nie ma jeszcze żadnych dokumentów',
     emptyHint: 'Tu pojawią się paragony, gwarancje, polisy i umowy, od najnowszych.',
+    emptyCategory: 'Nie ma tu jeszcze dokumentów',
+    emptyCategoryHint: 'Tu pojawią się dokumenty tego rodzaju, od najnowszych.',
     loadMore: 'Pokaż starsze',
     filters: {
       title: 'Filtry',
@@ -166,7 +169,7 @@ export const pl = {
       export: 'Eksport CSV',
       shown: 'Pokazano {{shown}} z {{count}}',
       none: 'Żaden dokument nie pasuje do filtrów',
-      noneHint: 'Zmień okres albo rodzaj, albo wyczyść filtry.',
+      noneHint: 'Zmień filtry albo je wyczyść.',
     },
     add: 'Dodaj dokument',
     new: 'Nowy dokument',
@@ -316,6 +319,16 @@ export const pl = {
       bill: 'Rachunek',
       other: 'Inne',
     } satisfies Record<DocumentType, string>,
+    // A category's list: its name in the menu, as the page's title and on Back.
+    plural: {
+      receipt: 'Paragony',
+      invoice: 'Faktury',
+      warranty: 'Gwarancje',
+      policy: 'Polisy',
+      contract: 'Umowy',
+      bill: 'Rachunki',
+      other: 'Inne',
+    } satisfies Record<DocumentType, string>,
     subtypes: {
       fuel: 'Tankowanie',
       groceries: 'Spożywcze',
@@ -390,7 +403,7 @@ export const pl = {
         list: [
           '__Host-session utrzymuje zalogowanie, najdłużej {{maxDays}} dni.',
           '__Host-google zabezpiecza logowanie przez Google na czas jego trwania.',
-          'Pamięć przeglądarki (localStorage) przechowuje wybrany język i motyw.',
+          'Pamięć przeglądarki (localStorage) przechowuje wybrany język, motyw i ustawienia widoku.',
         ],
       },
       {

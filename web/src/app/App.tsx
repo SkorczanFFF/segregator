@@ -1,4 +1,5 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router'
+import { DOCUMENT_TYPES } from 'shared'
 import AppLayout from '~/app/AppLayout.tsx'
 import AccountPage from '~/features/account/pages/AccountPage.tsx'
 import SessionGate from '~/features/auth/components/SessionGate.tsx'
@@ -9,6 +10,7 @@ import ResetPasswordPage from '~/features/auth/pages/ResetPasswordPage.tsx'
 import EntryPage from '~/features/auth/pages/EntryPage.tsx'
 import SignInPage from '~/features/auth/pages/SignInPage.tsx'
 import SignUpPage from '~/features/auth/pages/SignUpPage.tsx'
+import { listPath } from '~/features/documents/filters.ts'
 import DocumentPage from '~/features/documents/pages/DocumentPage.tsx'
 import DocumentsPage from '~/features/documents/pages/DocumentsPage.tsx'
 import NewDocumentPage from '~/features/documents/pages/NewDocumentPage.tsx'
@@ -29,7 +31,10 @@ export default function App() {
           </Route>
           <Route element={<SessionGate signedIn />}>
             <Route element={<AppLayout />}>
-              <Route path="/documents" element={<DocumentsPage />} />
+              <Route path={listPath()} element={<DocumentsPage />} />
+              {DOCUMENT_TYPES.map((type) => (
+                <Route key={type} path={listPath(type)} element={<DocumentsPage category={type} />} />
+              ))}
               <Route path="/documents/new" element={<NewDocumentPage />} />
               <Route path="/documents/:id" element={<DocumentPage />} />
               <Route path="/account" element={<AccountPage />} />

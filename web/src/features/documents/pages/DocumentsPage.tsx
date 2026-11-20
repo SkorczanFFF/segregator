@@ -2,15 +2,15 @@ import { Button, Divider, Group, Paper, Skeleton, Stack, Text, Title, UnstyledBu
 import { IconChevronRight, IconFileText, IconFilterOff, IconPlus } from '@tabler/icons-react'
 import { Fragment } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Link, useSearchParams } from 'react-router'
-import type { Document } from 'shared'
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router'
+import type { Document, DocumentType } from 'shared'
 import decor from '~/app/decor.module.css'
 import { useSession } from '~/features/auth/session.ts'
 import DocumentFilters from '~/features/documents/components/DocumentFilters.tsx'
 import DocumentSummary from '~/features/documents/components/DocumentSummary.tsx'
 import classes from '~/features/documents/components/documents.module.css'
-import { apiQuery, hasFilter, readFilter, writeFilter } from '~/features/documents/filters.ts'
-import { CARD_INSET } from '~/features/documents/look.ts'
+import { apiQuery, fromList, hasFilter, listAddress, readFilter } from '~/features/documents/filters.ts'
+import { CARD_INSET, listName, TYPE_LOOKS } from '~/features/documents/look.ts'
 import { useDocuments } from '~/features/documents/useDocuments.ts'
 import Page from '~/shared/components/Page.tsx'
 import ApiErrorAlert from '~/shared/components/ApiErrorAlert.tsx'
@@ -28,11 +28,12 @@ function byMonth(items: Document[]) {
   return months
 }
 
-function DocumentRow({ doc }: { doc: Document }) {
+function DocumentRow({ doc, from }: { doc: Document; from: ReturnType<typeof fromList> }) {
   return (
     <UnstyledButton
       component={Link}
       to={`/documents/${doc.id}`}
+      state={from}
       py="sm"
       px={CARD_INSET}
       className={classes.row}
@@ -46,25 +47,35 @@ function DocumentRow({ doc }: { doc: Document }) {
   )
 }
 
-export default function DocumentsPage() {
+// The whole list, or a category's from the menu.
+export default function DocumentsPage({ category }: { category?: DocumentType }) {
   const { t } = useTranslation()
   // The filter lives in the address, so a filtered list can be refreshed or shared, and going back undoes a change.
-  const [params, setParams] = useSearchParams()
-  const filter = readFilter(params)
+  const [params] = useSearchParams()
+  const navigate = useNavigate()
+  const filter = readFilter(params, category)
   const filtered = hasFilter(filter)
   const { items, summary, error, hasMore, loadMore, loadingMore, updating } = useDocuments(apiQuery(filter))
   const { user } = useSession()
-  const clear = () => setParams(new URLSearchParams())
+  const from = fromList(useLocation())
+  const clear = () => navigate(listAddress({ category, types: [] }))
+  // An empty list: nothing matches the filters, or the category or the whole account has nothing yet.
+  const empty = filtered
+    ? { icon: IconFilterOff, title: t('documents.filters.none'), hint: t('documents.filters.noneHint') }
+    : category
+      ? { icon: TYPE_LOOKS[category].icon, title: t('documents.emptyCategory'), hint: t('documents.emptyCategoryHint') }
+      : { icon: IconFileText, title: t('documents.empty'), hint: t('documents.emptyHint') }
 
   return (
     <Page
-      title={t('documents.title')}
+      title={listName(t, category)}
       // On a phone adding a document is in the menu at the bottom.
       actions={
         !user?.demo && (
           <Button
             component={Link}
             to="/documents/new"
+            state={from}
             leftSection={<IconPlus size={18} aria-hidden />}
             visibleFrom="sm"
             className={decor.stamp}
@@ -75,9 +86,9 @@ export default function DocumentsPage() {
       }
     >
       <ApiErrorAlert code={error} />
-      {/* An account without documents has nothing to filter yet. */}
-      {(filtered || items?.length !== 0) && (
-        <DocumentFilters filter={filter} onChange={(next) => setParams(writeFilter(next))} summary={summary} />
+      {/* The whole list of an account without documents has nothing to filter yet. */}
+      {(filtered || category || items?.length !== 0) && (
+        <DocumentFilters filter={filter} onChange={(next) => navigate(listAddress(next))} summary={summary} />
       )}
       {!items && !error && (
         <Paper p="xl" aria-busy>
@@ -89,10 +100,10 @@ export default function DocumentsPage() {
       {items?.length === 0 && (
         <Paper p="xl">
           <Stack align="center" gap="xs" ta="center">
-            {filtered ? <IconFilterOff size={32} stroke={1.5} aria-hidden /> : <IconFileText size={32} stroke={1.5} aria-hidden />}
-            <Text fw={600}>{filtered ? t('documents.filters.none') : t('documents.empty')}</Text>
+            <empty.icon size={32} stroke={1.5} aria-hidden />
+            <Text fw={600}>{empty.title}</Text>
             <Text size="sm" c="dimmed">
-              {filtered ? t('documents.filters.noneHint') : t('documents.emptyHint')}
+              {empty.hint}
             </Text>
             {filtered && (
               <Button variant="light" mt="xs" onClick={clear}>
@@ -119,7 +130,7 @@ export default function DocumentsPage() {
                 {docs.map((doc, index) => (
                   <Fragment key={doc.id}>
                     {index > 0 && <Divider />}
-                    <DocumentRow doc={doc} />
+                    <DocumentRow doc={doc} from={from} />
                   </Fragment>
                 ))}
               </Paper>

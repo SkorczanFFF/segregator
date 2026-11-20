@@ -9,9 +9,10 @@ import classes from '~/features/documents/components/filters.module.css'
 import PeriodControl from '~/features/documents/components/PeriodControl.tsx'
 import ScrollRow from '~/features/documents/components/ScrollRow.tsx'
 import { documentsCsv, saveFile } from '~/features/documents/csv.ts'
-import { apiQuery, hasFilter, type ListFilter } from '~/features/documents/filters.ts'
+import { apiQuery, hasFilter, singleType, typesOf, type ListFilter } from '~/features/documents/filters.ts'
 import { toggle, TYPE_LOOKS } from '~/features/documents/look.ts'
 import { fetchAllDocuments } from '~/features/documents/useDocuments.ts'
+import { useMenuCategories } from '~/features/documents/useMenuCategories.ts'
 import ApiErrorAlert from '~/shared/components/ApiErrorAlert.tsx'
 import { useApiSubmit } from '~/shared/hooks/useApiSubmit.ts'
 import { formatMoney } from '~/shared/lib/format.ts'
@@ -23,13 +24,15 @@ type DocumentFiltersProps = {
 }
 
 // The period, the types and, with one type chosen, its subcategories, over the whole filtered list counted and
-// added up. On a wider screen all of it sticks under the header as the list scrolls; on a phone the row of the
+// added up. In a category, while the side menu shows the categories, its subcategories take the place of the
+// types. On a wider screen all of it sticks under the header as the list scrolls; on a phone the row of the
 // period and the types does.
 export default function DocumentFilters({ filter, onChange, summary }: DocumentFiltersProps) {
   const { t } = useTranslation()
   const theme = useMantineTheme()
   // Below the sm breakpoint, where the menu moves to the bottom of the screen.
   const phone = !useMediaQuery(`(min-width: ${theme.breakpoints.sm})`, true, { getInitialValueInEffect: false })
+  const [menuCategories] = useMenuCategories()
   const anchor = useRef<HTMLDivElement>(null)
   const exporting = useApiSubmit(async () => {
     const docs = await fetchAllDocuments(apiQuery(filter))
@@ -45,71 +48,79 @@ export default function DocumentFilters({ filter, onChange, summary }: DocumentF
     }
   }
 
+  const { category } = filter
+  const typesShown = !category || phone || !menuCategories
+  const chosenTypes = typesOf(filter)
+
+  // A type pressed or released goes on in the whole list, with the period. A subcategory belongs to the one type
+  // it was picked with.
   const toggleType = (type: DocumentType) =>
     change({
-      ...filter,
-      types: filter.types.includes(type)
-        ? filter.types.filter((chosen) => chosen !== type)
-        : DOCUMENT_TYPES.filter((each) => each === type || filter.types.includes(each)),
-      // A subcategory belongs to the one type it was picked with.
-      subtype: undefined,
+      period: filter.period,
+      types: chosenTypes.includes(type)
+        ? chosenTypes.filter((chosen) => chosen !== type)
+        : DOCUMENT_TYPES.filter((each) => each === type || chosenTypes.includes(each)),
     })
 
-  const [only] = filter.types
-  const subtypes = only && filter.types.length === 1 ? CATEGORIES[only] : []
+  const only = singleType(filter)
+  const subtypes = only ? CATEGORIES[only] : []
+  // The buttons beside the period, as large as it is.
+  const main = { size: 'sm', h: phone ? 40 : undefined, px: 'sm' } as const
 
   const period = (
     <PeriodControl period={filter.period} onChange={(next) => change({ ...filter, period: next })} phone={phone} />
   )
 
-  const typeButtons = (
+  const typeButtons = DOCUMENT_TYPES.map((type) => {
+    const chosen = chosenTypes.includes(type)
+    return (
+      <Button
+        key={type}
+        {...main}
+        flex="none"
+        {...toggle(chosen, TYPE_LOOKS[type].color)}
+        leftSection={chosen && <IconCheck size={14} stroke={2.5} aria-hidden />}
+        onClick={() => toggleType(type)}
+      >
+        {t(`categories.types.${type}`)}
+      </Button>
+    )
+  })
+
+  const subtypeButtons =
+    only &&
+    subtypes.map((subtype) => {
+      const chosen = subtype === filter.subtype
+      return (
+        <Button
+          key={subtype}
+          {...(typesShown ? { size: phone ? 'sm' : 'compact-sm' } : main)}
+          flex="none"
+          {...toggle(chosen, TYPE_LOOKS[only].color)}
+          onClick={() => change({ ...filter, subtype: chosen ? undefined : subtype })}
+        >
+          {t(`categories.subtypes.${subtype}`)}
+        </Button>
+      )
+    })
+  const subtypesLabel = t('documents.fields.subtype')
+
+  // Beside the period: the types, or in their place the category's subcategories, which Other has none of.
+  const choices = (typesShown || subtypes.length > 0) && (
     <Group
       gap={6}
       wrap={phone ? 'nowrap' : 'wrap'}
       // Beside the period while they have room, under it on a narrow screen.
       flex={phone ? 'none' : '1 1 320px'}
       role="group"
-      aria-label={t('documents.fields.type')}
+      aria-label={typesShown ? t('documents.fields.type') : subtypesLabel}
     >
-      {DOCUMENT_TYPES.map((type) => {
-        const chosen = filter.types.includes(type)
-        return (
-          <Button
-            key={type}
-            size="sm"
-            h={phone ? 40 : undefined}
-            px="sm"
-            flex="none"
-            {...toggle(chosen, TYPE_LOOKS[type].color)}
-            leftSection={chosen && <IconCheck size={14} stroke={2.5} aria-hidden />}
-            onClick={() => toggleType(type)}
-          >
-            {t(`categories.types.${type}`)}
-          </Button>
-        )
-      })}
+      {typesShown ? typeButtons : subtypeButtons}
     </Group>
   )
 
-  const subtypeList = only && subtypes.length > 0 && (
-    <>
-      {subtypes.map((subtype) => {
-        const chosen = subtype === filter.subtype
-        return (
-          <Button
-            key={subtype}
-            size={phone ? 'sm' : 'compact-sm'}
-            flex="none"
-            {...toggle(chosen, TYPE_LOOKS[only].color)}
-            onClick={() => change({ ...filter, subtype: chosen ? undefined : subtype })}
-          >
-            {t(`categories.subtypes.${subtype}`)}
-          </Button>
-        )
-      })}
-    </>
-  )
-  const subtypesLabel = t('documents.fields.subtype')
+  // The subcategories of the one type, in a row under the period and the types.
+  const subtypeRow = typesShown && subtypes.length > 0 && subtypeButtons
 
   const totals = (
     <Group justify="space-between" gap="xs" wrap="nowrap">
@@ -130,7 +141,12 @@ export default function DocumentFilters({ filter, onChange, summary }: DocumentF
       </Text>
       <Group gap={4} wrap="nowrap" flex="none">
         {hasFilter(filter) && (
-          <Button variant="subtle" size={phone ? 'sm' : 'compact-sm'} h={phone ? 40 : 30} onClick={() => change({ types: [] })}>
+          <Button
+            variant="subtle"
+            size={phone ? 'sm' : 'compact-sm'}
+            h={phone ? 40 : 30}
+            onClick={() => change({ category, types: [] })}
+          >
             {phone ? t('documents.filters.clearShort') : t('documents.filters.clear')}
           </Button>
         )}
@@ -169,14 +185,18 @@ export default function DocumentFilters({ filter, onChange, summary }: DocumentF
         <section aria-label={t('documents.filters.title')} className={classes.sticky}>
           <ScrollRow nudge className={classes.bleed}>
             {period}
-            <Divider orientation="vertical" my={8} />
-            {typeButtons}
+            {choices && (
+              <>
+                <Divider orientation="vertical" my={8} />
+                {choices}
+              </>
+            )}
           </ScrollRow>
         </section>
         <Stack gap="xs" className={classes.under}>
-          {subtypeList && (
+          {subtypeRow && (
             <ScrollRow role="group" aria-label={subtypesLabel} className={classes.bleed}>
-              {subtypeList}
+              {subtypeRow}
             </ScrollRow>
           )}
           {totals}
@@ -194,11 +214,11 @@ export default function DocumentFilters({ filter, onChange, summary }: DocumentF
           <Stack gap="sm" px="md" py="sm">
             <Group gap="sm" align="flex-start">
               {period}
-              {typeButtons}
+              {choices}
             </Group>
-            {subtypeList && (
+            {subtypeRow && (
               <Group gap={6} role="group" aria-label={subtypesLabel}>
-                {subtypeList}
+                {subtypeRow}
               </Group>
             )}
           </Stack>

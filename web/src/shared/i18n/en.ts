@@ -128,12 +128,15 @@ export const en: Translation = {
       documents: 'Documents',
       add: 'Add',
       account: 'Account',
+      all: 'All',
     },
   },
   documents: {
     title: 'Documents',
     empty: 'No documents yet',
     emptyHint: 'Receipts, warranties, policies and contracts will show up here, newest first.',
+    emptyCategory: 'No documents here yet',
+    emptyCategoryHint: 'Documents of this type will show up here, newest first.',
     loadMore: 'Show older',
     filters: {
       title: 'Filters',
@@ -165,7 +168,7 @@ export const en: Translation = {
       export: 'Export CSV',
       shown: 'Showing {{shown}} of {{count}}',
       none: 'No documents match the filters',
-      noneHint: 'Change the period or the type, or clear the filters.',
+      noneHint: 'Change the filters or clear them.',
     },
     add: 'Add document',
     new: 'New document',
@@ -314,6 +317,15 @@ export const en: Translation = {
       bill: 'Bill',
       other: 'Other',
     },
+    plural: {
+      receipt: 'Receipts',
+      invoice: 'Invoices',
+      warranty: 'Warranties',
+      policy: 'Policies',
+      contract: 'Contracts',
+      bill: 'Bills',
+      other: 'Other',
+    },
     subtypes: {
       fuel: 'Fuel',
       groceries: 'Groceries',
@@ -388,7 +400,7 @@ export const en: Translation = {
         list: [
           '__Host-session keeps you signed in, for {{maxDays}} days at most.',
           '__Host-google protects signing in with Google while it lasts.',
-          'Browser storage (localStorage) keeps your chosen language and color scheme.',
+          'Browser storage (localStorage) keeps your chosen language, color scheme and view settings.',
         ],
       },
       {

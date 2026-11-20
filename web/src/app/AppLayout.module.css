@@ -32,6 +32,13 @@
   font-weight: 700;
 }
 
+/* All the documents and their categories, on a line down from the middle of the documents' 18px icon. */
+.categories {
+  margin-left: calc(var(--mantine-spacing-sm) + 9px);
+  padding-left: 6px;
+  border-left: 1px solid var(--mantine-color-default-border);
+}
+
 /* The menu on a phone: the two pages either side of adding a document, which stands up out of the bar. */
 .bar {
   height: 100%;

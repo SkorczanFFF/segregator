@@ -4,7 +4,7 @@ import { IconScan } from '@tabler/icons-react'
 import { useQueryClient } from '@tanstack/react-query'
 import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Link, Navigate, useNavigate, useSearchParams } from 'react-router'
+import { Link, Navigate, useLocation, useNavigate, useSearchParams } from 'react-router'
 import { isPdf, needsChoice, type Document, type DocumentInput } from 'shared'
 import decor from '~/app/decor.module.css'
 import { useSession } from '~/features/auth/session.ts'
@@ -14,7 +14,8 @@ import DraftFile from '~/features/documents/components/DraftFile.tsx'
 import FileField from '~/features/documents/components/FileField.tsx'
 import FileStages from '~/features/documents/components/FileStages.tsx'
 import ReadPanel from '~/features/documents/components/ReadPanel.tsx'
-import { PAGE_WIDTH } from '~/features/documents/look.ts'
+import { categoryOf, fromList, listOf } from '~/features/documents/filters.ts'
+import { listName, PAGE_WIDTH } from '~/features/documents/look.ts'
 import { documentKey, isReading, refreshDocuments, useDocument, useReadOutcome } from '~/features/documents/useDocuments.ts'
 import type { FileToSend } from '~/features/upload/prepare.ts'
 import { uploadDraft } from '~/features/upload/upload.ts'
@@ -33,6 +34,10 @@ export default function NewDocumentPage() {
   const { t } = useTranslation()
   const { user } = useSession()
   const navigate = useNavigate()
+  const location = useLocation()
+  const list = listOf(location)
+  // Kept as the draft changes the address, so the page goes back to the list it was opened from.
+  const from = fromList(location)
   const queryClient = useQueryClient()
   const [params, setParams] = useSearchParams()
   const draftId = params.get('draft') ?? undefined
@@ -94,7 +99,7 @@ export default function NewDocumentPage() {
     setProgress(0)
     try {
       const id = await uploadDraft(picked, {
-        onCreated: (created) => setParams({ draft: created }, { replace: true }),
+        onCreated: (created) => setParams({ draft: created }, { replace: true, state: from }),
         onProgress: setProgress,
         signal: controller.signal,
       })
@@ -104,7 +109,7 @@ export default function NewDocumentPage() {
       // Cancelled: the page is already on its way out.
       if (controller.signal.aborted) return
       // The upload deleted its draft, so the picked file can be sent again.
-      setParams({}, { replace: true })
+      setParams({}, { replace: true, state: from })
       if (err instanceof ApiError && err.code === 'duplicate' && err.id) setDuplicate({ hash: picked.hash, id: err.id })
       throw err
     } finally {
@@ -121,25 +126,25 @@ export default function NewDocumentPage() {
     await discard()
     setPicked(null)
     setRound((count) => count + 1)
-    setParams({}, { replace: true })
+    setParams({}, { replace: true, state: from })
   }
 
   async function cancel() {
     await discard()
-    navigate('/documents')
+    navigate(list)
   }
 
   async function save(input: DocumentInput) {
     if (draftId) await api.put<Document>(`/documents/${draftId}`, input)
     else await api.post('/documents', input)
     await refreshDocuments(queryClient)
-    navigate('/documents')
+    navigate(list)
     if (draftId) queryClient.removeQueries({ queryKey: documentKey(draftId), exact: true })
   }
 
-  if (user?.demo) return <Navigate to="/documents" replace />
+  if (user?.demo) return <Navigate to={list} replace />
   // A saved document opens on its own page.
-  if (data && !data.draft) return <Navigate to={`/documents/${data.id}`} replace />
+  if (data && !data.draft) return <Navigate to={`/documents/${data.id}`} state={from} replace />
 
   const aside = (
     <Stack gap="md">
@@ -158,7 +163,7 @@ export default function NewDocumentPage() {
           {duplicateOf ? (
             <StatusAlert status="warning">
               {t('errors.duplicate')}{' '}
-              <Anchor component={Link} to={`/documents/${duplicateOf}`} inherit fw={600}>
+              <Anchor component={Link} to={`/documents/${duplicateOf}`} state={from} inherit fw={600}>
                 {t('documents.openDuplicate')}
               </Anchor>
             </StatusAlert>
@@ -203,7 +208,7 @@ export default function NewDocumentPage() {
   )
 
   return (
-    <Page title={t('documents.new')} back={{ to: '/documents', label: t('documents.title') }} width={PAGE_WIDTH.withFile}>
+    <Page title={t('documents.new')} back={{ to: list, label: listName(t, categoryOf(list)) }} width={PAGE_WIDTH.withFile}>
       <ApiErrorAlert code={apiError} />
       <DocumentSteps active={ready ? 2 : tracked || sending ? 1 : 0} />
       <DocumentForm

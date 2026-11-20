@@ -40,6 +40,10 @@ export const CARD_INSET = { base: 'md', sm: 'xl' } as const
 // A document's page: the fields alone, or wide enough for the file in a column beside them.
 export const PAGE_WIDTH = { fields: 560, withFile: 1100 } as const
 
+// A list's name: its category's, e.g. Receipts, or the whole list's.
+export const listName = (t: TFunction, category?: DocumentType) =>
+  category ? t(`categories.plural.${category}`) : t('documents.title')
+
 // A document's own name, or its issuer when it has none.
 export const documentName = (doc: Pick<DocumentInput, 'title' | 'issuer'>) => doc.title ?? doc.issuer
 

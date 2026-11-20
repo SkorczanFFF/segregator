@@ -21,7 +21,7 @@ import { IconBuildingStore, IconCalendar, IconCalendarDue, IconLock, IconTag, Ic
 import dayjs from 'dayjs'
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Link } from 'react-router'
+import { Link, useLocation } from 'react-router'
 import {
   AMOUNT_MAX,
   CATEGORIES,
@@ -37,6 +37,7 @@ import {
 import decor from '~/app/decor.module.css'
 import AiMark from '~/features/documents/components/AiMark.tsx'
 import classes from '~/features/documents/components/documents.module.css'
+import { listOf } from '~/features/documents/filters.ts'
 import {
   CARD_INSET,
   describeDocument,
@@ -137,6 +138,7 @@ type DocumentFormProps = {
 export default function DocumentForm({ doc, aside, top, lock, suggestion, onSave, onDelete, onCancel }: DocumentFormProps) {
   const locked = lock !== undefined
   const { t, i18n } = useTranslation()
+  const list = listOf(useLocation())
   const formError = useFormError({ maxLength: TEXT_MAX_LENGTH, maxAmount: formatMoney(AMOUNT_MAX, 'compact') })
   // Controlled, so the card's top and the subcategories follow what is entered.
   const form = useForm<DocumentValues>({
@@ -409,7 +411,7 @@ export default function DocumentForm({ doc, aside, top, lock, suggestion, onSave
               {t('common.cancel')}
             </Button>
           ) : (
-            <Button component={Link} to="/documents" variant="subtle" color="gray" ml="auto">
+            <Button component={Link} to={list} variant="subtle" color="gray" ml="auto">
               {t('common.cancel')}
             </Button>
           )}

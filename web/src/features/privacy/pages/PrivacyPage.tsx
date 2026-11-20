@@ -8,7 +8,7 @@ import { formatDate } from '~/shared/lib/format.ts'
 
 // The data controller the policy names, and the day the policy took effect.
 const CONTROLLER = { name: 'Maciej Skorus', email: 'skorusmaciej94@gmail.com' }
-const IN_FORCE = '2026-11-18'
+const IN_FORCE = '2026-11-20'
 
 // The privacy policy, open signed in or not.
 export default function PrivacyPage() {
