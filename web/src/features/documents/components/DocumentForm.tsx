@@ -152,6 +152,7 @@ export default function DocumentForm({ doc, aside, top, lock, suggestion, onSave
   const input = toInput(form.values)
   const name = documentName(input).trim()
   const { icon: TypeIcon, color, strong } = TYPE_LOOKS[input.type]
+  const ink = `var(--mantine-color-${color}-light-color)`
   const subtypes: readonly Subtype[] = CATEGORIES[input.type]
   const dueLabel = dueDateLabel(t, input.type)
   // What a reading filled, with the value each field had before on a saved document.
@@ -244,12 +245,12 @@ export default function DocumentForm({ doc, aside, top, lock, suggestion, onSave
           py="lg"
           bg={`linear-gradient(90deg, var(--mantine-color-${color}-light), transparent 70%)`}
         >
-          <TypeIcon size={44} stroke={1.5} color={`var(--mantine-color-${color}-light-color)`} aria-hidden />
+          <TypeIcon size={44} stroke={1.5} color={ink} aria-hidden />
           <Stack gap={2} flex={1} miw={0}>
-            <Text ff="heading" fw={600} fz={20} c={name ? undefined : 'dimmed'}>
+            <Text ff="heading" fw={600} fz={20} c={name ? undefined : ink}>
               {name || t('documents.untitled')}
             </Text>
-            <Text size="sm" c="dimmed">
+            <Text size="sm" c={ink}>
               {describeDocument(t, input)}
             </Text>
           </Stack>

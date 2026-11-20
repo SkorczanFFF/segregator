@@ -36,7 +36,6 @@ export default function NewDocumentPage() {
   const navigate = useNavigate()
   const location = useLocation()
   const list = listOf(location)
-  // Kept as the draft changes the address, so the page goes back to the list it was opened from.
   const from = fromList(location)
   const queryClient = useQueryClient()
   const [params, setParams] = useSearchParams()

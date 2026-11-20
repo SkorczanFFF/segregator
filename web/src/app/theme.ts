@@ -3,7 +3,9 @@ import {
   Autocomplete,
   Button,
   createTheme,
+  getThemeColor,
   Indicator,
+  Input,
   NumberInput,
   Paper,
   PasswordInput,
@@ -13,6 +15,7 @@ import {
   Tooltip,
   type CSSVariablesResolver,
   type MantineColorsTuple,
+  type MantineTheme,
 } from '@mantine/core'
 import { DatePickerInput } from '@mantine/dates'
 import { TYPE_LOOKS } from '~/features/documents/look.ts'
@@ -57,13 +60,12 @@ const dark: MantineColorsTuple = [
   '#110a14',
 ]
 
-const typeColors = [...new Set(Object.values(TYPE_LOOKS).map(({ color }) => color))]
-
 // The light variant of the document type colors, used by their tiles, chosen buttons and the card's top:
-// a strong tint on the dark surface, a pastel on white, and text that keeps WCAG AA on it.
-const typeTints = (scheme: 'light' | 'dark') =>
+// a strong tint on the dark surface, a pastel on white, and text that keeps WCAG AA on it. On white their outline
+// is the type's strong shade.
+const typeTints = (theme: MantineTheme, scheme: 'light' | 'dark') =>
   Object.fromEntries(
-    typeColors.flatMap((color) => {
+    Object.values(TYPE_LOOKS).flatMap(({ color, strong }) => {
       const shade = (n: number) => `var(--mantine-color-${color}-${n})`
       const tint = (percent: number) => `color-mix(in srgb, ${shade(5)} ${percent}%, var(--mantine-color-body))`
       return scheme === 'dark'
@@ -76,6 +78,7 @@ const typeTints = (scheme: 'light' | 'dark') =>
             [`--mantine-color-${color}-light`, shade(1)],
             [`--mantine-color-${color}-light-hover`, shade(2)],
             [`--mantine-color-${color}-light-color`, `color-mix(in srgb, ${shade(9)} 75%, black)`],
+            [`--mantine-color-${color}-outline`, getThemeColor(strong, theme)],
           ]
     }),
   )
@@ -87,23 +90,25 @@ const ORANGE_TEXT = '#a8380a'
 export const cssVariablesResolver: CSSVariablesResolver = (theme) => ({
   variables: {},
   light: {
-    ...typeTints('light'),
+    ...typeTints(theme, 'light'),
     '--app-page-bg': theme.colors.brand[0],
     '--mantine-color-text': theme.colors.dark[8],
     '--mantine-color-dimmed': theme.colors.dark[4],
-    '--mantine-color-placeholder': theme.colors.dark[3],
+    '--mantine-color-placeholder': 'var(--mantine-color-dimmed)',
     '--mantine-color-default-border': theme.colors.dark[3],
     '--mantine-color-error': theme.colors.red[9],
     '--mantine-color-red-light-color': theme.colors.red[9],
+    '--mantine-color-red-outline': theme.colors.red[9],
     '--mantine-color-orange-text': ORANGE_TEXT,
     '--mantine-color-orange-light-color': ORANGE_TEXT,
     '--mantine-color-green-text': '#1f6b30',
     '--app-scrollbar': theme.colors.brand[4],
   },
   dark: {
-    ...typeTints('dark'),
+    ...typeTints(theme, 'dark'),
     '--app-page-bg': theme.colors.dark[8],
     '--app-scrollbar': theme.colors.brand[7],
+    '--mantine-color-placeholder': 'var(--mantine-color-dimmed)',
     '--mantine-color-default-border': theme.colors.dark[3],
     '--mantine-color-error': theme.colors.red[4],
     '--mantine-color-red-light-color': theme.colors.red[4],
@@ -144,6 +149,11 @@ export const theme = createTheme({
     Indicator: Indicator.extend({
       defaultProps: { color: 'saffron.5', zIndex: 1 },
       vars: () => ({ root: { '--indicator-text-color': 'var(--mantine-color-saffron-9)' } }),
+    }),
+    Input: Input.extend({
+      styles: (_, props) => ({
+        wrapper: props.error ? {} : { '--input-bd': 'var(--mantine-color-default-border)' },
+      }),
     }),
     NumberInput: NumberInput.extend({ defaultProps: { size: 'md' } }),
     // No default padding: a modal is a Paper too, and it has padding of its own.

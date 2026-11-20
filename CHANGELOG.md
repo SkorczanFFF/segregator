@@ -2,6 +2,15 @@
 
 The minor version marks a stage of the build plan and the patch version each step or fix within it, as [Semantic Versioning](https://semver.org/spec/v2.0.0.html) allows before 1.0.0. Each entry starts with the version and its commit message, followed by a description of what changed.
 
+## 0.16.2 - fix: raise the contrast of fields, placeholders and chosen buttons
+
+Released 2026-11-20.
+
+- Form fields have a border that stands out from the page and the card at 3:1 or more in both color schemes. A field with an error stays red, and a focused one turns purple.
+- Placeholders such as "e.g. Washing machine 8 kg" take the dimmed text color, at 4.5:1 or more.
+- In the light scheme a chosen type or subcategory has a border in the type's deep shade, so a chosen subcategory of an invoice, warranty or policy stands out too. The Delete account button's red is deeper.
+- At the top of a document's card the description, and "Untitled" when there is no name, take the type's color like its icon, readable on its tint in the dark scheme.
+
 ## 0.16.1 - feat: open each category of documents from the menu
 
 Released 2026-11-20.

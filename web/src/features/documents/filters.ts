@@ -28,7 +28,7 @@ export function listOf({ pathname, search, state }: Location) {
   return typeof list === 'string' ? list : listPath()
 }
 
-// The state of a link to a document, so its page can go back to the list with its filters.
+// The state of a link to a document: the list it was opened from.
 export const fromList = (location: Location) => ({ list: listOf(location) })
 
 // The types the list shows: the category's one, or those chosen, where none means every type.
@@ -49,8 +49,7 @@ const unitOf = (value: string) => (MONTH.test(value) ? 'month' : isDay(value) ? 
 
 // The filter from the address: the category from the path, the rest from the query, e.g.
 // ?from=2026-09&to=2026-11&types=receipt,invoice or ?types=receipt&subtype=fuel, where a month stands for the
-// whole of it. In a category the types are left out. What doesn't hold up is left out too, so an edited address
-// still opens the list.
+// whole of it. In a category the types are left out, and so is anything that doesn't hold up.
 export function readFilter(params: URLSearchParams, category?: DocumentType): ListFilter {
   const listed = category ? [] : (params.get('types')?.split(',') ?? [])
   const types = DOCUMENT_TYPES.filter((type) => listed.includes(type))

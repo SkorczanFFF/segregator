@@ -86,7 +86,7 @@ export default function DocumentsPage({ category }: { category?: DocumentType })
       }
     >
       <ApiErrorAlert code={error} />
-      {/* The whole list of an account without documents has nothing to filter yet. */}
+      {/* No filters on the whole list of an account without documents. */}
       {(filtered || category || items?.length !== 0) && (
         <DocumentFilters filter={filter} onChange={(next) => navigate(listAddress(next))} summary={summary} />
       )}
